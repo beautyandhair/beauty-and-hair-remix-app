@@ -1,0 +1,163 @@
+<!-- begin app block - swatches -->
+<div id="high-return-banner" style="display: none">
+    <a href="#stamped-reviews-tab">
+        <img src="https://cdn.shopify.com/s/files/1/1410/9094/files/Frequently_Returned_Item_Banner_600x156-new.jpg?v=1715808115"
+             width="600"
+             height="156"
+             style="width: 100%; max-width: 600px; height: auto; padding: 0 0 1rem 0"/>
+    </a>
+</div>
+
+
+{% assign product = block.settings.product %}
+{%- assign product_form_id = 'product-form-template--' | append: product.id | append: '__main' -%}
+<!-- begin swatches -->
+<div
+        id='swatch-container'
+        class="swatch-container"
+        data-section-id="{{ section.id }}">
+    {% for image in product.images %}
+        {% if block.settings.hide_OOS_colors %}
+            {% for v in image.variants %}
+                {% if v.available %}
+                    <figure>
+                        <div style="position:relative;">
+                            <img
+                                    data-available="{{ v.available }}"
+                                    data-variant-id="{{ v.id }}"
+                                    class="swatch"
+                                    src="{{ image | img_url: 'x75' }}"
+                                    alt="{{ image.alt | escape | replace: '"', '&quot;' }}"
+                                    loading="lazy"
+                                    height="75"
+                                    width="60">
+                        </div>
+                    </figure>
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            {% for v in image.variants %}
+                <figure>
+                    <div style="position:relative;">
+                        <img
+                                data-available="{{ v.available }}"
+                                data-variant-id="{{ v.id }}"
+                                class="swatch"
+                                src="{{ image | img_url: 'x75' }}"
+                                alt="{{ image.alt | escape | replace: '"', '&quot;' }}"
+                                loading="lazy"
+                                height="75"
+                                width="60">
+                    </div>
+                </figure>
+            {% endfor %}
+        {% endif %}
+    {% endfor %}
+
+</div>
+<!-- end swatches -->
+<!-- out of stock form template -->
+<template id="oos-form-template">
+    <div
+            id="esc-oos-form"
+            style="display: block;"
+            class="back-in-stock-snippet"
+            data-oos-color-form="">
+        <div id="esc-out-of-stock-inputs">
+            <div class="esc-out-of-stock-title">This color is out of stock - notify me!
+                <br>
+            </div>
+            <div class="esc-out-of-stock-subtitle">Add your email address or phone number to be notified as soon as this is back in stock:</div>
+            <input
+                    type="hidden"
+                    id="hidden_variant"
+                    name="contact[variant sku]"
+                    value="">
+            <input
+                    type="hidden"
+                    id="hidden_title"
+                    name="contact[variant title]"
+                    value="">
+
+            <form
+                    id="new-back-in-stock-form"
+                    action="#"
+                    onsubmit="javascript:event.preventDefault();">
+                <input
+                        type="hidden"
+                        id="hidden_variant"
+                        name="product_variant_id"
+                        value="">
+                <div class="esc-sms-container" style="margin: 2rem 0">
+
+                    <div style="display: flex; gap: 10px;">
+                        <input
+                                type="text"
+                                id="phone"
+                                name="sms"
+                                autocomplete="off"
+                                class="field__input2"
+                                placeholder="+1234567890">
+
+                        <button
+                                class="esc-btn button button--primary"
+                                data-alert-type="sms"
+                                type="button"
+                                width="120px;">Text Me
+                        </button>
+                    </div>
+
+                    <div style="clear:both;">&nbsp;</div>
+                    <div style="display: flex; gap: 10px;">
+                        <input
+                                type="email"
+                                name="email"
+                                placeholder="you@example.com"
+                                class="field__input2">
+
+                        <button
+                                class="esc-btn button button--primary"
+                                data-alert-type="email"
+                                type="button"
+                                width="120px;">Email Me</button>
+                    </div>
+
+
+                </div>
+            </form>
+        </div>
+    </div>
+</template>
+{% render 'custom-product-datasets', product: product %}
+<script type='application/json' id='color-group-data'>
+  {% assign ven = product.vendor | handleize %}
+  {% if shop.metafields.proddata_color_group[ven] != blank %}
+{{ shop.metafields.proddata_color_group[ven] }}
+{% else %}
+    {}
+  {% endif %}
+</script>
+{% schema %}
+{
+  "name": "B&H Swatches",
+  //      "javascript": "app.js",
+  "stylesheet": "app.css",
+  "target": "section",
+  "templates": ["product"],
+  "settings": [
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Product",
+      "autofill": true
+    },
+    {
+      "type" : "checkbox",
+      "id" : "hide_OOS_colors",
+      "default" : false,
+      "label" : "Hide out of stock colors",
+      "info" : "When checked hides out of stock swatches and group"
+    }
+  ]
+}
+{% endschema %}

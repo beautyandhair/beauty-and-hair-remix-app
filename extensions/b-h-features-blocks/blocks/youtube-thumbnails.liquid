@@ -1,0 +1,79 @@
+<!-- begin app block - youtube ids -->
+
+
+{% assign product = block.settings.product %}
+
+<!-- {{ product.id }} -->
+
+{% assign youtube_metafields = 'youtube_video_id,second_youtube_video_id,third_youtube_video_id' | split: "," %}
+
+
+
+{% for metafield_name in youtube_metafields %}
+
+
+    {% if metafield_name == "youtube_video_id" %}
+        {% assign youtube_id = product.metafields.my_fields[metafield_name] %}
+    {% else %}
+        {% assign youtube_id = product.metafields.custom[metafield_name] %}
+    {% endif %}
+
+
+    <!-- {{ metafield_name }} - {{ youtube_id }} -->
+    {% if youtube_id != blank %}
+        <!-- {{ metafield_name }} - {{ youtube_id }} -->
+        {% assign youtube_id = youtube_id | replace: "/edit", "" %}
+        <div
+                class="video_container"
+                id="ytid-{{ youtube_id }}"
+                onclick="youTubePlayer('{{ youtube_id }}')"
+                style="background-image: url('https://img.youtube.com/vi/{{ youtube_id }}/hqdefault.jpg');">
+            <div class="playbutton">&nbsp;</div>
+        </div>
+
+        <iframe
+                id="ytp-{{ youtube_id }}"
+                class="ytp"
+                title="YouTube video player"
+                src=""
+                height=""
+                width="100%"
+                allowfullscreen=""
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                frameborder="0"
+                style="display:none;aspect-ratio:16/9;"></iframe>
+
+        <div class="youtube_spacer"></div>
+
+        <script>
+            function youTubePlayer(id) {
+                document.getElementById("ytid-" + id).style.display = 'none';
+                document.getElementById("ytp-" + id).style.display = '';
+                document.getElementById("ytp-" + id).src = 'https://www.youtube.com/embed/' + id + '?autoplay=1&modestbranding=1&rel=0';
+            }
+        </script>
+
+
+
+    {% endif %}
+{% endfor %}
+
+{% comment %} all the youtube video ids from the product metafields{% endcomment %}
+
+
+{% schema %}
+{
+  "name": "Youtube Video Thumbnails",
+  "stylesheet": "youtube-video-player.css",
+  "target": "section",
+  "templates": ["product"],
+  "settings": [
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Product",
+      "autofill": true
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,128 @@
+{% assign list_on_clearance = '' %}
+{% assign list_pre_launch_status = '' %}
+{% assign list_newcolor_status = '' %}
+{% assign list_unavailable = '' %}
+{% assign list_variant_id_to_color = '' %}
+{% assign list_best_sellers = '' %}
+{% assign list_clearance_percent_discount = '' %}
+{% assign list_high_return = '' %}
+
+{% assign color_index = 1 %}
+{% for option in product.options %}
+
+    {% assign to_find = 'color' %}
+    {% assign lower_case_option = option | downcase %}
+    {% if lower_case_option == to_find %}
+        {% assign color_index = forloop.index %}
+        {% break %}
+
+    {% endif %}
+{% endfor %}
+{% assign color_option = 'option' | append: color_index %}
+
+
+
+{% comment %}new comment{% endcomment %}
+{% for variant in product.variants %}
+
+    {% assign search_prelaunch = "Liquid:PRE-LAUNCH-" | append: variant.title %}
+    {% if product.tags contains search_prelaunch %}
+        {% capture list_pre_launch_status %},{{ variant.id }}{{ list_pre_launch_status }}{% endcapture %}
+        {% continue %}
+    {% endif %}
+
+    {% if variant.available == false %}
+        {% capture list_unavailable %},{{ variant.id }}{{ list_unavailable }}{% endcapture %}
+        {% continue %}
+    {% endif %}
+
+
+    {%- assign search_new_color = 'Liquid:NEW-COLOR-' | append: variant.title -%}
+
+    {%- if product.tags contains search_new_color %}
+        {% capture list_newcolor_status %},{{ variant.id }}{{ list_newcolor_status }}{% endcapture %}
+        {% continue %}
+    {%- endif -%}
+
+    {% if variant.metafields.global.discount_percent_string == "50" %}
+        {% capture list_clearance_percent_discount %},{{ variant.id }}{{ list_clearance_percent_discount }}{% endcapture %}
+
+    {% endif %}
+
+
+    {% if variant.metafields.global.CLEARANCE == "true" %}
+        {% capture list_on_clearance %},{{ variant.id }}{{ list_on_clearance }}{% endcapture %}
+        {% continue %}
+    {% endif %}
+
+    {% if variant.metafields.variants.best-sellers.value == true %}
+        {% capture list_best_sellers %},{{ variant.id }}{{ list_best_sellers }}{% endcapture %}
+        {% continue %}
+    {% endif %}
+
+    {% if variant.metafields.global.color_banner.value == true %}
+        {% capture list_high_return %},{{ variant.id }}{{ list_high_return }}{% endcapture %}
+        {% continue %}
+    {% endif %}
+
+
+
+{% endfor %}
+
+{% assign list_on_clearance = list_on_clearance | remove_first: ',' | prepend: '"on_clearance": [' | append: "]" %}
+{% assign list_pre_launch_status = list_pre_launch_status | remove_first: ',' | prepend: '"pre_launch": [' | append: "]" %}
+{% assign list_newcolor_status = list_newcolor_status | remove_first: ',' | prepend: '"new_colors": [' | append: "]" %}
+{% assign list_unavailable = list_unavailable | remove_first: ',' | prepend: '"unavailable": [' | append: "]" %}
+{% assign list_best_sellers = list_best_sellers | remove_first: ',' | prepend: '"best_sellers": [' | append: "]" %}
+{% assign list_clearance_percent_discount = list_clearance_percent_discount | remove_first: ',' | prepend: '"clearance_percent_discount": [' | append: "]" %}
+{% assign list_high_return = list_high_return | remove_first: ',' | prepend: '"high_returns" : [' | append: "]" %}
+
+
+<script type="application/json" id='variant-groups'>
+  {"datasets": {
+  {{ list_on_clearance }},
+  {{ list_pre_launch_status }} ,
+  {{ list_newcolor_status }} ,
+  {{ list_unavailable }} ,
+  {{ list_best_sellers }},
+  {{ list_clearance_percent_discount }},
+  {{ list_high_return }}
+  }
+  }
+</script>
+<script type="application/json" id="color-option-index">
+  {"color_option_index":"{{ color_option }}"}
+</script>
+<script type="application/json" id='variant-data'>
+  {{ product.variants | json }}
+</script>
+
+{% comment %}
+client side event handling
+
+function handleUnavailable(){
+
+console.log('handling it');
+}
+
+let elements_to_callbacks =
+[
+{"element_selector":"figure[data-variant-id] img", callback: handleUnavailable},
+{"element_selector":"figure[data-variant-id] img", callback: function(){console.log('2')}},
+{"element_selector":"figure[data-variant-id] img", callback: function(){console.log('3')}},
+{"element_selector":"figure[data-variant-id]", callback: function(){console.log('4')}},
+{"element_selector":"figure[data-variant-id] img", callback: function(){console.log('5')}}
+];
+
+
+document.addEventListener('click',function(e){
+
+let target = e.target;
+
+let elems = elements_to_callbacks.filter(elem => { if(target.matches( elem.element_selector)){ return elem }  });
+elems.forEach(el => el.callback(target));
+//if(e.target.matches("figure[data-variant-id] img")){console.log(e.target);}
+
+});
+
+{% endcomment %}

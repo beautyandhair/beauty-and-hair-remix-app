@@ -1,0 +1,88 @@
+# Learn more about configuring your checkout UI extension:
+# https://shopify.dev/api/checkout-extensions/checkout/configuration
+
+# The version of APIs your extension will receive. Learn more:
+# https://shopify.dev/docs/api/usage/versioning
+api_version = "2025-01"
+
+[[extensions]]
+name = "donations"
+handle = "donations"
+type = "ui_extension"
+
+
+# Controls where in Shopify your extension will be injected,
+# and the file that contains your extension’s source code. Learn more:
+# https://shopify.dev/docs/api/checkout-ui-extensions/unstable/extension-targets-overview
+
+[[extensions.targeting]]
+module = "./src/Checkout.tsx"
+target = "purchase.checkout.block.render"
+
+[extensions.capabilities]
+# Gives your extension access to directly query Shopify’s storefront API.
+# https://shopify.dev/docs/api/checkout-ui-extensions/unstable/configuration#api-access
+api_access = true
+
+# Gives your extension access to make external network calls, using the
+# JavaScript `fetch()` API. Learn more:
+# https://shopify.dev/docs/api/checkout-ui-extensions/unstable/configuration#network-access
+# network_access = true
+
+# Loads metafields on checkout resources, including the cart,
+# products, customers, and more. Learn more:
+# https://shopify.dev/docs/api/checkout-ui-extensions/unstable/configuration#metafields
+
+# [[extensions.metafields]]
+# namespace = "my_namespace"
+# key = "my_key"
+# [[extensions.metafields]]
+# namespace = "my_namespace"
+# key = "my_other_key"
+
+# Defines settings that will be collected from merchants installing
+# your extension. Learn more:
+# https://shopify.dev/docs/api/checkout-ui-extensions/unstable/configuration#settings-definition
+
+[[extensions.settings.fields]]
+key = "donation_standuptocancer"
+type = "boolean"
+name = "StandUpToCancer.org"
+
+[[extensions.settings.fields]]
+key = "donation_gid_1"
+type = "variant_reference"
+name = "Donation Variant"
+description = "Be sure to select Variant, not Product"
+
+[[extensions.settings.fields]]
+key = "donation_start_date_1"
+type = "date"
+name = "Donation Start date"
+
+[[extensions.settings.fields]]
+key = "donation_end_date_1"
+type = "date"
+name = "Donation End date"
+
+[extensions.settings]
+[[extensions.settings.fields]]
+key = "donation_breastcancer"
+type = "boolean"
+name = "BreastCancer.org"
+
+[[extensions.settings.fields]]
+key = "donation_gid_2"
+type = "variant_reference"
+name = "Donation Variant"
+description = "Be sure to select Variant, not Product"
+
+[[extensions.settings.fields]]
+key = "donation_start_date_2"
+type = "date"
+name = "Donation Start date"
+
+[[extensions.settings.fields]]
+key = "donation_end_date_2"
+type = "date"
+name = "Donation End date"
