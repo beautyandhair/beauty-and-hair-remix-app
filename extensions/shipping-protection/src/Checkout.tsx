@@ -151,7 +151,6 @@ function Extension() {
       );
 
       setProducts(data.products.nodes);
-      console.log(data.products.nodes)
     } catch (error) {
       console.error(error, 'Error fetching products');
     } finally {

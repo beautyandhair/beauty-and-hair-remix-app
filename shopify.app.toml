@@ -1,14 +1,14 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "5cede6d0934f771ccfb90174fb0fb0f1"
-application_url = "https://emacs-harold-convert-tones.trycloudflare.com"
+application_url = "https://floors-friendly-establishment-latter.trycloudflare.com"
 embedded = true
 name = "beauty-and-hair-remix-app"
 handle = "beauty-and-hair-remix-app-1"
 
 [build]
 include_config_on_deploy = true
-dev_store_url = "wigs-store-beta.myshopify.com"
+dev_store_url = "kats-dev-store.myshopify.com"
 automatically_update_urls_on_dev = true
 
 [webhooks]
@@ -28,9 +28,9 @@ scopes = "write_products,read_products,write_discounts"
 
 [auth]
 redirect_urls = [
-  "https://emacs-harold-convert-tones.trycloudflare.com/auth/callback",
-  "https://emacs-harold-convert-tones.trycloudflare.com/auth/shopify/callback",
-  "https://emacs-harold-convert-tones.trycloudflare.com/api/auth/callback"
+  "https://floors-friendly-establishment-latter.trycloudflare.com/auth/callback",
+  "https://floors-friendly-establishment-latter.trycloudflare.com/auth/shopify/callback",
+  "https://floors-friendly-establishment-latter.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

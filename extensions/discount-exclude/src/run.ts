@@ -37,28 +37,22 @@ export function run(input: RunInput): FunctionRunResult {
       return variantMetafield === configuration.value;
     }
     else {
-      return variantMetafield !== undefined;
+      return variantMetafield !== null;
     } 
   }
   
   const targets = input.cart.lines
-  .filter(line => {
+  .filter((line) => {
     if (line.merchandise.__typename == 'ProductVariant') {
       const variant = (line.merchandise);
-      
+
       return !variant.product.inAnyCollection && !variant.product.hasAnyTag && !hasMetafield(variant.metafield?.value)
     } else {
       return false;
     }
   })
-  .map(line => {
-    const variant = (line.merchandise);
-
-    return ({
-      productVariant: {
-        id: variant.id,
-      },
-    });
+  .map((line) => {
+    return ({ cartLine: { id: line.id } });
   });
 
   if (!targets.length) {
