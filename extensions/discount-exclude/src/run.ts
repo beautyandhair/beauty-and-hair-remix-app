@@ -30,14 +30,14 @@ export function run(input: RunInput): FunctionRunResult {
   }
 
   const hasMetafield = (variantMetafield: string | undefined) => {
-    if (!configuration.namespace && !configuration.key) {
+    if (!configuration.key) {
       return false;
     }
     if (configuration.value) {
       return variantMetafield === configuration.value;
     }
     else {
-      return variantMetafield !== null;
+      return typeof variantMetafield === "string";
     } 
   }
   
