@@ -15,7 +15,10 @@ import {
   Icon,
   Link,
   Divider,
+  Paragraph,
   ProgressIndicator,
+  Pressable,
+  Badge,
 } from '@shopify/ui-extensions-react/admin';
 
 import { useState, useEffect } from 'react';
@@ -50,7 +53,7 @@ function PercentageField({ defaultValue, value, onChange, i18n }) {
   return (
     <Box>
       <BlockStack gap="base">
-        <Text>
+        <Text fontWeight="bold">
           {i18n.translate('description')}
         </Text>
         <NumberField
@@ -73,11 +76,16 @@ function VariantMetafieldBlock({
 } : {variantMetafield: Metafield, initialVariantMetafield: Metafield, onChange: (fieldType: string, value: string) => void}) {
   return (
     <Box>
-      <BlockStack>
-        <Text>
-          Product variants with this metafield will be excluded. The "key" field is required, but leave "value" blank if it should be ignored.
-        </Text>
-        <InlineStack gap="base">
+      <BlockStack gap="base">
+        <Box>
+          <Text fontWeight="bold">
+            Product variants with this metafield will be excluded.
+          </Text>
+          <Paragraph>
+            The "key" field is required, but leave "value" blank if it should be ignored.
+          </Paragraph>
+        </Box>
+        <InlineStack gap="large">
           <TextField label="Namespace" defaultValue={initialVariantMetafield.namespace} value={variantMetafield.namespace} onChange={(value) => onChange("namespace", value)} />
           <TextField label="Key" value={variantMetafield.key} defaultValue={initialVariantMetafield.key} onChange={(value) => onChange("key", value)} />
           <TextField label="Value" value={variantMetafield.value} defaultValue={initialVariantMetafield.value} onChange={(value) => onChange("value", value)} />
@@ -113,23 +121,30 @@ function ProductTagsBlock({
 
   return (
     <Box>
-      <BlockStack>
-        <Text>
+      <BlockStack gap="base">
+        <Text fontWeight="bold">
           Products with these tags will be excluded.
         </Text>
         <InlineStack gap="base">
           {productTags.map((tag) => (
-            <Button onClick={() => onChange(tag)} variant="tertiary">
-              <InlineStack columnGap="small">
+            <Pressable onClick={() => onChange(tag)}>
+              <Badge icon="CircleCancelMinor" iconPosition="end">
                 {tag}
-                <Icon name="DeleteMinor" />
-              </InlineStack>
-            </Button>
+              </Badge>
+            </Pressable>
           ))}
         </InlineStack>
-        <InlineStack>
+        <InlineStack gap="large" blockAlignment="end">
           <TextField label="Tag" value={newTag} onChange={(value) => setNewTag(value)} />
-          <Button onClick={onAddTag}>Add product tag</Button>
+          <Button onClick={onAddTag}>
+            <InlineStack
+              blockAlignment="center"
+              gap="base"
+            >
+              <Icon name="CirclePlusMinor" />
+              Add
+            </InlineStack>
+          </Button>
         </InlineStack>
     </BlockStack>
   </Box>
@@ -177,10 +192,9 @@ function CollectionsSection({
                 variant="tertiary"
                 onClick={() => onClickRemove(collection.id)}
               >
-                <Icon name="CircleCancelMajor" />
+                <Icon name="CircleCancelMinor" />
               </Button>
             </InlineStack>
-            <Divider />
           </BlockStack>
         ))
       : null;
@@ -200,7 +214,7 @@ function CollectionsSection({
             inlineAlignment="start"
             gap="base"
           >
-            <Icon name="CirclePlusMajor" />
+            <Icon name="CirclePlusMinor" />
             {i18n.translate('addCollections')}
           </InlineStack>
         </Button>
@@ -233,45 +247,52 @@ function App() {
   return (
     <FunctionSettings onSave={applyExtensionMetafieldChange}>
     <Form onReset={resetForm} onSubmit={undefined}>
-      <Section>
-        <ProductTagsField
-            defaultValue={initialProductTags}
-            value={productTags}
-            onChange={onProductTagsChange}
+      <BlockStack gap="large">
+        <Section>
+          <ProductTagsField
+              defaultValue={initialProductTags}
+              value={productTags}
+              onChange={onProductTagsChange}
+            />
+          <CollectionsField
+            defaultValue={initialSelectedCollections}
+            value={selectedCollections}
+            onChange={onSelectCollections}
           />
-        <CollectionsField
-          defaultValue={initialSelectedCollections}
-          value={selectedCollections}
-          onChange={onSelectCollections}
-        />
-        <PercentageField
-          value={percentage}
-          defaultValue={initialPercentage}
-          onChange={onPercentageValueChange}
-          i18n={i18n}
-        />
-      </Section>
-      <Section>
-        <VariantMetafieldBlock variantMetafield={variantMetafield} initialVariantMetafield={initialVariantMetafield} onChange={onVariantMetafieldChange} />
-      </Section>
-      <Section>
-        <ProductTagsBlock productTags={productTags} initialProductTags={initialProductTags} onChange={onProductTagsChange} />
-      </Section>
-      <Section padding="base">
-        <Box padding="base none">
-          <Text>
-            Products in these collections will be excluded.
-          </Text>
-          <CollectionsSection
-            loading={loading}
-            selectedCollections={selectedCollections}
-            onClickAdd={onSelectCollections}
-            onClickRemove={handleRemoveCollection}
+          <PercentageField
+            value={percentage}
+            defaultValue={initialPercentage}
+            onChange={onPercentageValueChange}
             i18n={i18n}
           />
-        </Box>
-      </Section>
-      </Form>
+        </Section>
+        <Divider />
+        <Section>
+          <VariantMetafieldBlock variantMetafield={variantMetafield} initialVariantMetafield={initialVariantMetafield} onChange={onVariantMetafieldChange} />
+        </Section>
+        <Divider />
+        <Section>
+          <ProductTagsBlock productTags={productTags} initialProductTags={initialProductTags} onChange={onProductTagsChange} />
+        </Section>
+        <Divider />
+        <Section>
+          <Box>
+            <BlockStack gap="base">
+              <Text fontWeight="bold">
+                Products in these collections will be excluded.
+              </Text>
+              <CollectionsSection
+                loading={loading}
+                selectedCollections={selectedCollections}
+                onClickAdd={onSelectCollections}
+                onClickRemove={handleRemoveCollection}
+                i18n={i18n}
+              />
+            </BlockStack>
+          </Box>
+        </Section>
+      </BlockStack>
+    </Form>
     </FunctionSettings>
   );
 }
@@ -301,9 +322,16 @@ function useExtensionData() {
     async function fetchInitialData() {
       setLoading(true);
 
-      const savedMetafieldsValue = JSON.parse(savedMetafields.find(
+      const parsedConfigMetafield = savedMetafields.find(
         (metafield) => metafield.key === 'function-configuration'
-      )?.value);
+      );
+
+      const savedMetafieldsValue = parsedConfigMetafield ? JSON.parse(parsedConfigMetafield.value) : {
+        percentage: 0,
+        collections: [],
+        productTags: [],
+        ...EMPTY_METAFIELD_OBJECT
+      };
 
       const transferPercentage = parsePercentage(savedMetafieldsValue);
       setInitialPercentage(Number(transferPercentage));
@@ -393,7 +421,7 @@ function useExtensionData() {
     
     await applyMetafieldChange({
       type: 'updateMetafield',
-      namespace: '$app:discount-exclude-metafields',
+      namespace: '$app:discount-exclude',
       key: 'function-configuration',
       value: JSON.stringify(commitFormValues),
       valueType: 'json',
@@ -421,11 +449,12 @@ function useExtensionData() {
       setPercentage(initialPercentage);
       setVariantMetafield(initialVariantMetafield);
       setSelectedCollections(initialSelectedCollections);
+      setProductTags(initialProductTags);
     }
   };
 }
 
-const METAFIELD_NAMESPACE = '$app:discount-exclude-metafields';
+const METAFIELD_NAMESPACE = '$app:discount-exclude';
 const METAFIELD_KEY = 'function-configuration';
 async function getMetafieldDefinition(adminApiQuery) {
   const query = `#graphql

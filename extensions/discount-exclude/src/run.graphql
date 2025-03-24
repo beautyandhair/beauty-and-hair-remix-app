@@ -16,7 +16,7 @@ query RunInput($namespace: String, $key: String!, $productTags: [String!]!, $col
     }
   }
   discountNode {
-    metafield(namespace: "$app:discount-exclude-metafields", key: "function-configuration") {
+    metafield(namespace: "$app:discount-exclude", key: "function-configuration") {
       value
     }
   }

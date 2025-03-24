@@ -2,7 +2,7 @@ api_version = "2025-01"
 
 [[extensions]]
 name = "t:name"
-handle = "discount-exclude-metafields"
+handle = "discount-exclude"
 type = "function"
 
 description = "t:description"
@@ -21,8 +21,8 @@ description = "t:description"
   details = "/"
 
 [extensions.ui]
-handle = "discount-exclude-metafields-block"
+handle = "discount-exclude-block"
 
 [extensions.input.variables]
-namespace = "$app:discount-exclude-metafields"
+namespace = "$app:discount-exclude"
 key = "function-configuration"
