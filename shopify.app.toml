@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "5cede6d0934f771ccfb90174fb0fb0f1"
-application_url = "https://slim-hamburg-anatomy-ghana.trycloudflare.com"
+application_url = "https://marijuana-sticker-proof-grateful.trycloudflare.com"
 embedded = true
 name = "beauty-and-hair-remix-app"
 handle = "beauty-and-hair-remix-app-1"
@@ -24,13 +24,13 @@ api_version = "2025-01"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products"
+scopes = "write_products,read_products,write_discounts"
 
 [auth]
 redirect_urls = [
-  "https://slim-hamburg-anatomy-ghana.trycloudflare.com/auth/callback",
-  "https://slim-hamburg-anatomy-ghana.trycloudflare.com/auth/shopify/callback",
-  "https://slim-hamburg-anatomy-ghana.trycloudflare.com/api/auth/callback"
+  "https://marijuana-sticker-proof-grateful.trycloudflare.com/auth/callback",
+  "https://marijuana-sticker-proof-grateful.trycloudflare.com/auth/shopify/callback",
+  "https://marijuana-sticker-proof-grateful.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]
