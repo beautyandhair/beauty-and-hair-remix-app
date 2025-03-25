@@ -35,6 +35,7 @@ function Extension() {
   const [slide, setSlide] = useState(0);
   const lines = useCartLines();
   const {
+    donation_order,
     donation_standuptocancer,
     donation_gid_1,
     donation_start_date_1,
@@ -58,47 +59,35 @@ function Extension() {
     return active && startDateValid && endDateValid;
   };
 
-  /*
   const [donations, setDonations] = useState([
     {
+      acronym: "SU2C",
       title: STAND_UP_TO_CANCER_TITLE,
-      active: determineIsActive(donation_standuptocancer, donation_start_date_1, donation_end_date_1),
+      active: donation_gid_1 && determineIsActive(donation_standuptocancer, donation_start_date_1, donation_end_date_1),
       isChecked: true,
       showError: false,
       variantId: donation_gid_1
     },
     {
+      acronym: "BC",
       title: BREAST_CANCER_TITLE,
-      active: determineIsActive(donation_breastcancer, donation_start_date_2, donation_end_date_2),
+      active: donation_gid_2 && determineIsActive(donation_breastcancer, donation_start_date_2, donation_end_date_2),
       isChecked: true,
       showError: false,
       variantId: donation_gid_2
     }
   ]);
-  */
-  const [donations, setDonations] = useState([
-    {
-      title: 'Donation to Stand Up To Cancer',
-      active: true,
-      isChecked: true,
-      showError: false,
-      variantId: 'gid://shopify/ProductVariant/50402043953434'
-    },
-    {
-      title: 'Donation to Breastcancer.org',
-      active: true,
-      isChecked: true,
-      showError: false,
-      variantId: 'gid://shopify/ProductVariant/48765759455514'
-    }
-  ]);
 
-  const activeDonations = donations.filter((donation) => donation.active);
+  const donationOrder = donation_order && typeof donation_order === 'string' ? donation_order.split(',').map((acronym) => acronym.trim()) : ["BC", "SU2C"];
+
+  const activeDonations = donations.filter((donation) => donation.active).sort((a, b) => {
+    return donationOrder.indexOf(a.acronym) - donationOrder.indexOf(b.acronym);
+  });
 
   useEffect(() => {
     const timers = [];
 
-    for (const donation of donations) {
+    for (const donation of activeDonations) {
       if (donation.showError) {
         const timer = setTimeout(() => {
           donation.showError = false;

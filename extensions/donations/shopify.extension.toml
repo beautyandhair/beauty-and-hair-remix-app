@@ -45,6 +45,12 @@ api_access = true
 # https://shopify.dev/docs/api/checkout-ui-extensions/unstable/configuration#settings-definition
 
 [[extensions.settings.fields]]
+key = "donation_order"
+type = "single_line_text_field"
+name = "Order of Donations"
+description = "Comma seperated list (use acronym). Default: BC,SU2C"
+
+[[extensions.settings.fields]]
 key = "donation_standuptocancer"
 type = "boolean"
 name = "StandUpToCancer.org"
@@ -53,7 +59,7 @@ name = "StandUpToCancer.org"
 key = "donation_gid_1"
 type = "variant_reference"
 name = "Donation Variant"
-description = "Be sure to select Variant, not Product"
+description = "Be sure to select variant, not product"
 
 [[extensions.settings.fields]]
 key = "donation_start_date_1"
@@ -75,7 +81,7 @@ name = "BreastCancer.org"
 key = "donation_gid_2"
 type = "variant_reference"
 name = "Donation Variant"
-description = "Be sure to select Variant, not Product"
+description = "Be sure to select variant, not product."
 
 [[extensions.settings.fields]]
 key = "donation_start_date_2"
