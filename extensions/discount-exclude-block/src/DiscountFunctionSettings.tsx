@@ -79,7 +79,7 @@ function VariantMetafieldBlock({
       <BlockStack gap="base">
         <Box>
           <Text fontWeight="bold">
-            Product variants with this metafield will be excluded.
+            EXCLUDE: Product varaint metafield
           </Text>
           <Paragraph>
             The "key" field is required, but leave "value" blank if it should be ignored.
@@ -123,9 +123,9 @@ function ProductTagsBlock({
     <Box>
       <BlockStack gap="base">
         <Text fontWeight="bold">
-          Products with these tags will be excluded.
+          EXCLUDE: Product tags
         </Text>
-        <InlineStack gap="base">
+        <InlineStack gap={true} columnGap="base" rowGap="base" blockGap="base" inlineGap="base">
           {productTags.map((tag) => (
             <Pressable onClick={() => onChange(tag)}>
               <Badge icon="CircleCancelMinor" iconPosition="end">
@@ -267,19 +267,12 @@ function App() {
           />
         </Section>
         <Divider />
-        <Section>
-          <VariantMetafieldBlock variantMetafield={variantMetafield} initialVariantMetafield={initialVariantMetafield} onChange={onVariantMetafieldChange} />
-        </Section>
-        <Divider />
-        <Section>
-          <ProductTagsBlock productTags={productTags} initialProductTags={initialProductTags} onChange={onProductTagsChange} />
-        </Section>
-        <Divider />
+
         <Section>
           <Box>
             <BlockStack gap="base">
               <Text fontWeight="bold">
-                Products in these collections will be excluded.
+                INCLUDE: Collections
               </Text>
               <CollectionsSection
                 loading={loading}
@@ -290,6 +283,16 @@ function App() {
               />
             </BlockStack>
           </Box>
+        </Section>
+        <Divider />
+
+        <Section>
+          <ProductTagsBlock productTags={productTags} initialProductTags={initialProductTags} onChange={onProductTagsChange} />
+        </Section>
+        <Divider />
+
+        <Section>
+          <VariantMetafieldBlock variantMetafield={variantMetafield} initialVariantMetafield={initialVariantMetafield} onChange={onVariantMetafieldChange} />
         </Section>
       </BlockStack>
     </Form>
@@ -395,13 +398,12 @@ function useExtensionData() {
       selectionIds: selectedCollections.map((collection) => ({
         id: collection.id,
       })),
-      action: 'select',
-      filter: {
-        archived: true,
-        variants: true,
-      },
+      action: 'select'
     });
-    setSelectedCollections(selection);
+
+    if (selection != undefined) {
+      setSelectedCollections(selection);
+    }
   }
 
   async function handleRemoveCollection(id) {

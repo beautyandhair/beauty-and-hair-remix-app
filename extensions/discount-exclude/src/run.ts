@@ -46,7 +46,7 @@ export function run(input: RunInput): FunctionRunResult {
     if (line.merchandise.__typename == 'ProductVariant') {
       const variant = (line.merchandise);
 
-      return !variant.product.inAnyCollection && !variant.product.hasAnyTag && !hasMetafield(variant.metafield?.value)
+      return variant.product.inAnyCollection && !variant.product.hasAnyTag && !hasMetafield(variant.metafield?.value)
     } else {
       return false;
     }
