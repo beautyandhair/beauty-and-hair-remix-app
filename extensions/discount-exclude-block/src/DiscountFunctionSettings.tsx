@@ -31,9 +31,9 @@ interface Metafield {
 
 const TARGET = 'admin.discount-details.function-settings.render';
 const EMPTY_METAFIELD_OBJECT = {
-  namespace: '',
-  key: '',
-  value: ''
+  namespace: "",
+  key: "",
+  value: ""
 };
 
 export default reactExtension(TARGET, async (api) => {
@@ -86,9 +86,9 @@ function VariantMetafieldBlock({
           </Paragraph>
         </Box>
         <InlineStack gap="large">
-          <TextField label="Namespace" defaultValue={initialVariantMetafield.namespace} value={variantMetafield.namespace} onChange={(value) => onChange("namespace", value)} />
-          <TextField label="Key" value={variantMetafield.key} defaultValue={initialVariantMetafield.key} onChange={(value) => onChange("key", value)} />
-          <TextField label="Value" value={variantMetafield.value} defaultValue={initialVariantMetafield.value} onChange={(value) => onChange("value", value)} />
+          <TextField label="namespace" value={variantMetafield.namespace} defaultValue={initialVariantMetafield.namespace} onChange={(value) => onChange("namespace", value)} />
+          <TextField label="key" value={variantMetafield.key} defaultValue={initialVariantMetafield.key} onChange={(value) => onChange("key", value)} />
+          <TextField label="value" value={variantMetafield.value} defaultValue={initialVariantMetafield.value} onChange={(value) => onChange("value", value)} />
         </InlineStack>
     </BlockStack>
   </Box>
@@ -380,7 +380,7 @@ function useExtensionData() {
   const onVariantMetafieldChange = (fieldType: string, value: string) => {
     variantMetafield[fieldType] = value;
 
-    setVariantMetafield((prev) => ({...prev}));
+    //setVariantMetafield((prev) => ({...prev}));
   };
 
   const onProductTagsChange = (value: string) => {
