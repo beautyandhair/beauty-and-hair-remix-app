@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {
   reactExtension,
   Banner,
@@ -21,6 +21,12 @@ import {
 const STAND_UP_TO_CANCER_TITLE = "Donation to Stand Up To Cancer";
 const BREAST_CANCER_TITLE = "Donation to Breastcancer.org";
 
+const parseDate = (str) => {
+  const [year, month, day] = str.split('-');
+
+  return new Date(year, month - 1, day);
+};
+
 // 1. Choose an extension target
 export default reactExtension("purchase.checkout.block.render", () => (
   <Extension />
@@ -36,51 +42,46 @@ function Extension() {
   const lines = useCartLines();
   const {
     donation_order,
+    donation_scheduled_order,
+    donation_scheduled_start_date,
+    donation_scheduled_end_date,
     donation_su2c_active,
     donation_su2c_gid,
-    donation_su2pc_start_check,
-    donation_su2c_start_date,
-    donation_su2c_end_date,
     donation_bc_active,
-    donation_bc_gid,
-    donation_bc_start_check,
-    donation_bc_start_date,
-    donation_bc_end_date
+    donation_bc_gid
   } = useSettings();
 
-  const parseDate = (str) => {
-    const [year, month, day] = str.split('-');
+  const donationOrder = useMemo(() => {
+    const startDateValid = donation_scheduled_start_date ? parseDate(donation_scheduled_start_date) <= currentDate : true;
+    const endDateValid = donation_scheduled_end_date ? parseDate(donation_scheduled_end_date) >= currentDate : true;
 
-    return new Date(year, month - 1, day);
-  };
-
-  const determineIsActive = (active, startDate, endDate) => {
-    const startDateValid = startDate ? parseDate(startDate) <= currentDate : true;
-    const endDateValid = endDate ? parseDate(endDate) >= currentDate : true;
-
-    return active && startDateValid && endDateValid;
-  };
+    if (startDateValid && endDateValid) {
+      return donation_scheduled_order && typeof donation_scheduled_order === 'string' ? donation_scheduled_order.split(',').map((acronym) => acronym.trim()) : ["BC","SU2C"];
+    }
+    else {
+      return donation_order && typeof donation_order === 'string' ? donation_order.split(',').map((acronym) => acronym.trim()) : ["SU2C","BC"];
+    }
+  }, []);
 
   const [donations, setDonations] = useState([
     {
       acronym: "SU2C",
       title: STAND_UP_TO_CANCER_TITLE,
-      active: donation_su2c_gid && determineIsActive(donation_su2c_active, donation_su2c_start_date, donation_su2c_end_date),
-      isChecked: donation_su2pc_start_check,
+      active: donation_su2c_gid && donation_su2c_active,
+      isChecked: donationOrder[0] === "SU2C",
       showError: false,
       variantId: donation_su2c_gid
     },
     {
       acronym: "BC",
       title: BREAST_CANCER_TITLE,
-      active: donation_bc_gid && determineIsActive(donation_bc_active, donation_bc_start_date, donation_bc_end_date),
-      isChecked: donation_bc_start_check,
+      active: donation_bc_gid && donation_bc_active,
+      isChecked: donationOrder[0] === "BC",
       showError: false,
       variantId: donation_bc_gid
     }
+    
   ]);
-
-  const donationOrder = donation_order && typeof donation_order === 'string' ? donation_order.split(',').map((acronym) => acronym.trim()) : ["SU2C","BC"];
 
   const activeDonations = donations.filter((donation) => donation.active).sort((a, b) => {
     return donationOrder.indexOf(a.acronym) - donationOrder.indexOf(b.acronym);
