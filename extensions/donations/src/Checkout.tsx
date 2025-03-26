@@ -33,7 +33,6 @@ function Extension() {
   const applyCartLinesChange = useApplyCartLinesChange();
   const [isLoading, setIsLoading] = useState(false);
   const [slide, setSlide] = useState(0);
-  const [synced, setSynced] = useState(false);
   const lines = useCartLines();
   const {
     donation_order,
@@ -88,14 +87,6 @@ function Extension() {
   });
 
   useEffect(() => {
-    return () => {
-      for (const donation of donations) {
-        handleRemoveFromCart(donation);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
     const timers = [];
 
     for (const donation of activeDonations) {
@@ -117,12 +108,6 @@ function Extension() {
   }, [donations[0].showError, donations[1].showError]);
 
   useEffect(() => {
-    if (synced || !activeDonations.length) {
-      return;
-    }
-
-    setSynced(true);
-
     const donationsAddToCart = activeDonations.filter((donation) => donation.isChecked && !lines.some((line) => line.merchandise.id === donation.variantId));
     const donationsRemoveFromCart = activeDonations.filter((donation) => !donation.isChecked && lines.some((line) => line.merchandise.id === donation.variantId));
 
@@ -151,7 +136,13 @@ function Extension() {
     if (donationsRemoveFromCart.length) {
       removeInactiveDonations();
     }
-  }, [lines]);
+
+    return () => {
+      for (const donation of donations) {
+        handleRemoveFromCart(donation);
+      }
+    }
+  }, []);
 
   async function handleAddToCart(donation) {
     setIsLoading(true);
