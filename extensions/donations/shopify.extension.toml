@@ -48,47 +48,57 @@ api_access = true
 key = "donation_order"
 type = "single_line_text_field"
 name = "Order of Donations"
-description = "Comma seperated list (use acronym). Default: BC,SU2C"
+description = "Comma seperated list (use acronym). Default: SU2C,BC"
 
 [[extensions.settings.fields]]
-key = "donation_standuptocancer"
+key = "donation_su2c_active"
 type = "boolean"
-name = "StandUpToCancer.org"
+name = "StandUpToCancer.org Activate?"
 
 [[extensions.settings.fields]]
-key = "donation_gid_1"
+key = "donation_su2c_gid"
 type = "variant_reference"
 name = "Donation Variant"
 description = "Be sure to select variant, not product"
 
 [[extensions.settings.fields]]
-key = "donation_start_date_1"
-type = "date"
-name = "Donation Start date"
+key = "donation_su2pc_start_check"
+type = "boolean"
+name = "Start Checked?"
 
 [[extensions.settings.fields]]
-key = "donation_end_date_1"
+key = "donation_su2c_start_date"
 type = "date"
-name = "Donation End date"
+name = "Donation Start Date"
+
+[[extensions.settings.fields]]
+key = "donation_su2c_end_date"
+type = "date"
+name = "Donation End Date"
 
 [extensions.settings]
 [[extensions.settings.fields]]
-key = "donation_breastcancer"
+key = "donation_bc_active"
 type = "boolean"
-name = "BreastCancer.org"
+name = "BreastCancer.org Activate?"
 
 [[extensions.settings.fields]]
-key = "donation_gid_2"
+key = "donation_bc_gid"
 type = "variant_reference"
 name = "Donation Variant"
 description = "Be sure to select variant, not product."
 
 [[extensions.settings.fields]]
-key = "donation_start_date_2"
-type = "date"
-name = "Donation Start date"
+key = "donation_bc_start_check"
+type = "boolean"
+name = "Start Checked?"
 
 [[extensions.settings.fields]]
-key = "donation_end_date_2"
+key = "donation_bc_start_date"
 type = "date"
-name = "Donation End date"
+name = "Donation Start Date"
+
+[[extensions.settings.fields]]
+key = "donation_bc_end_date"
+type = "date"
+name = "Donation End Date"

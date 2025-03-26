@@ -33,17 +33,20 @@ function Extension() {
   const applyCartLinesChange = useApplyCartLinesChange();
   const [isLoading, setIsLoading] = useState(false);
   const [slide, setSlide] = useState(0);
+  const [synced, setSynced] = useState(false);
   const lines = useCartLines();
   const {
     donation_order,
-    donation_standuptocancer,
-    donation_gid_1,
-    donation_start_date_1,
-    donation_end_date_1,
-    donation_breastcancer,
-    donation_gid_2,
-    donation_start_date_2,
-    donation_end_date_2
+    donation_su2c_active,
+    donation_su2c_gid,
+    donation_su2pc_start_check,
+    donation_su2c_start_date,
+    donation_su2c_end_date,
+    donation_bc_active,
+    donation_bc_gid,
+    donation_bc_start_check,
+    donation_bc_start_date,
+    donation_bc_end_date
   } = useSettings();
 
   const parseDate = (str) => {
@@ -63,26 +66,34 @@ function Extension() {
     {
       acronym: "SU2C",
       title: STAND_UP_TO_CANCER_TITLE,
-      active: donation_gid_1 && determineIsActive(donation_standuptocancer, donation_start_date_1, donation_end_date_1),
-      isChecked: true,
+      active: donation_su2c_gid && determineIsActive(donation_su2c_active, donation_su2c_start_date, donation_su2c_end_date),
+      isChecked: donation_su2pc_start_check,
       showError: false,
-      variantId: donation_gid_1
+      variantId: donation_su2c_gid
     },
     {
       acronym: "BC",
       title: BREAST_CANCER_TITLE,
-      active: donation_gid_2 && determineIsActive(donation_breastcancer, donation_start_date_2, donation_end_date_2),
-      isChecked: true,
+      active: donation_bc_gid && determineIsActive(donation_bc_active, donation_bc_start_date, donation_bc_end_date),
+      isChecked: donation_bc_start_check,
       showError: false,
-      variantId: donation_gid_2
+      variantId: donation_bc_gid
     }
   ]);
 
-  const donationOrder = donation_order && typeof donation_order === 'string' ? donation_order.split(',').map((acronym) => acronym.trim()) : ["BC", "SU2C"];
+  const donationOrder = donation_order && typeof donation_order === 'string' ? donation_order.split(',').map((acronym) => acronym.trim()) : ["SU2C","BC"];
 
   const activeDonations = donations.filter((donation) => donation.active).sort((a, b) => {
     return donationOrder.indexOf(a.acronym) - donationOrder.indexOf(b.acronym);
   });
+
+  useEffect(() => {
+    return () => {
+      for (const donation of donations) {
+        handleRemoveFromCart(donation);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const timers = [];
@@ -104,14 +115,21 @@ function Extension() {
       }
     };
   }, [donations[0].showError, donations[1].showError]);
-  
+
   useEffect(() => {
-    const donationsNotInCart = activeDonations.filter((donation) => !lines.some((line) => line.merchandise.id === donation.variantId));
+    if (synced || !activeDonations.length) {
+      return;
+    }
+
+    setSynced(true);
+
+    const donationsAddToCart = activeDonations.filter((donation) => donation.isChecked && !lines.some((line) => line.merchandise.id === donation.variantId));
+    const donationsRemoveFromCart = activeDonations.filter((donation) => !donation.isChecked && lines.some((line) => line.merchandise.id === donation.variantId));
 
     const removeInactiveDonations = async () => {
-      const activeDonationTitles = activeDonations.map((donation) => donation.title);
+      const removeDonationTitles = donationsRemoveFromCart.map((donation) => donation.title);
       const inactiveDonationLines = lines.filter((line) => 
-        donationProducts.includes(line.merchandise.title) && !activeDonationTitles.includes(line.merchandise.title)
+        donationProducts.includes(line.merchandise.title) && removeDonationTitles.includes(line.merchandise.title)
       );
 
       // Remove these inactive donation lines from the cart
@@ -124,22 +142,16 @@ function Extension() {
       }
     };
 
-    if (donationsNotInCart.length) {
-      for (const donation of donationsNotInCart) {
+    if (donationsAddToCart.length) {
+      for (const donation of donationsAddToCart) {
         handleAddToCart(donation);
       }
     }
 
-    if (activeDonations.length < donationProducts.length && lines.length > 0) {
+    if (donationsRemoveFromCart.length) {
       removeInactiveDonations();
     }
-
-    return () => {
-      for (const donation of activeDonations) {
-        handleRemoveFromCart(donation);
-      }
-    }
-  }, []);
+  }, [lines]);
 
   async function handleAddToCart(donation) {
     setIsLoading(true);
@@ -162,6 +174,7 @@ function Extension() {
 
   async function handleRemoveFromCart(donation) {
     setIsLoading(true);
+
     const cartLineId = findCartLineIdByVariantId(donation.variantId);
 
     if (!cartLineId) {
