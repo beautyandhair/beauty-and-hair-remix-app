@@ -15,7 +15,8 @@ import {
   InlineLayout,
   useCartLines,
   useSettings,
-  View
+  View,
+  useLocalizationMarket
 } from "@shopify/ui-extensions-react/checkout";
 
 const STAND_UP_TO_CANCER_TITLE = "Donation to Stand Up To Cancer";
@@ -50,6 +51,11 @@ function Extension() {
     donation_bc_active,
     donation_bc_gid
   } = useSettings();
+  const localization = useLocalizationMarket();
+
+  if (localization.handle !== 'us') {
+    return null;
+  }
 
   const donationOrder = useMemo(() => {
     const startDateValid = donation_scheduled_start_date ? parseDate(donation_scheduled_start_date) <= currentDate : true;
@@ -109,6 +115,10 @@ function Extension() {
   }, [donations[0].showError, donations[1].showError]);
 
   useEffect(() => {
+    if (localization.handle !== 'us') {
+      return;
+    }
+
     const donationsAddToCart = activeDonations.filter((donation) => donation.isChecked && !lines.some((line) => line.merchandise.id === donation.variantId));
     const donationsRemoveFromCart = activeDonations.filter((donation) => !donation.isChecked && lines.some((line) => line.merchandise.id === donation.variantId));
 

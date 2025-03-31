@@ -20,7 +20,8 @@ import {
   useApplyCartLinesChange,
   useApi,
   List,
-  ListItem
+  ListItem,
+  useLocalizationMarket
 } from "@shopify/ui-extensions-react/checkout";
 
 // 1. Choose an extension target
@@ -36,7 +37,8 @@ function Extension() {
   const [adding, setAdding] = useState(false);
   const [showError, setShowError] = useState(false);
   const lines = useCartLines();
-  const [isAdded, setIsAdded] = useState(false)
+  const [isAdded, setIsAdded] = useState(false);
+  const localization = useLocalizationMarket();
 
   useEffect(() => {
     fetchProducts();
@@ -169,6 +171,11 @@ function Extension() {
   const productsOnOffer = getProductsOnOffer(products);
 
   if (!productsOnOffer.length) {
+    return null;
+  }
+
+  console.log('Localization:', localization);
+  if (localization.handle !== 'us') {
     return null;
   }
 
