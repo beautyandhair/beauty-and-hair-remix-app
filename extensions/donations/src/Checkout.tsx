@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState, useCallback} from 'react';
 import {
   reactExtension,
   Banner,
@@ -16,8 +16,13 @@ import {
   useCartLines,
   useSettings,
   View,
-  useLocalizationMarket
+  useApi,
+  useShippingAddress
 } from "@shopify/ui-extensions-react/checkout";
+
+import type {
+  Market
+} from '@shopify/ui-extensions/checkout';
 
 const STAND_UP_TO_CANCER_TITLE = "Donation to Stand Up To Cancer";
 const BREAST_CANCER_TITLE = "Donation to Breastcancer.org";
@@ -51,11 +56,10 @@ function Extension() {
     donation_bc_active,
     donation_bc_gid
   } = useSettings();
-  const localization = useLocalizationMarket();
 
-  if (localization.handle !== 'us') {
-    return null;
-  }
+  const { localization } = useApi();
+  const [market, setMarket] = useState<Market>(localization.market.current);
+  const address = useShippingAddress();
 
   const donationOrder = useMemo(() => {
     const startDateValid = donation_scheduled_start_date ? parseDate(donation_scheduled_start_date) <= currentDate : true;
@@ -93,6 +97,24 @@ function Extension() {
     return donationOrder.indexOf(a.acronym) - donationOrder.indexOf(b.acronym);
   });
 
+  const removeDonations = useCallback(async (donationsRemoveFromCart: typeof donations) => {
+    const removeDonationTitles = donationsRemoveFromCart.map((donation) => donation.title);
+    const donationLines = lines.filter((line) => 
+      donationProducts.includes(line.merchandise.title) && removeDonationTitles.includes(line.merchandise.title)
+    );
+
+    // Remove these donation lines from the cart
+    for (const line of donationLines) {
+      await applyCartLinesChange({
+        type: 'removeCartLine',
+        id: line.id,
+        quantity: 1,
+      });
+    }
+
+    setDonations((prevDonations) => prevDonations.map((donation) => ({...donation, isChecked: false})));
+  }, [lines, applyCartLinesChange]);
+
   useEffect(() => {
     const timers = [];
 
@@ -115,28 +137,20 @@ function Extension() {
   }, [donations[0].showError, donations[1].showError]);
 
   useEffect(() => {
-    if (localization.handle !== 'us') {
+    if (market.handle !== 'us' || address.countryCode !== 'US') {
+      removeDonations(donations);
+    }
+  }, [market.handle, address.countryCode]);
+
+  useEffect(() => {
+    localization.market.subscribe(setMarket);
+
+    if (market.handle !== 'us' || address.countryCode !== 'US') {
       return;
     }
 
     const donationsAddToCart = activeDonations.filter((donation) => donation.isChecked && !lines.some((line) => line.merchandise.id === donation.variantId));
     const donationsRemoveFromCart = activeDonations.filter((donation) => !donation.isChecked && lines.some((line) => line.merchandise.id === donation.variantId));
-
-    const removeInactiveDonations = async () => {
-      const removeDonationTitles = donationsRemoveFromCart.map((donation) => donation.title);
-      const inactiveDonationLines = lines.filter((line) => 
-        donationProducts.includes(line.merchandise.title) && removeDonationTitles.includes(line.merchandise.title)
-      );
-
-      // Remove these inactive donation lines from the cart
-      for (const line of inactiveDonationLines) {
-        await applyCartLinesChange({
-          type: 'removeCartLine',
-          id: line.id,
-          quantity: 1,
-        });
-      }
-    };
 
     if (donationsAddToCart.length) {
       for (const donation of donationsAddToCart) {
@@ -145,13 +159,11 @@ function Extension() {
     }
 
     if (donationsRemoveFromCart.length) {
-      removeInactiveDonations();
+      removeDonations(donationsRemoveFromCart);
     }
 
     return () => {
-      for (const donation of donations) {
-        handleRemoveFromCart(donation);
-      }
+      removeDonations(donations);
     }
   }, []);
 
@@ -201,7 +213,7 @@ function Extension() {
   }
 
   function findCartLineIdByVariantId(variantId) {
-    const line = lines.find(line => line.merchandise.id === variantId);
+    const line = lines.find((line) => line.merchandise.id === variantId);
     return line ? line.id : null;
   }
 
@@ -210,12 +222,19 @@ function Extension() {
 
     if (donation.isChecked) {
       handleRemoveFromCart(donation);
-    } else {
+    } else if (address.countryCode === "US") {
       handleAddToCart(donation);
+    }
+    else {
+      return;
     }
 
     donation.isChecked = !donation.isChecked;
     setDonations((prev) => ([...prev]));
+  }
+
+  if (market.handle !== 'us' || address.countryCode !== 'US') {
+    return null;
   }
 
   return (

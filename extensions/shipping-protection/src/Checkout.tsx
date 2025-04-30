@@ -21,8 +21,12 @@ import {
   useApi,
   List,
   ListItem,
-  useLocalizationMarket
+  useShippingAddress
 } from "@shopify/ui-extensions-react/checkout";
+
+import type {
+  Market
+} from '@shopify/ui-extensions/checkout';
 
 // 1. Choose an extension target
 export default reactExtension("purchase.checkout.block.render", () => (
@@ -38,9 +42,13 @@ function Extension() {
   const [showError, setShowError] = useState(false);
   const lines = useCartLines();
   const [isAdded, setIsAdded] = useState(false);
-  const localization = useLocalizationMarket();
+
+  const { localization } = useApi();
+  const [market, setMarket] = useState<Market>(localization.market.current);
+  const address = useShippingAddress();
 
   useEffect(() => {
+    localization.market.subscribe(setMarket);
     fetchProducts();
   }, []);
 
@@ -58,6 +66,14 @@ function Extension() {
       setIsAdded(isInCart);
     }
   }, [products, lines]);
+
+  useEffect(() => {
+    if ((market.handle !== 'us' || address.countryCode !== 'US') && isAdded) {
+      const variantId = products[0]?.variants.nodes[0]?.id;
+      handleRemoveFromCart(variantId);
+      setIsAdded(false);
+    }
+  }, [market.handle, address.countryCode]);
 
   async function handleAddToCart(variantId) {
     setAdding(true);
@@ -174,8 +190,7 @@ function Extension() {
     return null;
   }
 
-  console.log('Localization:', localization);
-  if (localization.handle !== 'us') {
+  if (market.handle !== 'us' || address.countryCode !== 'US') {
     return null;
   }
 
