@@ -25,6 +25,7 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/additional">Additional page</Link>
+        <Link to="/app/discounts-allocator/fac65012-d091-4c92-8564-58e19bccc5ae">Discount Allocator</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>

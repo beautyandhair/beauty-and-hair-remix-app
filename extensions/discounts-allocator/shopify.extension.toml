@@ -1,14 +1,14 @@
-api_version = "2025-04"
+api_version = "unstable"
 
 [[extensions]]
 name = "t:name"
-handle = "discount-exclude"
+handle = "discounts-allocator"
 type = "function"
 
 description = "t:description"
 
   [[extensions.targeting]]
-  target = "purchase.product-discount.run"
+  target = "purchase.discounts-allocator.run"
   input_query = "src/run.graphql"
   export = "run"
 
@@ -18,11 +18,4 @@ description = "t:description"
 
   [extensions.ui.paths]
   create = "/"
-  details = "/"
-
-[extensions.ui]
-handle = "discount-exclude-block"
-
-[extensions.input.variables]
-namespace = "$app:discount-exclude"
-key = "function-configuration"
+  details = "/app/discounts-allocator/:functionId"
