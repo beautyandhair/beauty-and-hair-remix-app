@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "5cede6d0934f771ccfb90174fb0fb0f1"
-application_url = "https://capture-hurricane-rep-carter.trycloudflare.com"
+application_url = "https://bread-exceed-democrat-helmet.trycloudflare.com"
 embedded = true
 name = "beauty-and-hair-remix-app"
 handle = "beauty-and-hair-remix-app-1"
@@ -28,9 +28,9 @@ scopes = "write_products,read_products,write_discounts"
 
 [auth]
 redirect_urls = [
-  "https://capture-hurricane-rep-carter.trycloudflare.com/auth/callback",
-  "https://capture-hurricane-rep-carter.trycloudflare.com/auth/shopify/callback",
-  "https://capture-hurricane-rep-carter.trycloudflare.com/api/auth/callback"
+  "https://bread-exceed-democrat-helmet.trycloudflare.com/auth/callback",
+  "https://bread-exceed-democrat-helmet.trycloudflare.com/auth/shopify/callback",
+  "https://bread-exceed-democrat-helmet.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]
