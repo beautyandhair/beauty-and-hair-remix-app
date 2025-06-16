@@ -1,5 +1,5 @@
 import { Page, Card, Tabs, TabProps, DataTable, TextField, Button, InlineGrid, Box, Divider, BlockStack } from '@shopify/polaris';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   useLoaderData,
   useSubmit
@@ -33,7 +33,7 @@ export async function action({ request }: {request: Request }) {
     return Response.json({ errors }, { status: 422 });
   }
 
-  return await createUpdateVendorColorGroup(request.method, {vendor: data.vendor, colors: JSON.parse(data.colors)});
+  return await createUpdateVendorColorGroup(request.method, data.vendorId ?? data.vendor, { vendor: data.vendor, colors: JSON.parse(data.colors) });
 }
 
 export default function ColorGroups() {
@@ -44,7 +44,7 @@ export default function ColorGroups() {
 
   const vendorTabs = useMemo(() => vendorColorGroupData?.length
     ? vendorColorGroupData.map((vendorColorGroup) => vendorColorGroup.vendor)
-    : ['Vendor']
+    : []
   , [vendorColorGroupData]);
 
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -61,12 +61,15 @@ export default function ColorGroups() {
           onAction: () => {},
           onPrimaryAction: async (value: string) => {
             const currentVendorTab = vendorColorGroupData[selected];
-            
-            currentVendorTab.vendor = value;
 
             await sleep(1);
-            submit({ vendor: currentVendorTab.vendor, colors: currentVendorTab.colors ?? '[]' }, { method: "PUT" });
+            submit({
+              vendorId: currentVendorTab.vendor,
+              vendor: value,
+              colors: JSON.stringify(currentVendorTab.colors ?? {})
+            }, { method: "PUT" });
 
+            currentVendorTab.vendor = value;
             setVendorColorGroupData((prev) => [...prev]);
 
             return true;
@@ -91,8 +94,8 @@ export default function ColorGroups() {
   const onCreateNewView = async (value: string) => {
     await sleep(500);
 
-    submit({ vendor: value, colors: '[]' }, { method: "POST" });
-    setVendorColorGroupData((prev) => [...prev, { vendor: value, colors: [] }]);
+    submit({ vendor: value, colors: '{}' }, { method: "POST" });
+    setVendorColorGroupData((prev) => [...prev, { vendor: value, colors: {} }]);
 
     return true;
   };
@@ -101,13 +104,15 @@ export default function ColorGroups() {
     const currentVendorTab = vendorColorGroupData[selected];
 
     if (currentVendorTab.colors) {
-      currentVendorTab.colors = [...currentVendorTab.colors, {color, group}];
+      currentVendorTab.colors = {...currentVendorTab.colors, [color]: group};
     }
     else {
-      currentVendorTab.colors = [ {color, group} ];
+      currentVendorTab.colors = {[color]: group};
     }
 
+    await sleep(1);
     submit({ vendor: currentVendorTab.vendor, colors: JSON.stringify(currentVendorTab.colors) }, { method: "PUT" });
+
     setVendorColorGroupData((prev) => [...prev]);
   };
 
@@ -171,7 +176,16 @@ function ColorGroupForm({ onAddColorGroup }: { onAddColorGroup: (color: string, 
 }
 
 function ColorGroupTable({vendorColorGroupData, selected}: {vendorColorGroupData: VendorColorGroup[], selected: number}) {
-  const rows = useMemo(() => vendorColorGroupData[selected]?.colors?.map((colorGroup) => [colorGroup.color, colorGroup.group]) ?? [], [vendorColorGroupData, selected]);
+  const rows = useMemo(() => {
+    const selectedVendorGroupColors = vendorColorGroupData[selected]?.colors;
+
+    if (selectedVendorGroupColors && Object.keys(selectedVendorGroupColors).length) {
+      return Object.keys(selectedVendorGroupColors).map((key) => [key, selectedVendorGroupColors[key]]);
+    }
+    else {
+      return [];
+    }
+  }, [vendorColorGroupData, selected]);
 
   return (
     <DataTable

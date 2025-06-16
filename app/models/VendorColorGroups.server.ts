@@ -1,5 +1,7 @@
 import prisma from "../db.server";
 
+const DEFAULT_VENDOR = "Vendor";
+
 export interface VendorColorGroupData {
   vendor: string,
   colors?: unknown,
@@ -7,17 +9,11 @@ export interface VendorColorGroupData {
 
 export interface VendorColorGroup {
   vendor: string,
-  colors?: { color: string, group: string }[],
-}
-
-export function validColorGroup(colorGroup: any): boolean {
-  return colorGroup && typeof colorGroup === 'object' && 'color' in colorGroup && typeof colorGroup.color === 'string' && 'group' in colorGroup && typeof colorGroup.group === 'string'
+  colors?: {[key: string]: string},
 }
 
 export function parseVendorColorGroup(vendorColorGroupData: VendorColorGroupData): VendorColorGroup {
-  const validColors = Array.isArray(vendorColorGroupData.colors) ? vendorColorGroupData.colors.filter((colorGroup) => validColorGroup(colorGroup)) : [];
-
-  return ({ vendor: vendorColorGroupData.vendor, colors: validColors as VendorColorGroup['colors'] });
+  return ({ vendor: vendorColorGroupData.vendor, colors: vendorColorGroupData.colors as VendorColorGroup['colors'] });
 }
 
 export async function getVendorColorGroup(vendor: string): Promise<VendorColorGroup | null> {
@@ -35,7 +31,11 @@ export async function getVendorColorGroups(): Promise<VendorColorGroup[]> {
     orderBy: { vendor: "desc" },
   });
 
-  if (vendorColorGroups.length === 0) return [];
+  if (vendorColorGroups.length === 0) {
+    const defaultVendorGroup = await createUpdateVendorColorGroup('POST', DEFAULT_VENDOR, { vendor: DEFAULT_VENDOR, colors: {} });
+
+    return [defaultVendorGroup];
+  }
 
   return vendorColorGroups.map((vendorColorGroup) => parseVendorColorGroup(vendorColorGroup));
 }
@@ -44,10 +44,10 @@ export async function deleteVendorColorGroup(vendor: string) {
   return await prisma.vendorColorGroup.delete({ where: { vendor } });
 }
 
-export async function createUpdateVendorColorGroup(type: string, data: VendorColorGroup): Promise<VendorColorGroup> {
+export async function createUpdateVendorColorGroup(type: string, vendorId: string, data: VendorColorGroup): Promise<VendorColorGroup> {
   const vendorColorGroup = type === "POST"
     ? await prisma.vendorColorGroup.create({ data })
-    : await prisma.vendorColorGroup.update({ where: { vendor: data.vendor }, data });
+    : await prisma.vendorColorGroup.update({ where: { vendor: vendorId }, data });
 
   return parseVendorColorGroup(vendorColorGroup);
 }
