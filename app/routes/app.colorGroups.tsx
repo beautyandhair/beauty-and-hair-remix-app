@@ -1,6 +1,25 @@
-import { Page, Card, Tabs, TabProps, DataTable, TextField, Button, InlineGrid, Box, Divider, BlockStack } from '@shopify/polaris';
+import {
+  Page,
+  Card, 
+  Tabs,
+  TabProps,
+  TextField,
+  Button,
+  InlineGrid,
+  Box,
+  Divider,
+  BlockStack,
+  IndexTable,
+  Text,
+  InlineStack,
+  DropZone,
+  Thumbnail
+} from '@shopify/polaris';
+import { DeleteIcon } from '@shopify/polaris-icons';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
+  SubmitFunction,
+  useActionData,
   useLoaderData,
   useSubmit
 } from "@remix-run/react";
@@ -10,8 +29,11 @@ import {
   getVendorColorGroups,
   deleteVendorColorGroup,
   createUpdateVendorColorGroup,
-  validateVendorColorGroup
+  validateVendorColorGroup,
+  stageColorImage,
+  uploadColorImage
 } from "../models/VendorColorGroups.server";
+import { authenticate } from 'app/shopify.server';
 
 export async function loader() {
   return Response.json(await getVendorColorGroups());
@@ -21,6 +43,17 @@ export async function action({ request }: {request: Request }) {
   const data: any = {
     ...Object.fromEntries(await request.formData())
   };
+
+  if (data.stagingImage && data.file) {
+    const { admin } = await authenticate.admin(request);
+
+    return stageColorImage(admin.graphql, JSON.parse(data.file));
+  }
+  else if (data.uploadingImage && data.resourceUrl) {
+    const { admin } = await authenticate.admin(request);
+
+    return uploadColorImage(admin.graphql, data.resourceUrl);
+  }
 
   const errors = validateVendorColorGroup(data as VendorColorGroup);
 
@@ -116,6 +149,22 @@ export default function ColorGroups() {
     setVendorColorGroupData((prev) => [...prev]);
   };
 
+  const onDeleteColorGroup = (color: string) => async () => {
+    const currentVendorTab = vendorColorGroupData[selected];
+
+    if (currentVendorTab.colors && currentVendorTab.colors[color]) {
+      delete currentVendorTab.colors[color];
+    }
+    else {
+      return;
+    }
+
+    await sleep(1);
+    submit({ vendor: currentVendorTab.vendor, colors: JSON.stringify(currentVendorTab.colors) }, { method: "PUT" });
+
+    setVendorColorGroupData((prev) => [...prev]);
+  };
+
   return (
     <Page title="Color Groups">
       <Card>
@@ -129,7 +178,7 @@ export default function ColorGroups() {
           <BlockStack gap="600">
             <ColorGroupForm onAddColorGroup={onAddColorGroup} />
             <Divider />
-            <ColorGroupTable vendorColorGroupData={vendorColorGroupData} selected={selected} />
+            <ColorGroupTable vendorColorGroupData={vendorColorGroupData} selected={selected} onDeleteColorGroup={onDeleteColorGroup} submit={submit} />
           </BlockStack>
         </Tabs>
       </Card>
@@ -143,6 +192,7 @@ function ColorGroupForm({ onAddColorGroup }: { onAddColorGroup: (color: string, 
 
   const handleAddColorGroup = useCallback(() => {
     onAddColorGroup(color, group);
+    
     setColor('');
     setGroup('');
   }, [color, group]);
@@ -175,30 +225,112 @@ function ColorGroupForm({ onAddColorGroup }: { onAddColorGroup: (color: string, 
   );
 }
 
-function ColorGroupTable({vendorColorGroupData, selected}: {vendorColorGroupData: VendorColorGroup[], selected: number}) {
+function ColorGroupTable({vendorColorGroupData, selected, onDeleteColorGroup, submit}: {
+  vendorColorGroupData: VendorColorGroup[],
+  selected: number,
+  onDeleteColorGroup: (color: string) => () => void,
+  submit: SubmitFunction
+}) {
+  const actionData = useActionData<any>();
+  const [file, setFile] = useState<File>();
+
+  useEffect(() => {
+    if (actionData?.stagedTarget) {
+      handleUploadImage(actionData.stagedTarget);
+    }
+  }, [actionData]);
+
+  const handleUploadImage = async (stagedTarget: any) => {
+      if (!file) {
+        return;
+      }
+
+      const params = stagedTarget.parameters; // Parameters contain all the sensitive info we'll need to interact with the aws bucket.
+      const url = stagedTarget.url; // This is the url you'll use to post data to aws. It's a generic s3 url that when combined with the params sends your data to the right place.
+      const resourceUrl = stagedTarget.resourceUrl;
+
+      const formData = new FormData();
+
+      params.forEach(({ name, value }: {name: any, value: any}) => {
+        formData.append(name, value);
+      });
+
+      formData.append("file", file);
+
+      const stagedResponse = await fetch(url, {
+        method: "post",
+        body: formData
+      });
+
+      submit({uploadingImage: true, resourceUrl}, { method: "POST" })
+  }
+
+  const handleDropZoneDrop = useCallback(async (_dropFiles: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
+    const acceptedFile = acceptedFiles[0];
+    setFile(acceptedFile);
+    submit({stagingImage: true, file: JSON.stringify({ filename: acceptedFile.name, mimeType: acceptedFile.type, fileSize: acceptedFile.size.toString() })}, { method: "POST" });
+  }, []);
+
   const rows = useMemo(() => {
     const selectedVendorGroupColors = vendorColorGroupData[selected]?.colors;
+    const selectedVenderColorImages = vendorColorGroupData[selected]?.colorImages;
 
     if (selectedVendorGroupColors && Object.keys(selectedVendorGroupColors).length) {
-      return Object.keys(selectedVendorGroupColors).map((key) => [key, selectedVendorGroupColors[key]]);
+      return Object.keys(selectedVendorGroupColors).map((key, index) => (
+        <IndexTable.Row
+          id={key}
+          key={key}
+          position={index}
+        >
+          <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
+            <Box width="50px">
+              <DropZone onDrop={handleDropZoneDrop} allowMultiple={false} accept="image/png, image/jpeg">
+                {selectedVenderColorImages?.[key] ? (
+                  <Thumbnail
+                    size="small"
+                    alt={`${key} Color Image`}
+                    source={selectedVenderColorImages[key]}
+                  />
+                ) : <DropZone.FileUpload />}
+              </DropZone>
+            </Box>
+          </td>
+
+          <IndexTable.Cell>
+            <Text variant="bodyMd" fontWeight="bold" as="span">
+              {key}
+            </Text>
+          </IndexTable.Cell>
+
+          <IndexTable.Cell>{selectedVendorGroupColors[key]}</IndexTable.Cell>
+          
+          <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
+            <InlineStack align="center">
+              <Button icon={DeleteIcon} accessibilityLabel="Delete Color Group" onClick={onDeleteColorGroup(key)} />
+            </InlineStack>
+          </td>
+        </IndexTable.Row>
+      ));
     }
     else {
-      return [];
+      return null;
     }
   }, [vendorColorGroupData, selected]);
 
   return (
-    <DataTable
-      columnContentTypes={[
-        'text',
-        'text',
-      ]}
-      headings={[
-        'Color',
-        'Color Group',
-      ]}
-      rows={rows}
-      footerContent={`Showing ${rows.length} of ${rows.length} results`}
-    />
+    <Card padding="0">
+      <IndexTable
+        itemCount={rows?.length ?? 0}
+        selectable={false}
+        headings={[
+            {title: 'Image', alignment: 'center'},
+            {title: 'Color'},
+            {title: 'Group'},
+            {title: 'Remove', alignment: 'end'}
+          ]}
+      >
+        {rows}
+      </IndexTable>
+    </Card>
   );
 }

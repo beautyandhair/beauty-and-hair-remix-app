@@ -1,4 +1,6 @@
+import { GraphQLClient } from "node_modules/@shopify/shopify-app-remix/dist/ts/server/clients/types";
 import prisma from "../db.server";
+
 
 const DEFAULT_VENDOR = "Vendor";
 
@@ -10,6 +12,7 @@ export interface VendorColorGroupData {
 export interface VendorColorGroup {
   vendor: string,
   colors?: {[key: string]: string},
+  colorImages?: {[key: string]: string},
 }
 
 export function parseVendorColorGroup(vendorColorGroupData: VendorColorGroupData): VendorColorGroup {
@@ -64,4 +67,98 @@ export function validateVendorColorGroup(data: VendorColorGroup) {
   if (Object.keys(errors).length) {
     return errors;
   }
+}
+
+export async function stageColorImage(graphql: GraphQLClient<any>, file: {filename: string, mimeType: string, fileSize: string}) {
+  const {filename, mimeType, fileSize} = file;
+
+  const stagedResponse = await graphql(
+  `
+    mutation stagedUploadsCreate($input: [StagedUploadInput!]!) {
+      stagedUploadsCreate(input: $input) {
+        stagedTargets {
+          url
+          resourceUrl
+            parameters {
+            name
+            value
+          }
+        }
+      }
+    }
+  `,
+    {
+      variables: {
+        "input": [
+          {
+            "filename": filename,
+            "mimeType": mimeType,
+            "fileSize": fileSize,
+            "httpMethod": "POST",
+            "resource": "IMAGE"
+          }
+        ]
+      },
+    }
+  );
+
+  const stagedResponsData = await stagedResponse.json();
+  const stagedTarget = stagedResponsData.data.stagedUploadsCreate.stagedTargets[0];
+  
+  /*
+  const createResponse = await graphql(
+  `
+    mutation fileCreate($files: [FileCreateInput!]!) {
+    fileCreate(files: $files) {
+      files {
+        id
+        fileStatus
+        alt
+        createdAt
+      }
+    }
+  }
+  `,
+    {
+      variables: {
+        "files": {
+          "alt": "fallback text for a video",
+          "contentType": "IMAGE",
+          "originalSource": stagedImageUrl
+        }
+      },
+    }
+  );
+  */
+
+  return ({stagedTarget});
+}
+
+export async function uploadColorImage(graphql: GraphQLClient<any>, resourceUrl: string) {
+
+  const uploadResponse = await graphql(
+  `
+    mutation fileCreate($files: [FileCreateInput!]!) {
+    fileCreate(files: $files) {
+      files {
+        id
+        fileStatus
+        alt
+        createdAt
+      }
+    }
+  }
+  `,
+    {
+      variables: {
+        "files": {
+          "alt": "fallback text for a video",
+          "contentType": "IMAGE",
+          "originalSource": resourceUrl
+        }
+      },
+    }
+  );
+
+  return ({uploadResponse});
 }

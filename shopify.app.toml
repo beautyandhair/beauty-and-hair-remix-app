@@ -1,10 +1,10 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "5cede6d0934f771ccfb90174fb0fb0f1"
-application_url = "https://macedonia-trunk-toolbox-blend.trycloudflare.com"
+application_url = "https://carolina-neil-educational-dried.trycloudflare.com"
 embedded = true
 name = "beauty-and-hair-remix-app"
-handle = "beauty-and-hair-remix-app-1"
+handle = "beauty-and-hair-remix-app"
 
 [build]
 include_config_on_deploy = true
@@ -24,13 +24,13 @@ api_version = "2025-01"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products,read_products,write_discounts"
+scopes = "write_products,read_products,write_discounts,write_files"
 
 [auth]
 redirect_urls = [
-  "https://macedonia-trunk-toolbox-blend.trycloudflare.com/auth/callback",
-  "https://macedonia-trunk-toolbox-blend.trycloudflare.com/auth/shopify/callback",
-  "https://macedonia-trunk-toolbox-blend.trycloudflare.com/api/auth/callback"
+  "https://carolina-neil-educational-dried.trycloudflare.com/auth/callback",
+  "https://carolina-neil-educational-dried.trycloudflare.com/auth/shopify/callback",
+  "https://carolina-neil-educational-dried.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]
