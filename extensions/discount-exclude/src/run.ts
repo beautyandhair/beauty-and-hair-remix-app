@@ -13,9 +13,6 @@ const EMPTY_DISCOUNT: FunctionRunResult = {
 
 type Configuration = {
   percentage: number,
-  namespace: string,
-  key: string,
-  value: string,
   collections: string[],
   productTags: string[]
 };

@@ -23,18 +23,7 @@ import {
 
 import { useState, useEffect, useMemo } from 'react';
 
-interface Metafield {
-  namespace: string,
-  key: string,
-  value: string
-}
-
 const TARGET = 'admin.discount-details.function-settings.render';
-const EMPTY_METAFIELD_OBJECT = {
-  namespace: "",
-  key: "",
-  value: ""
-};
 
 export default reactExtension(TARGET, async (api) => {
   const existingDefinition = await getMetafieldDefinition(api.query);
@@ -69,17 +58,17 @@ function PercentageField({ defaultValue, value, onChange, i18n }) {
   );
 }
 
-function ClearancOnCheckbox({
-  clearanceOnCheckbox,
-  setClearanceOnCheckbox,
-} : {clearanceOnCheckbox: boolean, setClearanceOnCheckbox: (value: boolean) => void}) {
+function ClearancActiveCheckbox({
+  clearanceActiveCheckbox,
+  setClearanceActiveCheckbox,
+} : {clearanceActiveCheckbox: boolean, setClearanceActiveCheckbox: (value: boolean) => void}) {
 
-  const error = useMemo(() => clearanceOnCheckbox ? undefined : 'Clearance must be active to use this discount option.' ,[clearanceOnCheckbox]);
+  const error = useMemo(() => clearanceActiveCheckbox ? undefined : "If clearance shouldn't remain active, use a different discount type." ,[clearanceActiveCheckbox]);
 
   return (
     <Box>
       <BlockStack gap="base">
-        <Checkbox label="Keep Clearance Active" checked={clearanceOnCheckbox} error={error} onChange={setClearanceOnCheckbox}/>
+        <Checkbox label="Keep Clearance Active" checked={clearanceActiveCheckbox} error={error} onChange={setClearanceActiveCheckbox}/>
     </BlockStack>
   </Box>
   );
@@ -228,8 +217,8 @@ function App() {
     onSelectCollections,
     handleRemoveCollection,
     selectedCollections,
-    clearanceOnCheckbox,
-    setClearanceOnCheckbox,
+    clearanceActiveCheckbox,
+    setClearanceActiveCheckbox,
     resetForm
   } = useExtensionData();
 
@@ -281,7 +270,7 @@ function App() {
         <Divider />
 
         <Section>
-          <ClearancOnCheckbox clearanceOnCheckbox={clearanceOnCheckbox} setClearanceOnCheckbox={setClearanceOnCheckbox} />
+          <ClearancActiveCheckbox clearanceActiveCheckbox={clearanceActiveCheckbox} setClearanceActiveCheckbox={setClearanceActiveCheckbox} />
         </Section>
       </BlockStack>
     </Form>
@@ -298,12 +287,7 @@ function useExtensionData() {
   const [percentage, setPercentage] = useState(0);
   const [initialPercentage, setInitialPercentage] = useState(0);
 
-  /*
-  const [variantMetafield, setVariantMetafield] = useState<Metafield>(EMPTY_METAFIELD_OBJECT);
-  const [initialVariantMetafield, setInitialVariantMetafield] = useState(EMPTY_METAFIELD_OBJECT);
-  */
-
-  const [clearanceOnCheckbox, setClearanceOnCheckbox] = useState<boolean>(true);
+  const [clearanceActiveCheckbox, setClearanceActiveCheckbox] = useState<boolean>(true);
 
   const [productTags, setProductTags] = useState<string[]>([]);
   const [initialProductTags, setInitialProductTags] = useState([]);
@@ -329,12 +313,6 @@ function useExtensionData() {
       const transferPercentage = parsePercentage(savedMetafieldsValue);
       setInitialPercentage(Number(transferPercentage));
       setPercentage(Number(transferPercentage));
-
-      /*
-      const transferVariantMetafield = parseVariantMetafield(savedMetafieldsValue);
-      setInitialVariantMetafield(transferVariantMetafield);
-      setVariantMetafield(transferVariantMetafield);
-      */
 
       const transferProductTags = parseProductTags(savedMetafieldsValue);
       setInitialProductTags(transferProductTags);
@@ -369,14 +347,6 @@ function useExtensionData() {
     setPercentage(Number(value));
   };
 
-  /*
-  const onVariantMetafieldChange = (fieldType: string, value: string) => {
-    variantMetafield[fieldType] = value;
-
-    //setVariantMetafield((prev) => ({...prev}));
-  };
-  */
-
   const onProductTagsChange = (value: string) => {
     if (productTags.includes(value)) {
       setProductTags((prev) => [...prev.filter((tag) => tag !== value)]);
@@ -408,8 +378,8 @@ function useExtensionData() {
   }
 
   async function applyExtensionMetafieldChange() {
-    if (!clearanceOnCheckbox) {
-      return Promise.reject(new Error("If clearance shouldn't remain active, use a different discount option."));
+    if (!clearanceActiveCheckbox) {
+      return Promise.reject(new Error("Clearance must be active to use this discount type."));
     }
 
     const commitFormValues = {
@@ -441,12 +411,13 @@ function useExtensionData() {
     onSelectCollections,
     handleRemoveCollection,
     selectedCollections,
-    clearanceOnCheckbox,
-    setClearanceOnCheckbox,
+    clearanceActiveCheckbox,
+    setClearanceActiveCheckbox,
     resetForm: () => {
       setPercentage(initialPercentage);
       setSelectedCollections(initialSelectedCollections);
       setProductTags(initialProductTags);
+      setClearanceActiveCheckbox(true);
     }
   };
 }
@@ -503,18 +474,6 @@ function parsePercentage(parsedObject) {
     return parsedObject.percentage;
   } catch {
     return 0;
-  }
-}
-
-function parseVariantMetafield(parsedObject) {
-  try {
-    return ({
-      namespace: parsedObject.namespace,
-      key: parsedObject.key,
-      value: parsedObject.value
-    });
-  } catch {
-    return {...EMPTY_METAFIELD_OBJECT};
   }
 }
 
