@@ -1,4 +1,4 @@
 {
-  "name": "Discount - Exclude",
-  "description": "Create a discount that can exclude products and variants."
+  "name": "Discount Exclude Clearance",
+  "description": "Create a discount that excludes clearance (HAS TO BE ACTIVE) and can exclude products by tags."
 }

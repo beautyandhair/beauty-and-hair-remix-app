@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "5cede6d0934f771ccfb90174fb0fb0f1"
-application_url = "https://carolina-neil-educational-dried.trycloudflare.com"
+application_url = "https://quick-platinum-harper-royalty.trycloudflare.com"
 embedded = true
 name = "beauty-and-hair-remix-app"
 handle = "beauty-and-hair-remix-app"
@@ -28,9 +28,9 @@ scopes = "write_products,read_products,write_discounts,write_files"
 
 [auth]
 redirect_urls = [
-  "https://carolina-neil-educational-dried.trycloudflare.com/auth/callback",
-  "https://carolina-neil-educational-dried.trycloudflare.com/auth/shopify/callback",
-  "https://carolina-neil-educational-dried.trycloudflare.com/api/auth/callback"
+  "https://quick-platinum-harper-royalty.trycloudflare.com/auth/callback",
+  "https://quick-platinum-harper-royalty.trycloudflare.com/auth/shopify/callback",
+  "https://quick-platinum-harper-royalty.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

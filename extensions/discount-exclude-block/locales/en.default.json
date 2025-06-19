@@ -1,6 +1,6 @@
 {
-  "name": "Discount Exclude Settings",
-  "description": "Offer a discount on collection products that are not excluded.",
+  "name": "Discount Settings",
+  "description": "Offer a discount on collection products and non-clearance variants that are not excluded.",
   "discountPercentage": "Discount percentage",
   "addCollections": "Add collections"
 }

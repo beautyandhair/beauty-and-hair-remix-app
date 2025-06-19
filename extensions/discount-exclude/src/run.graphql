@@ -1,4 +1,4 @@
-query RunInput($namespace: String, $key: String!, $productTags: [String!]!, $collections: [ID!]!) {
+query RunInput($productTags: [String!]!, $collections: [ID!]!) {
   cart {
     lines {
       id
@@ -6,7 +6,7 @@ query RunInput($namespace: String, $key: String!, $productTags: [String!]!, $col
         __typename
         ... on ProductVariant {
           id
-          metafield(namespace: $namespace, key: $key) {
+          metafield(namespace: "global", key: "CLEARANCE") {
             value
           }
           product {
