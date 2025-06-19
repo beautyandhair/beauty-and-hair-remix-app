@@ -15,26 +15,15 @@ import {
   Icon,
   Link,
   Divider,
-  Paragraph,
   ProgressIndicator,
   Pressable,
   Badge,
+  Checkbox
 } from '@shopify/ui-extensions-react/admin';
 
-import { useState, useEffect } from 'react';
-
-interface Metafield {
-  namespace: string,
-  key: string,
-  value: string
-}
+import { useState, useEffect, useMemo } from 'react';
 
 const TARGET = 'admin.discount-details.function-settings.render';
-const EMPTY_METAFIELD_OBJECT = {
-  namespace: "",
-  key: "",
-  value: ""
-};
 
 export default reactExtension(TARGET, async (api) => {
   const existingDefinition = await getMetafieldDefinition(api.query);
@@ -69,27 +58,17 @@ function PercentageField({ defaultValue, value, onChange, i18n }) {
   );
 }
 
-function VariantMetafieldBlock({
-  variantMetafield,
-  initialVariantMetafield,
-  onChange
-} : {variantMetafield: Metafield, initialVariantMetafield: Metafield, onChange: (fieldType: string, value: string) => void}) {
+function ClearancActiveCheckbox({
+  clearanceActiveCheckbox,
+  setClearanceActiveCheckbox,
+} : {clearanceActiveCheckbox: boolean, setClearanceActiveCheckbox: (value: boolean) => void}) {
+
+  const error = useMemo(() => clearanceActiveCheckbox ? undefined : "If clearance shouldn't remain active, use a different discount type." ,[clearanceActiveCheckbox]);
+
   return (
     <Box>
       <BlockStack gap="base">
-        <Box>
-          <Text fontWeight="bold">
-            EXCLUDE: Product varaint metafield
-          </Text>
-          <Paragraph>
-            The "key" field is required, but leave "value" blank if it should be ignored.
-          </Paragraph>
-        </Box>
-        <InlineStack gap="large">
-          <TextField label="namespace" value={variantMetafield.namespace} defaultValue={initialVariantMetafield.namespace} onChange={(value) => onChange("namespace", value)} />
-          <TextField label="key" value={variantMetafield.key} defaultValue={initialVariantMetafield.key} onChange={(value) => onChange("key", value)} />
-          <TextField label="value" value={variantMetafield.value} defaultValue={initialVariantMetafield.value} onChange={(value) => onChange("value", value)} />
-        </InlineStack>
+        <Checkbox label="Keep Clearance Active" checked={clearanceActiveCheckbox} error={error} onChange={setClearanceActiveCheckbox}/>
     </BlockStack>
   </Box>
   );
@@ -231,9 +210,6 @@ function App() {
     initialPercentage,
     onPercentageValueChange,
     percentage,
-    initialVariantMetafield,
-    onVariantMetafieldChange,
-    variantMetafield,
     initialSelectedCollections,
     onProductTagsChange,
     productTags,
@@ -241,6 +217,8 @@ function App() {
     onSelectCollections,
     handleRemoveCollection,
     selectedCollections,
+    clearanceActiveCheckbox,
+    setClearanceActiveCheckbox,
     resetForm
   } = useExtensionData();
 
@@ -292,7 +270,7 @@ function App() {
         <Divider />
 
         <Section>
-          <VariantMetafieldBlock variantMetafield={variantMetafield} initialVariantMetafield={initialVariantMetafield} onChange={onVariantMetafieldChange} />
+          <ClearancActiveCheckbox clearanceActiveCheckbox={clearanceActiveCheckbox} setClearanceActiveCheckbox={setClearanceActiveCheckbox} />
         </Section>
       </BlockStack>
     </Form>
@@ -309,17 +287,14 @@ function useExtensionData() {
   const [percentage, setPercentage] = useState(0);
   const [initialPercentage, setInitialPercentage] = useState(0);
 
-  const [variantMetafield, setVariantMetafield] = useState<Metafield>(EMPTY_METAFIELD_OBJECT);
-  const [initialVariantMetafield, setInitialVariantMetafield] = useState(EMPTY_METAFIELD_OBJECT);
+  const [clearanceActiveCheckbox, setClearanceActiveCheckbox] = useState<boolean>(true);
 
   const [productTags, setProductTags] = useState<string[]>([]);
   const [initialProductTags, setInitialProductTags] = useState([]);
 
   const [selectedCollections, setSelectedCollections] = useState([]);
   const [initialCollectionIds, setInitialCollectionIds] = useState([]);
-  const [initialSelectedCollections, setInitialSelectedCollections] = useState(
-    []
-  );
+  const [initialSelectedCollections, setInitialSelectedCollections] = useState([]);
 
   useEffect(() => {
     async function fetchInitialData() {
@@ -332,17 +307,12 @@ function useExtensionData() {
       const savedMetafieldsValue = parsedConfigMetafield ? JSON.parse(parsedConfigMetafield.value) : {
         percentage: 0,
         collections: [],
-        productTags: [],
-        ...EMPTY_METAFIELD_OBJECT
+        productTags: []
       };
 
       const transferPercentage = parsePercentage(savedMetafieldsValue);
       setInitialPercentage(Number(transferPercentage));
       setPercentage(Number(transferPercentage));
-
-      const transferVariantMetafield = parseVariantMetafield(savedMetafieldsValue);
-      setInitialVariantMetafield(transferVariantMetafield);
-      setVariantMetafield(transferVariantMetafield);
 
       const transferProductTags = parseProductTags(savedMetafieldsValue);
       setInitialProductTags(transferProductTags);
@@ -377,12 +347,6 @@ function useExtensionData() {
     setPercentage(Number(value));
   };
 
-  const onVariantMetafieldChange = (fieldType: string, value: string) => {
-    variantMetafield[fieldType] = value;
-
-    //setVariantMetafield((prev) => ({...prev}));
-  };
-
   const onProductTagsChange = (value: string) => {
     if (productTags.includes(value)) {
       setProductTags((prev) => [...prev.filter((tag) => tag !== value)]);
@@ -414,11 +378,14 @@ function useExtensionData() {
   }
 
   async function applyExtensionMetafieldChange() {
+    if (!clearanceActiveCheckbox) {
+      return Promise.reject(new Error("Clearance must be active to use this discount type."));
+    }
+
     const commitFormValues = {
       percentage: Number(percentage),
       collections: selectedCollections.map((collection) => collection.id),
-      productTags,
-      ...variantMetafield
+      productTags
     };
     
     await applyMetafieldChange({
@@ -437,9 +404,6 @@ function useExtensionData() {
     initialPercentage,
     onPercentageValueChange,
     percentage,
-    initialVariantMetafield,
-    onVariantMetafieldChange,
-    variantMetafield,
     initialSelectedCollections: initialCollectionIds,
     onProductTagsChange,
     productTags,
@@ -447,11 +411,13 @@ function useExtensionData() {
     onSelectCollections,
     handleRemoveCollection,
     selectedCollections,
+    clearanceActiveCheckbox,
+    setClearanceActiveCheckbox,
     resetForm: () => {
       setPercentage(initialPercentage);
-      setVariantMetafield(initialVariantMetafield);
       setSelectedCollections(initialSelectedCollections);
       setProductTags(initialProductTags);
+      setClearanceActiveCheckbox(true);
     }
   };
 }
@@ -508,18 +474,6 @@ function parsePercentage(parsedObject) {
     return parsedObject.percentage;
   } catch {
     return 0;
-  }
-}
-
-function parseVariantMetafield(parsedObject) {
-  try {
-    return ({
-      namespace: parsedObject.namespace,
-      key: parsedObject.key,
-      value: parsedObject.value
-    });
-  } catch {
-    return {...EMPTY_METAFIELD_OBJECT};
   }
 }
 
