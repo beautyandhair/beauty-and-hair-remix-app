@@ -8,5 +8,6 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/Session'
-export type * from './models/VendorColorGroup'
+export type * from './models/Vendor'
+export type * from './models/VendorColor'
 export type * from './commonInputTypes'

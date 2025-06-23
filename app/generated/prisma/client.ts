@@ -47,9 +47,14 @@ path.join(process.cwd(), "app/generated/prisma/libquery_engine-darwin-arm64.dyli
  */
 export type Session = Prisma.SessionModel
 /**
- * Model VendorColorGroup
+ * Model Vendor
  * 
  */
-export type VendorColorGroup = Prisma.VendorColorGroupModel
+export type Vendor = Prisma.VendorModel
+/**
+ * Model VendorColor
+ * 
+ */
+export type VendorColor = Prisma.VendorColorModel
 
 

@@ -32,7 +32,18 @@ model Session {
   emailVerified Boolean?  @default(false)
 }
 
-model VendorColorGroup {
-  vendor        String    @unique@id
-  colors        Json?
+model Vendor {
+  name      String          @id
+  colors    VendorColor[]
+}
+
+model VendorColor {
+  vendor        Vendor      @relation(fields: [vendorName], references: [name], onDelete: Cascade)
+  vendorName    String      
+  color         String
+  group         String
+  imageSrc      String?
+  shopImageIds  Json?
+
+  @@id(name: "colorId", [vendorName, color])
 }

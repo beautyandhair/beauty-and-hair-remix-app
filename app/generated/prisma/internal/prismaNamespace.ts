@@ -395,7 +395,8 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   Session: 'Session',
-  VendorColorGroup: 'VendorColorGroup'
+  Vendor: 'Vendor',
+  VendorColor: 'VendorColor'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -411,7 +412,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "session" | "vendorColorGroup"
+    modelProps: "session" | "vendor" | "vendorColor"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -489,77 +490,151 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    VendorColorGroup: {
-      payload: Prisma.$VendorColorGroupPayload<ExtArgs>
-      fields: Prisma.VendorColorGroupFieldRefs
+    Vendor: {
+      payload: Prisma.$VendorPayload<ExtArgs>
+      fields: Prisma.VendorFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.VendorColorGroupFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorGroupPayload> | null
+          args: Prisma.VendorFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.VendorColorGroupFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorGroupPayload>
+          args: Prisma.VendorFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorPayload>
         }
         findFirst: {
-          args: Prisma.VendorColorGroupFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorGroupPayload> | null
+          args: Prisma.VendorFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.VendorColorGroupFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorGroupPayload>
+          args: Prisma.VendorFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorPayload>
         }
         findMany: {
-          args: Prisma.VendorColorGroupFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorGroupPayload>[]
+          args: Prisma.VendorFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorPayload>[]
         }
         create: {
-          args: Prisma.VendorColorGroupCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorGroupPayload>
+          args: Prisma.VendorCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorPayload>
         }
         createMany: {
-          args: Prisma.VendorColorGroupCreateManyArgs<ExtArgs>
+          args: Prisma.VendorCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.VendorColorGroupCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorGroupPayload>[]
+          args: Prisma.VendorCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorPayload>[]
         }
         delete: {
-          args: Prisma.VendorColorGroupDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorGroupPayload>
+          args: Prisma.VendorDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorPayload>
         }
         update: {
-          args: Prisma.VendorColorGroupUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorGroupPayload>
+          args: Prisma.VendorUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorPayload>
         }
         deleteMany: {
-          args: Prisma.VendorColorGroupDeleteManyArgs<ExtArgs>
+          args: Prisma.VendorDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.VendorColorGroupUpdateManyArgs<ExtArgs>
+          args: Prisma.VendorUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.VendorColorGroupUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorGroupPayload>[]
+          args: Prisma.VendorUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorPayload>[]
         }
         upsert: {
-          args: Prisma.VendorColorGroupUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorGroupPayload>
+          args: Prisma.VendorUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorPayload>
         }
         aggregate: {
-          args: Prisma.VendorColorGroupAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateVendorColorGroup>
+          args: Prisma.VendorAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateVendor>
         }
         groupBy: {
-          args: Prisma.VendorColorGroupGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.VendorColorGroupGroupByOutputType>[]
+          args: Prisma.VendorGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VendorGroupByOutputType>[]
         }
         count: {
-          args: Prisma.VendorColorGroupCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.VendorColorGroupCountAggregateOutputType> | number
+          args: Prisma.VendorCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VendorCountAggregateOutputType> | number
+        }
+      }
+    }
+    VendorColor: {
+      payload: Prisma.$VendorColorPayload<ExtArgs>
+      fields: Prisma.VendorColorFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.VendorColorFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.VendorColorFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorPayload>
+        }
+        findFirst: {
+          args: Prisma.VendorColorFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.VendorColorFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorPayload>
+        }
+        findMany: {
+          args: Prisma.VendorColorFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorPayload>[]
+        }
+        create: {
+          args: Prisma.VendorColorCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorPayload>
+        }
+        createMany: {
+          args: Prisma.VendorColorCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.VendorColorCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorPayload>[]
+        }
+        delete: {
+          args: Prisma.VendorColorDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorPayload>
+        }
+        update: {
+          args: Prisma.VendorColorUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorPayload>
+        }
+        deleteMany: {
+          args: Prisma.VendorColorDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.VendorColorUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.VendorColorUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorPayload>[]
+        }
+        upsert: {
+          args: Prisma.VendorColorUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VendorColorPayload>
+        }
+        aggregate: {
+          args: Prisma.VendorColorAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateVendorColor>
+        }
+        groupBy: {
+          args: Prisma.VendorColorGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VendorColorGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.VendorColorCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VendorColorCountAggregateOutputType> | number
         }
       }
     }
@@ -620,12 +695,22 @@ export const SessionScalarFieldEnum = {
 export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum]
 
 
-export const VendorColorGroupScalarFieldEnum = {
-  vendor: 'vendor',
-  colors: 'colors'
+export const VendorScalarFieldEnum = {
+  name: 'name'
 } as const
 
-export type VendorColorGroupScalarFieldEnum = (typeof VendorColorGroupScalarFieldEnum)[keyof typeof VendorColorGroupScalarFieldEnum]
+export type VendorScalarFieldEnum = (typeof VendorScalarFieldEnum)[keyof typeof VendorScalarFieldEnum]
+
+
+export const VendorColorScalarFieldEnum = {
+  vendorName: 'vendorName',
+  color: 'color',
+  group: 'group',
+  imageSrc: 'imageSrc',
+  shopImageIds: 'shopImageIds'
+} as const
+
+export type VendorColorScalarFieldEnum = (typeof VendorColorScalarFieldEnum)[keyof typeof VendorColorScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -806,7 +891,8 @@ export interface PrismaClientOptions {
 }
 export type GlobalOmitConfig = {
   session?: Prisma.SessionOmit
-  vendorColorGroup?: Prisma.VendorColorGroupOmit
+  vendor?: Prisma.VendorOmit
+  vendorColor?: Prisma.VendorColorOmit
 }
 
 /* Types for Logging */

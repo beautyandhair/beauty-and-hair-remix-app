@@ -18,10 +18,18 @@ CREATE TABLE "Session" (
 );
 
 -- CreateTable
-CREATE TABLE "VendorColorGroup" (
-    "vendor" TEXT NOT NULL PRIMARY KEY,
-    "colors" JSONB
+CREATE TABLE "Vendor" (
+    "name" TEXT NOT NULL PRIMARY KEY
 );
 
--- CreateIndex
-CREATE UNIQUE INDEX "VendorColorGroup_vendor_key" ON "VendorColorGroup"("vendor");
+-- CreateTable
+CREATE TABLE "VendorColor" (
+    "vendorName" TEXT NOT NULL,
+    "color" TEXT NOT NULL,
+    "group" TEXT NOT NULL,
+    "imageSrc" TEXT,
+    "shopImageIds" JSONB,
+
+    PRIMARY KEY ("vendorName", "color"),
+    CONSTRAINT "VendorColor_vendorName_fkey" FOREIGN KEY ("vendorName") REFERENCES "Vendor" ("name") ON DELETE CASCADE ON UPDATE CASCADE
+);
