@@ -705,7 +705,7 @@ export type VendorScalarFieldEnum = (typeof VendorScalarFieldEnum)[keyof typeof 
 export const VendorColorScalarFieldEnum = {
   vendorName: 'vendorName',
   color: 'color',
-  group: 'group',
+  groups: 'groups',
   imageSrc: 'imageSrc',
   shopImageIds: 'shopImageIds'
 } as const
@@ -719,6 +719,13 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullableJsonNullValueInput = {

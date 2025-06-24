@@ -26,21 +26,19 @@ export type AggregateVendorColor = {
 export type VendorColorMinAggregateOutputType = {
   vendorName: string | null
   color: string | null
-  group: string | null
   imageSrc: string | null
 }
 
 export type VendorColorMaxAggregateOutputType = {
   vendorName: string | null
   color: string | null
-  group: string | null
   imageSrc: string | null
 }
 
 export type VendorColorCountAggregateOutputType = {
   vendorName: number
   color: number
-  group: number
+  groups: number
   imageSrc: number
   shopImageIds: number
   _all: number
@@ -50,21 +48,19 @@ export type VendorColorCountAggregateOutputType = {
 export type VendorColorMinAggregateInputType = {
   vendorName?: true
   color?: true
-  group?: true
   imageSrc?: true
 }
 
 export type VendorColorMaxAggregateInputType = {
   vendorName?: true
   color?: true
-  group?: true
   imageSrc?: true
 }
 
 export type VendorColorCountAggregateInputType = {
   vendorName?: true
   color?: true
-  group?: true
+  groups?: true
   imageSrc?: true
   shopImageIds?: true
   _all?: true
@@ -145,7 +141,7 @@ export type VendorColorGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
 export type VendorColorGroupByOutputType = {
   vendorName: string
   color: string
-  group: string
+  groups: runtime.JsonValue
   imageSrc: string | null
   shopImageIds: runtime.JsonValue | null
   _count: VendorColorCountAggregateOutputType | null
@@ -174,7 +170,7 @@ export type VendorColorWhereInput = {
   NOT?: Prisma.VendorColorWhereInput | Prisma.VendorColorWhereInput[]
   vendorName?: Prisma.StringFilter<"VendorColor"> | string
   color?: Prisma.StringFilter<"VendorColor"> | string
-  group?: Prisma.StringFilter<"VendorColor"> | string
+  groups?: Prisma.JsonFilter<"VendorColor">
   imageSrc?: Prisma.StringNullableFilter<"VendorColor"> | string | null
   shopImageIds?: Prisma.JsonNullableFilter<"VendorColor">
   vendor?: Prisma.XOR<Prisma.VendorScalarRelationFilter, Prisma.VendorWhereInput>
@@ -183,7 +179,7 @@ export type VendorColorWhereInput = {
 export type VendorColorOrderByWithRelationInput = {
   vendorName?: Prisma.SortOrder
   color?: Prisma.SortOrder
-  group?: Prisma.SortOrder
+  groups?: Prisma.SortOrder
   imageSrc?: Prisma.SortOrderInput | Prisma.SortOrder
   shopImageIds?: Prisma.SortOrderInput | Prisma.SortOrder
   vendor?: Prisma.VendorOrderByWithRelationInput
@@ -196,7 +192,7 @@ export type VendorColorWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.VendorColorWhereInput | Prisma.VendorColorWhereInput[]
   vendorName?: Prisma.StringFilter<"VendorColor"> | string
   color?: Prisma.StringFilter<"VendorColor"> | string
-  group?: Prisma.StringFilter<"VendorColor"> | string
+  groups?: Prisma.JsonFilter<"VendorColor">
   imageSrc?: Prisma.StringNullableFilter<"VendorColor"> | string | null
   shopImageIds?: Prisma.JsonNullableFilter<"VendorColor">
   vendor?: Prisma.XOR<Prisma.VendorScalarRelationFilter, Prisma.VendorWhereInput>
@@ -205,7 +201,7 @@ export type VendorColorWhereUniqueInput = Prisma.AtLeast<{
 export type VendorColorOrderByWithAggregationInput = {
   vendorName?: Prisma.SortOrder
   color?: Prisma.SortOrder
-  group?: Prisma.SortOrder
+  groups?: Prisma.SortOrder
   imageSrc?: Prisma.SortOrderInput | Prisma.SortOrder
   shopImageIds?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.VendorColorCountOrderByAggregateInput
@@ -219,14 +215,14 @@ export type VendorColorScalarWhereWithAggregatesInput = {
   NOT?: Prisma.VendorColorScalarWhereWithAggregatesInput | Prisma.VendorColorScalarWhereWithAggregatesInput[]
   vendorName?: Prisma.StringWithAggregatesFilter<"VendorColor"> | string
   color?: Prisma.StringWithAggregatesFilter<"VendorColor"> | string
-  group?: Prisma.StringWithAggregatesFilter<"VendorColor"> | string
+  groups?: Prisma.JsonWithAggregatesFilter<"VendorColor">
   imageSrc?: Prisma.StringNullableWithAggregatesFilter<"VendorColor"> | string | null
   shopImageIds?: Prisma.JsonNullableWithAggregatesFilter<"VendorColor">
 }
 
 export type VendorColorCreateInput = {
   color: string
-  group: string
+  groups: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   vendor: Prisma.VendorCreateNestedOneWithoutColorsInput
@@ -235,14 +231,14 @@ export type VendorColorCreateInput = {
 export type VendorColorUncheckedCreateInput = {
   vendorName: string
   color: string
-  group: string
+  groups: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type VendorColorUpdateInput = {
   color?: Prisma.StringFieldUpdateOperationsInput | string
-  group?: Prisma.StringFieldUpdateOperationsInput | string
+  groups?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   vendor?: Prisma.VendorUpdateOneRequiredWithoutColorsNestedInput
@@ -251,7 +247,7 @@ export type VendorColorUpdateInput = {
 export type VendorColorUncheckedUpdateInput = {
   vendorName?: Prisma.StringFieldUpdateOperationsInput | string
   color?: Prisma.StringFieldUpdateOperationsInput | string
-  group?: Prisma.StringFieldUpdateOperationsInput | string
+  groups?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
@@ -259,14 +255,14 @@ export type VendorColorUncheckedUpdateInput = {
 export type VendorColorCreateManyInput = {
   vendorName: string
   color: string
-  group: string
+  groups: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type VendorColorUpdateManyMutationInput = {
   color?: Prisma.StringFieldUpdateOperationsInput | string
-  group?: Prisma.StringFieldUpdateOperationsInput | string
+  groups?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
@@ -274,7 +270,7 @@ export type VendorColorUpdateManyMutationInput = {
 export type VendorColorUncheckedUpdateManyInput = {
   vendorName?: Prisma.StringFieldUpdateOperationsInput | string
   color?: Prisma.StringFieldUpdateOperationsInput | string
-  group?: Prisma.StringFieldUpdateOperationsInput | string
+  groups?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
@@ -297,7 +293,7 @@ export type VendorColorColorIdCompoundUniqueInput = {
 export type VendorColorCountOrderByAggregateInput = {
   vendorName?: Prisma.SortOrder
   color?: Prisma.SortOrder
-  group?: Prisma.SortOrder
+  groups?: Prisma.SortOrder
   imageSrc?: Prisma.SortOrder
   shopImageIds?: Prisma.SortOrder
 }
@@ -305,14 +301,12 @@ export type VendorColorCountOrderByAggregateInput = {
 export type VendorColorMaxOrderByAggregateInput = {
   vendorName?: Prisma.SortOrder
   color?: Prisma.SortOrder
-  group?: Prisma.SortOrder
   imageSrc?: Prisma.SortOrder
 }
 
 export type VendorColorMinOrderByAggregateInput = {
   vendorName?: Prisma.SortOrder
   color?: Prisma.SortOrder
-  group?: Prisma.SortOrder
   imageSrc?: Prisma.SortOrder
 }
 
@@ -360,14 +354,14 @@ export type VendorColorUncheckedUpdateManyWithoutVendorNestedInput = {
 
 export type VendorColorCreateWithoutVendorInput = {
   color: string
-  group: string
+  groups: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type VendorColorUncheckedCreateWithoutVendorInput = {
   color: string
-  group: string
+  groups: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
@@ -403,35 +397,35 @@ export type VendorColorScalarWhereInput = {
   NOT?: Prisma.VendorColorScalarWhereInput | Prisma.VendorColorScalarWhereInput[]
   vendorName?: Prisma.StringFilter<"VendorColor"> | string
   color?: Prisma.StringFilter<"VendorColor"> | string
-  group?: Prisma.StringFilter<"VendorColor"> | string
+  groups?: Prisma.JsonFilter<"VendorColor">
   imageSrc?: Prisma.StringNullableFilter<"VendorColor"> | string | null
   shopImageIds?: Prisma.JsonNullableFilter<"VendorColor">
 }
 
 export type VendorColorCreateManyVendorInput = {
   color: string
-  group: string
+  groups: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type VendorColorUpdateWithoutVendorInput = {
   color?: Prisma.StringFieldUpdateOperationsInput | string
-  group?: Prisma.StringFieldUpdateOperationsInput | string
+  groups?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type VendorColorUncheckedUpdateWithoutVendorInput = {
   color?: Prisma.StringFieldUpdateOperationsInput | string
-  group?: Prisma.StringFieldUpdateOperationsInput | string
+  groups?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type VendorColorUncheckedUpdateManyWithoutVendorInput = {
   color?: Prisma.StringFieldUpdateOperationsInput | string
-  group?: Prisma.StringFieldUpdateOperationsInput | string
+  groups?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
@@ -441,7 +435,7 @@ export type VendorColorUncheckedUpdateManyWithoutVendorInput = {
 export type VendorColorSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   vendorName?: boolean
   color?: boolean
-  group?: boolean
+  groups?: boolean
   imageSrc?: boolean
   shopImageIds?: boolean
   vendor?: boolean | Prisma.VendorDefaultArgs<ExtArgs>
@@ -450,7 +444,7 @@ export type VendorColorSelect<ExtArgs extends runtime.Types.Extensions.InternalA
 export type VendorColorSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   vendorName?: boolean
   color?: boolean
-  group?: boolean
+  groups?: boolean
   imageSrc?: boolean
   shopImageIds?: boolean
   vendor?: boolean | Prisma.VendorDefaultArgs<ExtArgs>
@@ -459,7 +453,7 @@ export type VendorColorSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
 export type VendorColorSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   vendorName?: boolean
   color?: boolean
-  group?: boolean
+  groups?: boolean
   imageSrc?: boolean
   shopImageIds?: boolean
   vendor?: boolean | Prisma.VendorDefaultArgs<ExtArgs>
@@ -468,12 +462,12 @@ export type VendorColorSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
 export type VendorColorSelectScalar = {
   vendorName?: boolean
   color?: boolean
-  group?: boolean
+  groups?: boolean
   imageSrc?: boolean
   shopImageIds?: boolean
 }
 
-export type VendorColorOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"vendorName" | "color" | "group" | "imageSrc" | "shopImageIds", ExtArgs["result"]["vendorColor"]>
+export type VendorColorOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"vendorName" | "color" | "groups" | "imageSrc" | "shopImageIds", ExtArgs["result"]["vendorColor"]>
 export type VendorColorInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   vendor?: boolean | Prisma.VendorDefaultArgs<ExtArgs>
 }
@@ -492,7 +486,7 @@ export type $VendorColorPayload<ExtArgs extends runtime.Types.Extensions.Interna
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     vendorName: string
     color: string
-    group: string
+    groups: runtime.JsonValue
     imageSrc: string | null
     shopImageIds: runtime.JsonValue | null
   }, ExtArgs["result"]["vendorColor"]>
@@ -921,7 +915,7 @@ export interface Prisma__VendorColorClient<T, Null = never, ExtArgs extends runt
 export interface VendorColorFieldRefs {
   readonly vendorName: Prisma.FieldRef<"VendorColor", 'String'>
   readonly color: Prisma.FieldRef<"VendorColor", 'String'>
-  readonly group: Prisma.FieldRef<"VendorColor", 'String'>
+  readonly groups: Prisma.FieldRef<"VendorColor", 'Json'>
   readonly imageSrc: Prisma.FieldRef<"VendorColor", 'String'>
   readonly shopImageIds: Prisma.FieldRef<"VendorColor", 'Json'>
 }

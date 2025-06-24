@@ -13,9 +13,14 @@ import {
   Text,
   InlineStack,
   DropZone,
-  Thumbnail
+  Thumbnail,
+  Combobox,
+  Icon,
+  Listbox,
+  Tag,
+  Spinner
 } from '@shopify/polaris';
-import { DeleteIcon } from '@shopify/polaris-icons';
+import { DeleteIcon, SearchIcon } from '@shopify/polaris-icons';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   SubmitFunction,
@@ -57,14 +62,24 @@ enum Action {
   UploadColorImage = "UploadColorImage"
 }
 
+const COLOR_GROUPS = [
+  {value: 'brunettes', label: 'Brunettes'},
+  {value: 'blondes', label: 'Blondes'},
+  {value: 'blacks', label: 'Blacks'},
+  {value: 'grays', label: 'Grays'},
+  {value: 'reds', label: 'Reds'},
+  {value: 'new_colors', label: 'New Colors'},
+  {value: 'best_sellers', label: 'Best Sellers'},
+  {value: 'fashion-color', label: 'Fashion Color'},
+  {value: 'exclusive-color', label: 'Exclusive Color'},
+];
+
 export async function loader() {
   return Response.json(await getVendors());
 }
 
 export async function action({ request }: {request: Request }) {
   const { admin, session } = await authenticate.admin(request);
-  const { shop } = session;
-
   const data: any = {
     ...Object.fromEntries(await request.formData()),
   };
@@ -77,15 +92,19 @@ export async function action({ request }: {request: Request }) {
     case Action.DeleteVendor:
       return await deleteVendor(data.vendorName);
     case Action.CreateVendorColor:
-      return await createVendorColor(data.vendorName, data.color, data.group);
+      return await createVendorColor(data.vendorName, data.color, JSON.parse(data.groups));
     case Action.UpdateVendorColor:
       return await updateVendorColor(data.vendorName, data.color, JSON.parse(data.vendorColorUpdate));
     case Action.DeleteVendorColor:
       return await deleteVendorColor(data.vendorName, data.color);
     case Action.StageColorImage:
-      return await stageColorImage(admin.graphql, JSON.parse(data.file));
+      const stagedTargetResponse = await stageColorImage(admin.graphql, JSON.parse(data.file));
+
+      return ({...stagedTargetResponse, color: data.color});
     case Action.UploadColorImage:
-      return await uploadColorImage(admin.graphql, data.resourceUrl, data.color);
+      const { shop } = session;
+
+      return await uploadColorImage(admin.graphql, data.resourceUrl, data.color, shop);
   }
 
   return Response.json({ errors: ['Invalid data passed.'] }, { status: 422 });
@@ -148,11 +167,11 @@ export default function ColorGroups() {
 
   /* MUTATE VENDOR COLORS */
 
-  const onAddVendorColor = useCallback(async (color: string, group: string) => {
+  const onAddVendorColor = useCallback(async (color: string, groups: string[]) => {
     const colorData = {
       vendorName: currentVendor.name,
       color,
-      group,
+      groups,
       shopImageIds: {}
     };
 
@@ -168,18 +187,18 @@ export default function ColorGroups() {
       actionType: Action.CreateVendorColor,
       vendorName: currentVendor.name,
       color,
-      group
+      groups: JSON.stringify(groups)
     }, { method: "POST" });
 
     setVendors((prev) => [...prev]);
   }, [currentVendor]);
 
-  const onUpdateVendorColorImage = useCallback(async (color: string, vendorColorUpdate: VendorColorUpdate) => {
+  const onUpdateVendorColor = useCallback(async (color: string, vendorColorUpdate: VendorColorUpdate) => {
     const vendorColor = currentVendor.colors?.find((vendorColor) => vendorColor.color === color);
 
     if (vendorColor) {
       vendorColor.color = vendorColorUpdate.color ?? vendorColor.color;
-      vendorColor.group = vendorColorUpdate.group ?? vendorColor.group;
+      vendorColor.groups = vendorColorUpdate.groups ?? vendorColor.groups;
       vendorColor.imageSrc = vendorColorUpdate.imageSrc ?? vendorColor.imageSrc;
       vendorColor.shopImageIds = vendorColorUpdate.shopImageIds ?? vendorColor.shopImageIds;
     }
@@ -248,13 +267,13 @@ export default function ColorGroups() {
           onCreateNewView={onCreateVendor}
         >
           <BlockStack gap="600">
-            <ColorGroupForm onAddVendorColor={onAddVendorColor} />
+            <VendorColorForm onAddVendorColor={onAddVendorColor} />
             <Divider />
             <ColorGroupTable
               vendors={vendors}
               selected={selected}
               onDeleteVendorColor={onDeleteVendorColor}
-              onUpdateVendorColorImage={onUpdateVendorColorImage}
+              onUpdateVendorColor={onUpdateVendorColor}
               submit={submit}
             />
           </BlockStack>
@@ -264,20 +283,101 @@ export default function ColorGroups() {
   );
 }
 
-function ColorGroupForm({ onAddVendorColor }: { onAddVendorColor: (color: string, group: string) => void }) {
+function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups }: {
+  selectedGroups: string[],
+  onChangeSelectedGroups: (values: string[]) => void
+}) {
+  const [options, setOptions] = useState(COLOR_GROUPS);
+  const [inputValue, setInputValue] = useState('');
+
+  const optionsMarkup = useMemo(() => options.map((option) => {
+    const {label, value} = option;
+
+    return (
+      <Listbox.Option
+        key={`${value}`}
+        value={value}
+        selected={selectedGroups.includes(value)}
+        accessibilityLabel={label}
+      >
+        {label}
+      </Listbox.Option>
+    );
+  }), [options, selectedGroups]);
+
+  const tagsMarkup = useMemo(() => selectedGroups.map((group) => (
+    <Tag key={`option-${group}`} onRemove={() => onChangeSelectedGroups(selectedGroups.filter((g) => g !== group))}>
+      {group}
+    </Tag>
+  )), [selectedGroups, onChangeSelectedGroups]);
+
+  const escapeSpecialRegExCharacters = useCallback((value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), []);
+
+  const updateText = useCallback((value: string) => {
+    setInputValue(value);
+
+    if (value === '') {
+      setOptions(COLOR_GROUPS);
+
+      return;
+    }
+
+    const filterRegex = new RegExp(escapeSpecialRegExCharacters(value), 'i');
+    const resultOptions = COLOR_GROUPS.filter((option) => option.label.match(filterRegex));
+
+    setOptions(resultOptions);
+  }, [escapeSpecialRegExCharacters]);
+
+  const updateSelection = useCallback((selected: string) => {
+    if (selectedGroups.includes(selected)) {
+      onChangeSelectedGroups(selectedGroups.filter((option) => option !== selected));
+    } else {
+      onChangeSelectedGroups([...selectedGroups, selected]);
+    }
+
+    updateText('');
+  }, [selectedGroups, updateText]);
+
+  return (
+    <BlockStack gap="200">
+      <Combobox
+        allowMultiple
+        activator={
+          <Combobox.TextField
+            prefix={<Icon source={SearchIcon}/>}
+            onChange={updateText}
+            label="Groups"
+            value={inputValue}
+            placeholder="Search groups"
+            autoComplete="off"
+          />
+        }
+      >
+        {optionsMarkup ? (
+          <Listbox onSelect={updateSelection}>{optionsMarkup}</Listbox>
+        ) : null}
+      </Combobox>
+      <InlineStack gap="200">
+        {tagsMarkup}
+      </InlineStack>
+    </BlockStack>
+  );
+}
+
+function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: string, groups: string[]) => void }) {
   const [color, setColor] = useState('');
-  const [group, setGroup] = useState('');
+  const [groups, setGroups] = useState<string[]>([]);
 
   const handleAddColorGroup = useCallback(() => {
-    onAddVendorColor(color, group);
+    onAddVendorColor(color, groups);
     
     setColor('');
-    setGroup('');
-  }, [color, group]);
+    setGroups([]);
+  }, [color, groups]);
 
   const handleColorChange = useCallback((value: string) => setColor(value), []);
 
-  const handleGroupChange = useCallback((value: string) => setGroup(value), []);
+  const onChangeSelectedGroups = useCallback((values: string[]) => setGroups(values), []);
 
   return (
     <InlineGrid gap="400" columns={2}>
@@ -288,80 +388,95 @@ function ColorGroupForm({ onAddVendorColor }: { onAddVendorColor: (color: string
         type="text"
         autoComplete="off"
       />
-
-      <TextField
-        value={group}
-        onChange={handleGroupChange}
-        label="Color Group"
-        type="text"
-        autoComplete="off"
-      />
+      <MultiSelectGroups selectedGroups={groups} onChangeSelectedGroups={onChangeSelectedGroups} />
       <Box>
-        <Button onClick={handleAddColorGroup} size="slim">Add Color Group</Button>
+        <Button onClick={handleAddColorGroup} size="slim" disabled={!color || !groups.length}>Add Vendor Color</Button>
       </Box>
     </InlineGrid>
   );
 }
 
-function ColorGroupTable({vendors, selected, onDeleteVendorColor, onUpdateVendorColorImage, submit}: {
+function ColorGroupTable({vendors, selected, onDeleteVendorColor, onUpdateVendorColor, submit}: {
   vendors: Vendor[],
   selected: number,
   onDeleteVendorColor: (color: string) => () => void,
-  onUpdateVendorColorImage: (color: string, vendorColorUpdate: VendorColorUpdate) => Promise<void>,
+  onUpdateVendorColor: (color: string, vendorColorUpdate: VendorColorUpdate) => Promise<void>,
   submit: SubmitFunction
 }) {
   const actionData = useActionData<any>();
-  const [colorFile, setColorFile] = useState<{color: string, file: File}>();
+  const [colorFiles, setColorFiles] = useState<{[key: string]: File}>({});
+
+  /* UPDATING VENDOR COLOR */
+
+  const debounce = (callback: () => void) => {
+    let timer: NodeJS.Timeout;
+
+    return () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => callback(), 3000);
+    }
+  };
+
+  const handleColorChange = useCallback((color: string) => (value: string) => debounce(() => onUpdateVendorColor(color, { color: value })), [debounce]);
+
+  const handleGroupsChange = useCallback((color: string) => (values: string[]) => onUpdateVendorColor(color, { groups: values }), [onUpdateVendorColor]);
+
+  /* UPDATING VENDOR COLOR: IMAGE FUNCTIONALITY */
 
   useEffect(() => {
     if (actionData?.stagedTarget) {
-      handleUploadImage(actionData.stagedTarget);
+      handleUploadImage(actionData.color, actionData.stagedTarget);
     }
-    else if (colorFile?.color && actionData?.imageSrc) {
-      onUpdateVendorColorImage(colorFile.color, {
-        imageSrc: actionData.imageSrc.url
+    else if (actionData?.imageSrc && colorFiles[actionData.color]) {
+      onUpdateVendorColor(actionData.color, {
+        imageSrc: actionData.imageSrc,
+        shopImageIds: {[actionData.shop]: actionData.imageId}
       });
+
+      delete colorFiles[actionData.color];
+      setColorFiles((prev) => ({...prev}));
     }
   }, [actionData]);
 
-  const handleUploadImage = async (stagedTarget: any) => {
-      if (!colorFile) {
-        return;
-      }
+  const handleUploadImage = useCallback(async (color: string, stagedTarget: any) => {
+    if (!colorFiles[color]) {
+      return;
+    }
 
-      const params = stagedTarget.parameters; // Parameters contain all the sensitive info we'll need to interact with the aws bucket.
-      const url = stagedTarget.url; // This is the url you'll use to post data to aws. It's a generic s3 url that when combined with the params sends your data to the right place.
-      const resourceUrl = stagedTarget.resourceUrl;
+    const params = stagedTarget.parameters; // Parameters contain all the sensitive info we'll need to interact with the aws bucket.
+    const url = stagedTarget.url; // This is the url you'll use to post data to aws. It's a generic s3 url that when combined with the params sends your data to the right place.
+    const resourceUrl = stagedTarget.resourceUrl;
 
-      const formData = new FormData();
+    const formData = new FormData();
 
-      params.forEach(({ name, value }: {name: any, value: any}) => {
-        formData.append(name, value);
-      });
+    params.forEach(({ name, value }: {name: any, value: any}) => {
+      formData.append(name, value);
+    });
 
-      formData.append("file", colorFile.file);
+    formData.append("file", colorFiles[color]);
 
-      await fetch(url, {
-        method: "post",
-        body: formData
-      });
+    await fetch(url, {
+      method: "post",
+      body: formData
+    });
 
-      submit({
-        actionType: Action.UploadColorImage,
-        resourceUrl,
-        color: colorFile.color
-      }, { method: "POST" });
-  }
+    submit({
+      actionType: Action.UploadColorImage,
+      resourceUrl,
+      color
+    }, { method: "POST" });
+  }, [colorFiles]);
 
   const handleDropZoneDrop = useCallback((color: string) => async (_dropFiles: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
     const acceptedFile = acceptedFiles[0];
 
-    setColorFile({color: color, file: acceptedFile});
+    setColorFiles((prev) => ({...prev, [color]: acceptedFile}));
     submit({
       actionType: Action.StageColorImage,
+      color,
       file: JSON.stringify({ filename: acceptedFile.name, mimeType: acceptedFile.type, fileSize: acceptedFile.size.toString()})
     }, { method: "POST" });
-  }, []);
+  }, [setColorFiles]);
 
   const rows = useMemo(() => {
     const selectedVendorColors = vendors[selected]?.colors;
@@ -383,7 +498,7 @@ function ColorGroupTable({vendors, selected, onDeleteVendorColor, onUpdateVendor
                       alt={`${vendorColor.color} Color Image`}
                       source={vendorColor.imageSrc}
                     />
-                  ) : <DropZone.FileUpload />}
+                  ) : (colorFiles[vendorColor.color] ? <Box paddingInline="500" paddingBlockStart="200"><Spinner accessibilityLabel="Loading Image" size="small" /></Box> : <DropZone.FileUpload />)}
                 </DropZone>
               </Box>
             </td>
@@ -394,7 +509,12 @@ function ColorGroupTable({vendors, selected, onDeleteVendorColor, onUpdateVendor
               </Text>
             </IndexTable.Cell>
 
-            <IndexTable.Cell>{vendorColor.group}</IndexTable.Cell>
+            <IndexTable.Cell>
+              <MultiSelectGroups
+                selectedGroups={vendorColor.groups}
+                onChangeSelectedGroups={handleGroupsChange(vendorColor.color)}
+              />
+            </IndexTable.Cell>
             
             <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
               <InlineStack align="center">
@@ -407,7 +527,7 @@ function ColorGroupTable({vendors, selected, onDeleteVendorColor, onUpdateVendor
     else {
       return null;
     }
-  }, [vendors, selected]);
+  }, [vendors, selected, colorFiles]);
 
   return (
     <Card padding="0">

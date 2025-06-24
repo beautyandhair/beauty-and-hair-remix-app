@@ -26,7 +26,7 @@ CREATE TABLE "Vendor" (
 CREATE TABLE "VendorColor" (
     "vendorName" TEXT NOT NULL,
     "color" TEXT NOT NULL,
-    "group" TEXT NOT NULL,
+    "groups" JSONB NOT NULL,
     "imageSrc" TEXT,
     "shopImageIds" JSONB,
 

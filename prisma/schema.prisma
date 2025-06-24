@@ -41,7 +41,7 @@ model VendorColor {
   vendor        Vendor      @relation(fields: [vendorName], references: [name], onDelete: Cascade)
   vendorName    String      
   color         String
-  group         String
+  groups        Json
   imageSrc      String?
   shopImageIds  Json?
 

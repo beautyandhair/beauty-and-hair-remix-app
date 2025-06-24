@@ -7,14 +7,14 @@ export interface VendorColor {
   vendor?: Vendor,
   vendorName: string,   
   color: string,
-  group: string,
+  groups: string[],
   imageSrc?: string,
   shopImageIds?: {[key: string]: string}
 }
 
 export interface VendorColorUpdate {
   color?: string,
-  group?: string,
+  groups?: string[],
   imageSrc?: string | null,
   shopImageIds?: {[key: string]: string}
 }
@@ -40,8 +40,8 @@ export async function getVendorColors(): Promise<VendorColor[]> {
   return vendorColors.map((vendorColor) => parseVendorColor(vendorColor));
 }
 
-export async function createVendorColor(vendorName: string, color: string, group: string): Promise<VendorColor> {
-  const vendorColor = await prisma.vendorColor.create({ data: { vendorName, color, group } });
+export async function createVendorColor(vendorName: string, color: string, groups: string[]): Promise<VendorColor> {
+  const vendorColor = await prisma.vendorColor.create({ data: { vendorName, color, groups } });
 
   return parseVendorColor(vendorColor);
 }
@@ -71,8 +71,8 @@ export function validateVendorColor(data: VendorColor) {
     errors.title = "Color required";
   }
 
-  if (!data.group) {
-    errors.title = "Group required";
+  if (!data.groups) {
+    errors.title = "Group(s) required";
   }
 
   if (Object.keys(errors).length) {
@@ -119,7 +119,7 @@ export async function stageColorImage(graphql: GraphQLClient<any>, file: {filena
   return ({stagedTarget});
 }
 
-export async function uploadColorImage(graphql: GraphQLClient<any>, resourceUrl: string, color: string) {
+export async function uploadColorImage(graphql: GraphQLClient<any>, resourceUrl: string, color: string, shop: string) {
 
   const uploadResponse = await graphql(
   `
@@ -176,5 +176,5 @@ export async function uploadColorImage(graphql: GraphQLClient<any>, resourceUrl:
     }
   }
 
-  return ({imageSrc, imageId});
+  return ({imageSrc, imageId, color, shop});
 }
