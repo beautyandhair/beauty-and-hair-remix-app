@@ -20,7 +20,7 @@ import {
   Tag,
   Spinner
 } from '@shopify/polaris';
-import { DeleteIcon, SearchIcon } from '@shopify/polaris-icons';
+import { CheckIcon, DeleteIcon, EditIcon, SearchIcon, XIcon } from '@shopify/polaris-icons';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   SubmitFunction,
@@ -270,8 +270,7 @@ export default function ColorGroups() {
             <VendorColorForm onAddVendorColor={onAddVendorColor} />
             <Divider />
             <ColorGroupTable
-              vendors={vendors}
-              selected={selected}
+              currentVendor={currentVendor}
               onDeleteVendorColor={onDeleteVendorColor}
               onUpdateVendorColor={onUpdateVendorColor}
               submit={submit}
@@ -283,9 +282,10 @@ export default function ColorGroups() {
   );
 }
 
-function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups }: {
+function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups, hideSelect = false }: {
   selectedGroups: string[],
-  onChangeSelectedGroups: (values: string[]) => void
+  onChangeSelectedGroups: (values: string[]) => void,
+  hideSelect: boolean
 }) {
   const [options, setOptions] = useState(COLOR_GROUPS);
   const [inputValue, setInputValue] = useState('');
@@ -306,7 +306,7 @@ function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups }: {
   }), [options, selectedGroups]);
 
   const tagsMarkup = useMemo(() => selectedGroups.map((group) => (
-    <Tag key={`option-${group}`} onRemove={() => onChangeSelectedGroups(selectedGroups.filter((g) => g !== group))}>
+    <Tag key={`option-${group}`}>
       {group}
     </Tag>
   )), [selectedGroups, onChangeSelectedGroups]);
@@ -340,23 +340,25 @@ function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups }: {
 
   return (
     <BlockStack gap="200">
-      <Combobox
-        allowMultiple
-        activator={
-          <Combobox.TextField
-            prefix={<Icon source={SearchIcon}/>}
-            onChange={updateText}
-            label="Groups"
-            value={inputValue}
-            placeholder="Search groups"
-            autoComplete="off"
-          />
-        }
-      >
-        {optionsMarkup ? (
-          <Listbox onSelect={updateSelection}>{optionsMarkup}</Listbox>
-        ) : null}
-      </Combobox>
+      {!hideSelect && (
+        <Combobox
+          allowMultiple
+          activator={
+            <Combobox.TextField
+              prefix={<Icon source={SearchIcon}/>}
+              onChange={updateText}
+              label="Groups"
+              value={inputValue}
+              placeholder="Search groups"
+              autoComplete="off"
+            />
+          }
+        >
+          {optionsMarkup ? (
+            <Listbox onSelect={updateSelection}>{optionsMarkup}</Listbox>
+          ) : null}
+        </Combobox>
+      )}
       <InlineStack gap="200">
         {tagsMarkup}
       </InlineStack>
@@ -388,7 +390,7 @@ function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: strin
         type="text"
         autoComplete="off"
       />
-      <MultiSelectGroups selectedGroups={groups} onChangeSelectedGroups={onChangeSelectedGroups} />
+      <MultiSelectGroups selectedGroups={groups} onChangeSelectedGroups={onChangeSelectedGroups} hideSelect={false} />
       <Box>
         <Button onClick={handleAddColorGroup} size="slim" disabled={!color || !groups.length}>Add Vendor Color</Button>
       </Box>
@@ -396,30 +398,62 @@ function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: strin
   );
 }
 
-function ColorGroupTable({vendors, selected, onDeleteVendorColor, onUpdateVendorColor, submit}: {
-  vendors: Vendor[],
-  selected: number,
+function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColor, submit}: {
+  currentVendor: Vendor,
   onDeleteVendorColor: (color: string) => () => void,
   onUpdateVendorColor: (color: string, vendorColorUpdate: VendorColorUpdate) => Promise<void>,
   submit: SubmitFunction
 }) {
   const actionData = useActionData<any>();
   const [colorFiles, setColorFiles] = useState<{[key: string]: File}>({});
+  const [editing, setEditing] = useState<{[key: string]: {
+    color: string,
+    groups: string[]
+  }}>({});
 
   /* UPDATING VENDOR COLOR */
 
-  const debounce = (callback: () => void) => {
-    let timer: NodeJS.Timeout;
-
-    return () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => callback(), 3000);
+  const handleColorChange = useCallback((color: string) => (value: string) => setEditing((prev) => ({
+    ...prev,
+    [color]: {
+      ...prev[color],
+      color: value
     }
-  };
+  })), [setEditing]);
 
-  const handleColorChange = useCallback((color: string) => (value: string) => debounce(() => onUpdateVendorColor(color, { color: value })), [debounce]);
+  const handleGroupsChange = useCallback((color: string) => (values: string[]) => setEditing((prev) => ({
+    ...prev,
+    [color]: {
+      ...prev[color],
+      groups: values
+    }
+  })), [setEditing]);
 
-  const handleGroupsChange = useCallback((color: string) => (values: string[]) => onUpdateVendorColor(color, { groups: values }), [onUpdateVendorColor]);
+  const onEdit = useCallback((vendorColor: VendorColor) => () => setEditing((prev) => ({...prev, [vendorColor.color]: {
+    color: vendorColor.color,
+    groups: vendorColor.groups
+  }})), [setEditing]);
+
+  const onCancelEdit = useCallback((color: string) => () => {
+    if (editing[color]) {
+      delete editing[color];
+      setEditing((prev) => ({...prev}));
+    }
+  }, [editing, setEditing]);
+
+  const onSaveEdit = useCallback((color: string) => () => {
+    const editingVendorColor = editing[color];
+
+    if (editingVendorColor) {
+      onUpdateVendorColor(color, {
+        color: editingVendorColor.color,
+        groups: [...editingVendorColor.groups]
+      });
+
+      delete editing[color];
+      setEditing((prev) => ({...prev}));
+    }
+  }, [editing, setEditing]);
 
   /* UPDATING VENDOR COLOR: IMAGE FUNCTIONALITY */
 
@@ -479,7 +513,7 @@ function ColorGroupTable({vendors, selected, onDeleteVendorColor, onUpdateVendor
   }, [setColorFiles]);
 
   const rows = useMemo(() => {
-    const selectedVendorColors = vendors[selected]?.colors;
+    const selectedVendorColors = currentVendor.colors;
 
     if (selectedVendorColors && Object.keys(selectedVendorColors).length) {
       return selectedVendorColors.map((vendorColor, index) => {
@@ -504,17 +538,41 @@ function ColorGroupTable({vendors, selected, onDeleteVendorColor, onUpdateVendor
             </td>
 
             <IndexTable.Cell>
-              <Text variant="bodyMd" fontWeight="bold" as="span">
-                {vendorColor.color}
-              </Text>
+              {editing[vendorColor.color] ? (
+                <TextField
+                  label="Color"
+                  labelHidden
+                  value={editing[vendorColor.color].color}
+                  onChange={handleColorChange(vendorColor.color)}
+                  autoComplete="off"
+                />
+              ) : (
+                <Text variant="bodyMd" fontWeight="bold" as="span">
+                  {vendorColor.color}
+                </Text>
+              )}
             </IndexTable.Cell>
 
             <IndexTable.Cell>
               <MultiSelectGroups
-                selectedGroups={vendorColor.groups}
+                selectedGroups={editing[vendorColor.color] ? editing[vendorColor.color].groups : vendorColor.groups}
                 onChangeSelectedGroups={handleGroupsChange(vendorColor.color)}
+                hideSelect={!editing[vendorColor.color]}
               />
             </IndexTable.Cell>
+
+            <td style={{width: "100px"}} className="Polaris-IndexTable__TableCell">
+              <InlineStack align="center">
+                {editing[vendorColor.color] ? (
+                  <InlineGrid gap="100" columns={2} alignItems="center">
+                    <Button icon={XIcon} accessibilityLabel="Cancel Color Group Edit" onClick={onCancelEdit(vendorColor.color)} /><Text as="span">Cancel</Text>
+                    <Button icon={CheckIcon} accessibilityLabel="Save Color Group Edit" onClick={onSaveEdit(vendorColor.color)} /><Text as="span">Save</Text>
+                  </InlineGrid>
+                ) : (
+                  <Button icon={EditIcon} accessibilityLabel="Edit Color Group" onClick={onEdit(vendorColor)} />
+                )}
+              </InlineStack>
+            </td>
             
             <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
               <InlineStack align="center">
@@ -527,7 +585,7 @@ function ColorGroupTable({vendors, selected, onDeleteVendorColor, onUpdateVendor
     else {
       return null;
     }
-  }, [vendors, selected, colorFiles]);
+  }, [currentVendor, colorFiles, editing]);
 
   return (
     <Card padding="0">
@@ -538,6 +596,7 @@ function ColorGroupTable({vendors, selected, onDeleteVendorColor, onUpdateVendor
             {title: 'Image', alignment: 'center'},
             {title: 'Color'},
             {title: 'Group'},
+            {title: 'Edit', alignment: 'center'},
             {title: 'Remove', alignment: 'end'}
           ]}
       >
@@ -545,4 +604,4 @@ function ColorGroupTable({vendors, selected, onDeleteVendorColor, onUpdateVendor
       </IndexTable>
     </Card>
   );
-}
+};
