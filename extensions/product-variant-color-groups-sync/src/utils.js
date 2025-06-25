@@ -43,6 +43,10 @@ export async function updateVariantImages(producGid, updatedVariants) {
           image {
             url
           }
+          metafield(namespace: "custom", key: "color_group") {
+            value
+            jsonValue
+          }
         }
         userErrors {
           field
@@ -71,6 +75,28 @@ export async function getVariants(productId) {
         }
       }
     }`
+  );
+}
+
+export async function uploadVendorColorImages(vendorColors) {
+  return await makeGraphQLQuery(
+    `mutation fileCreate($files: [FileCreateInput!]!) {
+      fileCreate(files: $files) {
+        files {
+          id
+          fileStatus
+          alt
+          createdAt
+        }
+      }
+    }`,
+    {
+      "files": vendorColors.map((vendorColor) => ({
+        "alt": `Color ${vendorColor.color} Swatch`,
+        "contentType": "IMAGE",
+        "originalSource": vendorColor.imageSrc
+      }))
+    }
   );
 }
 

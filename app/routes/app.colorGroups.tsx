@@ -176,7 +176,7 @@ export default function ColorGroups() {
     };
 
     if (currentVendor.colors) {
-      currentVendor.colors.push({...colorData});
+      currentVendor.colors = [...currentVendor.colors, {...colorData}];
     }
     else {
       currentVendor.colors = [{...colorData}];
@@ -227,7 +227,7 @@ export default function ColorGroups() {
 
     await sleep(1);
     submit({
-      actionType: Action.CreateVendorColor,
+      actionType: Action.DeleteVendorColor,
       vendorName: currentVendor.name,
       color
     }, { method: "DELETE" });
@@ -585,7 +585,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     else {
       return null;
     }
-  }, [currentVendor, colorFiles, editing]);
+  }, [currentVendor.colors, colorFiles, editing]);
 
   return (
     <Card padding="0">
