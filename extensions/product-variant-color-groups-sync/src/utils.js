@@ -78,8 +78,8 @@ export async function getVariants(productId) {
   );
 }
 
-export async function uploadVendorColorImages(vendorColors) {
-  return await makeGraphQLQuery(
+export async function uploadVendorColorImage(vendorColorImage) {
+ return await makeGraphQLQuery(
     `mutation fileCreate($files: [FileCreateInput!]!) {
       fileCreate(files: $files) {
         files {
@@ -91,11 +91,11 @@ export async function uploadVendorColorImages(vendorColors) {
       }
     }`,
     {
-      "files": vendorColors.map((vendorColor) => ({
-        "alt": `Color ${vendorColor.color} Swatch`,
+      "files": {
+        "alt": vendorColorImage.altText,
         "contentType": "IMAGE",
-        "originalSource": vendorColor.imageSrc
-      }))
+        "originalSource": vendorColorImage.imageSrc
+      }
     }
   );
 }

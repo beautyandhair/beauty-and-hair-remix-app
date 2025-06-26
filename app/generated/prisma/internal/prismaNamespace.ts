@@ -707,7 +707,9 @@ export const VendorColorScalarFieldEnum = {
   color: 'color',
   groups: 'groups',
   imageSrc: 'imageSrc',
-  shopImageIds: 'shopImageIds'
+  shopImageIds: 'shopImageIds',
+  altText: 'altText',
+  fileName: 'fileName'
 } as const
 
 export type VendorColorScalarFieldEnum = (typeof VendorColorScalarFieldEnum)[keyof typeof VendorColorScalarFieldEnum]

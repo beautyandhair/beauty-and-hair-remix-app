@@ -50,6 +50,7 @@ import {
 } from "../models/VendorColor.server";
 
 import { authenticate } from 'app/shopify.server';
+import { handleize } from 'app/utils';
 
 enum Action {
   CreateVendor = "CreateVendor",
@@ -100,11 +101,11 @@ export async function action({ request }: {request: Request }) {
     case Action.StageColorImage:
       const stagedTargetResponse = await stageColorImage(admin.graphql, JSON.parse(data.file));
 
-      return ({...stagedTargetResponse, color: data.color});
+      return ({...stagedTargetResponse, color: data.color, altText: data.altText});
     case Action.UploadColorImage:
       const { shop } = session;
 
-      return await uploadColorImage(admin.graphql, data.resourceUrl, data.color, shop);
+      return await uploadColorImage(admin.graphql, data.resourceUrl, data.color, data.altText, shop);
   }
 
   return Response.json({ errors: ['Invalid data passed.'] }, { status: 422 });
@@ -201,6 +202,8 @@ export default function ColorGroups() {
       vendorColor.groups = vendorColorUpdate.groups ?? vendorColor.groups;
       vendorColor.imageSrc = vendorColorUpdate.imageSrc ?? vendorColor.imageSrc;
       vendorColor.shopImageIds = vendorColorUpdate.shopImageIds ?? vendorColor.shopImageIds;
+      vendorColor.altText = vendorColorUpdate.altText ?? vendorColor.altText
+      vendorColor.fileName = vendorColorUpdate.fileName ?? vendorColor.fileName
     }
     else {
       return;
@@ -347,7 +350,7 @@ function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups, hideSelect 
             <Combobox.TextField
               prefix={<Icon source={SearchIcon}/>}
               onChange={updateText}
-              label="Groups"
+              label="Group(s)"
               value={inputValue}
               placeholder="Search groups"
               autoComplete="off"
@@ -405,10 +408,14 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
   submit: SubmitFunction
 }) {
   const actionData = useActionData<any>();
-  const [colorFiles, setColorFiles] = useState<{[key: string]: File}>({});
+  const [colorFiles, setColorFiles] = useState<{[key: string]: {
+    file: File,
+    fileName: string
+  }}>({});
   const [editing, setEditing] = useState<{[key: string]: {
     color: string,
-    groups: string[]
+    groups: string[],
+    altText?: string
   }}>({});
 
   /* UPDATING VENDOR COLOR */
@@ -426,6 +433,14 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     [color]: {
       ...prev[color],
       groups: values
+    }
+  })), [setEditing]);
+
+  const handleAltTextChange = useCallback((color: string) => (value: string) => setEditing((prev) => ({
+    ...prev,
+    [color]: {
+      ...prev[color],
+      altText: value
     }
   })), [setEditing]);
 
@@ -459,12 +474,14 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
 
   useEffect(() => {
     if (actionData?.stagedTarget) {
-      handleUploadImage(actionData.color, actionData.stagedTarget);
+      handleUploadImage(actionData.stagedTarget, actionData.color, actionData.altText);
     }
     else if (actionData?.imageSrc && colorFiles[actionData.color]) {
       onUpdateVendorColor(actionData.color, {
         imageSrc: actionData.imageSrc,
-        shopImageIds: {[actionData.shop]: actionData.imageId}
+        fileName: colorFiles[actionData.color].fileName,
+        shopImageIds: {[actionData.shop]: actionData.imageId},
+        altText: actionData.altText
       });
 
       delete colorFiles[actionData.color];
@@ -472,8 +489,10 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     }
   }, [actionData]);
 
-  const handleUploadImage = useCallback(async (color: string, stagedTarget: any) => {
-    if (!colorFiles[color]) {
+  const handleUploadImage = useCallback(async (stagedTarget: any, color: string, altText: string) => {
+    const colorFile = colorFiles[color];
+    
+    if (!colorFile) {
       return;
     }
 
@@ -487,7 +506,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
       formData.append(name, value);
     });
 
-    formData.append("file", colorFiles[color]);
+    formData.append("file", colorFile.file);
 
     await fetch(url, {
       method: "post",
@@ -497,18 +516,22 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     submit({
       actionType: Action.UploadColorImage,
       resourceUrl,
-      color
+      color,
+      altText
     }, { method: "POST" });
   }, [colorFiles]);
 
-  const handleDropZoneDrop = useCallback((color: string) => async (_dropFiles: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
+  const handleDropZoneDrop = useCallback((color: string, altText: string | undefined) => async (_dropFiles: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
     const acceptedFile = acceptedFiles[0];
+    const fileName = handleize(`${currentVendor.name}_${color}_swatch`);
 
-    setColorFiles((prev) => ({...prev, [color]: acceptedFile}));
+    setColorFiles((prev) => ({...prev, [color]: { file: acceptedFile, fileName }}));
+
     submit({
       actionType: Action.StageColorImage,
       color,
-      file: JSON.stringify({ filename: acceptedFile.name, mimeType: acceptedFile.type, fileSize: acceptedFile.size.toString()})
+      altText: altText ?? `${currentVendor.name} Color ${color} Swatch`,
+      file: JSON.stringify({ filename: fileName, mimeType: acceptedFile.type, fileSize: acceptedFile.size.toString()})
     }, { method: "POST" });
   }, [setColorFiles]);
 
@@ -525,14 +548,16 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
           >
             <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
               <Box width="60px">
-                <DropZone onDrop={handleDropZoneDrop(vendorColor.color)} allowMultiple={false} accept="image/png, image/jpeg">
-                  {vendorColor.imageSrc ? (
-                    <Thumbnail
-                      size="medium"
-                      alt={`${vendorColor.color} Color Image`}
-                      source={vendorColor.imageSrc}
-                    />
-                  ) : (colorFiles[vendorColor.color] ? <Box paddingInline="500" paddingBlockStart="200"><Spinner accessibilityLabel="Loading Image" size="small" /></Box> : <DropZone.FileUpload />)}
+                <DropZone onDrop={handleDropZoneDrop(vendorColor.color, vendorColor.altText)} allowMultiple={false} accept="image/png, image/jpeg">
+                  {colorFiles[vendorColor.color] ? <Box paddingInline="500" paddingBlockStart="200"><Spinner accessibilityLabel="Loading Image" size="small" /></Box> : (
+                    vendorColor.imageSrc ? (
+                      <Thumbnail
+                        size="medium"
+                        alt={`${vendorColor.color} Color Image`}
+                        source={vendorColor.imageSrc}
+                      />
+                    ) : <DropZone.FileUpload />
+                  )}
                 </DropZone>
               </Box>
             </td>
@@ -559,6 +584,22 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
                 onChangeSelectedGroups={handleGroupsChange(vendorColor.color)}
                 hideSelect={!editing[vendorColor.color]}
               />
+            </IndexTable.Cell>
+
+            <IndexTable.Cell>
+              {editing[vendorColor.color] ? (
+                <TextField
+                  label="Color"
+                  labelHidden
+                  value={editing[vendorColor.color].altText}
+                  onChange={handleAltTextChange(vendorColor.color)}
+                  autoComplete="off"
+                />
+              ) : (
+                <Text variant="bodyMd" as="span">
+                  {vendorColor.altText}
+                </Text>
+              )}
             </IndexTable.Cell>
 
             <td style={{width: "100px"}} className="Polaris-IndexTable__TableCell">
@@ -595,7 +636,8 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
         headings={[
             {title: 'Image', alignment: 'center'},
             {title: 'Color'},
-            {title: 'Group'},
+            {title: 'Group(s)'},
+            {title: 'Alt Text'},
             {title: 'Edit', alignment: 'center'},
             {title: 'Remove', alignment: 'end'}
           ]}

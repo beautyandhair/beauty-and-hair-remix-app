@@ -44,6 +44,8 @@ model VendorColor {
   groups        Json
   imageSrc      String?
   shopImageIds  Json?
+  altText       String?
+  fileName      String?
 
   @@id(name: "colorId", [vendorName, color])
 }

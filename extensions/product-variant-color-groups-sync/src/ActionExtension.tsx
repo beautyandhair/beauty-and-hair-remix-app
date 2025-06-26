@@ -12,13 +12,15 @@ import {
   Text
 } from '@shopify/ui-extensions-react/admin';
 
-import { getVariants, updateVariantMetafields, updateVariantImages, uploadVendorColorImages } from "./utils";
+import { getVariants, updateVariantMetafields, updateVariantImages, uploadVendorColorImage } from "./utils";
 
 export interface VendorColor {
   color: string,
   groups: string[],
   imageSrc?: string,
-  shopImageIds?: {[key: string]: string}
+  shopImageIds?: {[key: string]: string},
+  altText?: string,
+  fileName?: string
 }
 
 // The target used here must match the target used in the extension's toml file (./shopify.extension.toml)
@@ -47,11 +49,17 @@ function App() {
 
   const colorImages: {[key: string]: {
     imageSrc?: string,
-    imageId?: string
+    imageId?: string,
+    altText?: string,
+    fileName?: string,
+    shopImageIds: {[key: string]: string}
   }} = useMemo(() => vendorColors.reduce((obj, vendorColor) => {
       obj[vendorColor.color] = {
         imageSrc: vendorColor.imageSrc,
-        imageId: vendorColor.shopImageIds?.[shop]
+        imageId: vendorColor.shopImageIds?.[shop],
+        altText: vendorColor.altText,
+        fileName: vendorColor.fileName,
+        shopImageIds: vendorColor.shopImageIds
       };
 
       return obj;
@@ -105,10 +113,55 @@ function App() {
     getProductVariants();
   }, []);
 
+  const handleUploadVendorColorImages = useCallback(async (
+    variantsToUpdate: any,
+    variantImageCategories: {
+      ready: any[],
+      uploadNeeded: any[],
+      noSrc: any[]
+    }
+  ) => {
+    setSyncLoadingMessage("Uploading necessary variant images...");
 
-  const updateProductVariantImages = async (updatedVariants: {id: any, mediaId: {imageId: string}}[]) => {
+    const shopImageIdUpdates = [];
+
+    for (const variantImage of variantImageCategories.uploadNeeded) {
+      const imageUploadResult = await uploadVendorColorImage(variantImage);
+
+      const file = imageUploadResult.data.fileCreate.files[0];
+
+      console.log('****FILE', file)
+
+      if (file.fileStatus != "FAILED") {        
+        variantImageCategories.ready = [...variantImageCategories.ready, {
+          ...variantsToUpdate[variantImage.color],
+          imageId: file.id
+        }];
+
+        variantImageCategories.uploadNeeded = variantImageCategories.uploadNeeded.filter((imageUpload) => imageUpload.color != variantImage.color);
+
+        shopImageIdUpdates.push({color: variantImage.color, shopImageIds: {...variantImage.shopImageIds, [shop]: file.id}});
+      }
+    }
+
+    console.log('****PREFETCH', shopImageIdUpdates)
+
+    const res = await fetch(`api/updateVendorColorShopImageIds?vendorName=${variants[0].product.vendor}`, {
+      method: "POST",
+      body: JSON.stringify({shopImageIdUpdates})
+    });
+
+    console.log('****RES', res)
+
+    if (!res.ok) {
+      console.error("Network error");
+      return;
+    }
+  }, [shop, variants]);
+
+  const updateProductVariantImages = useCallback(async (updatedVariants: {id: any, mediaId: {imageId: string}}[]) => {
     const syncResult = await updateVariantImages(productId, updatedVariants);
-  };
+  }, [productId]);
 
   const onSyncColorGroups = useCallback(async () => {
     setSyncLoadingMessage("Updating variant color groups...");
@@ -163,36 +216,15 @@ function App() {
       noSrc: []
     }));
 
-    const imagesToUpload = variantImageCategories.uploadNeeded.map((imageUpload) =>( {
-      color: imageUpload.color,
-      imageSrc: imageUpload.imageSrc
-    }));
-
-    if (imagesToUpload.length) {
-      setSyncLoadingMessage("Uploading necessary variant images...");
-
-      const imageUploadResult = await uploadVendorColorImages(imagesToUpload);
-      const regex = new RegExp(/Color\s(.*)\sSwatch/);
-
-      imageUploadResult.data.fileCreate.files.forEach((file: any) => {
-        if (file.fileStatus != "FAILED") {
-          let fileColor = regex.exec(file.alt)[1];
-
-          variantImageCategories.ready = [...variantImageCategories.ready, {
-            ...variantsToUpdate[fileColor],
-            imageId: file.id
-          }];
-
-          variantImageCategories.uploadNeeded = variantImageCategories.uploadNeeded.filter((imageUpload) => imageUpload.color != fileColor);
-        }
-      });
+    if (variantImageCategories.uploadNeeded.length) {
+      await handleUploadVendorColorImages(variantsToUpdate, variantImageCategories);
     }
 
     setSyncLoadingMessage("Updating variant images...");
 
     const updatedVariants = variantImageCategories.ready.map((imageReady) => ({
       "id": imageReady.variantId,
-      "mediaId": imageReady.imageId
+      "mediaId": imageReady.imageId,
     }));
 
     await updateProductVariantImages(updatedVariants);

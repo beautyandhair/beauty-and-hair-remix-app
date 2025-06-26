@@ -9,14 +9,18 @@ export interface VendorColor {
   color: string,
   groups: string[],
   imageSrc?: string,
-  shopImageIds?: {[key: string]: string}
+  shopImageIds?: {[key: string]: string},
+  altText?: string,
+  fileName?: string
 }
 
 export interface VendorColorUpdate {
   color?: string,
   groups?: string[],
   imageSrc?: string | null,
-  shopImageIds?: {[key: string]: string}
+  shopImageIds?: {[key: string]: string},
+  altText?: string,
+  fileName?: string
 }
 
 export function parseVendorColor(vendorColorData: any): VendorColor {
@@ -52,6 +56,14 @@ export async function updateVendorColor(vendorName: string, color: string, vendo
     } });
 
   return parseVendorColor(vendorColor);
+}
+
+export async function updateVendorColorShopImageIds(vendorName: string, shopImageIdUpdates: {color: string, shopImageIds: {[key: string]: string}}[]): Promise<Boolean> {
+  shopImageIdUpdates.forEach(async (vendorColor) => {
+    await updateVendorColor(vendorName, vendorColor.color, { shopImageIds: vendorColor.shopImageIds });
+  });
+
+  return true;
 }
 
 export async function deleteVendorColor(vendorName: string, color: string) {
@@ -119,7 +131,7 @@ export async function stageColorImage(graphql: GraphQLClient<any>, file: {filena
   return ({stagedTarget});
 }
 
-export async function uploadColorImage(graphql: GraphQLClient<any>, resourceUrl: string, color: string, shop: string) {
+export async function uploadColorImage(graphql: GraphQLClient<any>, resourceUrl: string, color: string, altText: string, shop: string) {
 
   const uploadResponse = await graphql(
   `
@@ -137,7 +149,7 @@ export async function uploadColorImage(graphql: GraphQLClient<any>, resourceUrl:
     {
       variables: {
         "files": {
-          "alt": `Color ${color} Swatch`,
+          "alt": altText,
           "contentType": "IMAGE",
           "originalSource": resourceUrl
         }
@@ -176,5 +188,5 @@ export async function uploadColorImage(graphql: GraphQLClient<any>, resourceUrl:
     }
   }
 
-  return ({imageSrc, imageId, color, shop});
+  return ({imageSrc, imageId, color, altText, shop});
 }

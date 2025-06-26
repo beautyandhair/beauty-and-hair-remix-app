@@ -27,12 +27,16 @@ export type VendorColorMinAggregateOutputType = {
   vendorName: string | null
   color: string | null
   imageSrc: string | null
+  altText: string | null
+  fileName: string | null
 }
 
 export type VendorColorMaxAggregateOutputType = {
   vendorName: string | null
   color: string | null
   imageSrc: string | null
+  altText: string | null
+  fileName: string | null
 }
 
 export type VendorColorCountAggregateOutputType = {
@@ -41,6 +45,8 @@ export type VendorColorCountAggregateOutputType = {
   groups: number
   imageSrc: number
   shopImageIds: number
+  altText: number
+  fileName: number
   _all: number
 }
 
@@ -49,12 +55,16 @@ export type VendorColorMinAggregateInputType = {
   vendorName?: true
   color?: true
   imageSrc?: true
+  altText?: true
+  fileName?: true
 }
 
 export type VendorColorMaxAggregateInputType = {
   vendorName?: true
   color?: true
   imageSrc?: true
+  altText?: true
+  fileName?: true
 }
 
 export type VendorColorCountAggregateInputType = {
@@ -63,6 +73,8 @@ export type VendorColorCountAggregateInputType = {
   groups?: true
   imageSrc?: true
   shopImageIds?: true
+  altText?: true
+  fileName?: true
   _all?: true
 }
 
@@ -144,6 +156,8 @@ export type VendorColorGroupByOutputType = {
   groups: runtime.JsonValue
   imageSrc: string | null
   shopImageIds: runtime.JsonValue | null
+  altText: string | null
+  fileName: string | null
   _count: VendorColorCountAggregateOutputType | null
   _min: VendorColorMinAggregateOutputType | null
   _max: VendorColorMaxAggregateOutputType | null
@@ -173,6 +187,8 @@ export type VendorColorWhereInput = {
   groups?: Prisma.JsonFilter<"VendorColor">
   imageSrc?: Prisma.StringNullableFilter<"VendorColor"> | string | null
   shopImageIds?: Prisma.JsonNullableFilter<"VendorColor">
+  altText?: Prisma.StringNullableFilter<"VendorColor"> | string | null
+  fileName?: Prisma.StringNullableFilter<"VendorColor"> | string | null
   vendor?: Prisma.XOR<Prisma.VendorScalarRelationFilter, Prisma.VendorWhereInput>
 }
 
@@ -182,6 +198,8 @@ export type VendorColorOrderByWithRelationInput = {
   groups?: Prisma.SortOrder
   imageSrc?: Prisma.SortOrderInput | Prisma.SortOrder
   shopImageIds?: Prisma.SortOrderInput | Prisma.SortOrder
+  altText?: Prisma.SortOrderInput | Prisma.SortOrder
+  fileName?: Prisma.SortOrderInput | Prisma.SortOrder
   vendor?: Prisma.VendorOrderByWithRelationInput
 }
 
@@ -195,6 +213,8 @@ export type VendorColorWhereUniqueInput = Prisma.AtLeast<{
   groups?: Prisma.JsonFilter<"VendorColor">
   imageSrc?: Prisma.StringNullableFilter<"VendorColor"> | string | null
   shopImageIds?: Prisma.JsonNullableFilter<"VendorColor">
+  altText?: Prisma.StringNullableFilter<"VendorColor"> | string | null
+  fileName?: Prisma.StringNullableFilter<"VendorColor"> | string | null
   vendor?: Prisma.XOR<Prisma.VendorScalarRelationFilter, Prisma.VendorWhereInput>
 }, "colorId">
 
@@ -204,6 +224,8 @@ export type VendorColorOrderByWithAggregationInput = {
   groups?: Prisma.SortOrder
   imageSrc?: Prisma.SortOrderInput | Prisma.SortOrder
   shopImageIds?: Prisma.SortOrderInput | Prisma.SortOrder
+  altText?: Prisma.SortOrderInput | Prisma.SortOrder
+  fileName?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.VendorColorCountOrderByAggregateInput
   _max?: Prisma.VendorColorMaxOrderByAggregateInput
   _min?: Prisma.VendorColorMinOrderByAggregateInput
@@ -218,6 +240,8 @@ export type VendorColorScalarWhereWithAggregatesInput = {
   groups?: Prisma.JsonWithAggregatesFilter<"VendorColor">
   imageSrc?: Prisma.StringNullableWithAggregatesFilter<"VendorColor"> | string | null
   shopImageIds?: Prisma.JsonNullableWithAggregatesFilter<"VendorColor">
+  altText?: Prisma.StringNullableWithAggregatesFilter<"VendorColor"> | string | null
+  fileName?: Prisma.StringNullableWithAggregatesFilter<"VendorColor"> | string | null
 }
 
 export type VendorColorCreateInput = {
@@ -225,6 +249,8 @@ export type VendorColorCreateInput = {
   groups: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  altText?: string | null
+  fileName?: string | null
   vendor: Prisma.VendorCreateNestedOneWithoutColorsInput
 }
 
@@ -234,6 +260,8 @@ export type VendorColorUncheckedCreateInput = {
   groups: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  altText?: string | null
+  fileName?: string | null
 }
 
 export type VendorColorUpdateInput = {
@@ -241,6 +269,8 @@ export type VendorColorUpdateInput = {
   groups?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  altText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   vendor?: Prisma.VendorUpdateOneRequiredWithoutColorsNestedInput
 }
 
@@ -250,6 +280,8 @@ export type VendorColorUncheckedUpdateInput = {
   groups?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  altText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type VendorColorCreateManyInput = {
@@ -258,6 +290,8 @@ export type VendorColorCreateManyInput = {
   groups: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  altText?: string | null
+  fileName?: string | null
 }
 
 export type VendorColorUpdateManyMutationInput = {
@@ -265,6 +299,8 @@ export type VendorColorUpdateManyMutationInput = {
   groups?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  altText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type VendorColorUncheckedUpdateManyInput = {
@@ -273,6 +309,8 @@ export type VendorColorUncheckedUpdateManyInput = {
   groups?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  altText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type VendorColorListRelationFilter = {
@@ -296,18 +334,24 @@ export type VendorColorCountOrderByAggregateInput = {
   groups?: Prisma.SortOrder
   imageSrc?: Prisma.SortOrder
   shopImageIds?: Prisma.SortOrder
+  altText?: Prisma.SortOrder
+  fileName?: Prisma.SortOrder
 }
 
 export type VendorColorMaxOrderByAggregateInput = {
   vendorName?: Prisma.SortOrder
   color?: Prisma.SortOrder
   imageSrc?: Prisma.SortOrder
+  altText?: Prisma.SortOrder
+  fileName?: Prisma.SortOrder
 }
 
 export type VendorColorMinOrderByAggregateInput = {
   vendorName?: Prisma.SortOrder
   color?: Prisma.SortOrder
   imageSrc?: Prisma.SortOrder
+  altText?: Prisma.SortOrder
+  fileName?: Prisma.SortOrder
 }
 
 export type VendorColorCreateNestedManyWithoutVendorInput = {
@@ -357,6 +401,8 @@ export type VendorColorCreateWithoutVendorInput = {
   groups: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  altText?: string | null
+  fileName?: string | null
 }
 
 export type VendorColorUncheckedCreateWithoutVendorInput = {
@@ -364,6 +410,8 @@ export type VendorColorUncheckedCreateWithoutVendorInput = {
   groups: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  altText?: string | null
+  fileName?: string | null
 }
 
 export type VendorColorCreateOrConnectWithoutVendorInput = {
@@ -400,6 +448,8 @@ export type VendorColorScalarWhereInput = {
   groups?: Prisma.JsonFilter<"VendorColor">
   imageSrc?: Prisma.StringNullableFilter<"VendorColor"> | string | null
   shopImageIds?: Prisma.JsonNullableFilter<"VendorColor">
+  altText?: Prisma.StringNullableFilter<"VendorColor"> | string | null
+  fileName?: Prisma.StringNullableFilter<"VendorColor"> | string | null
 }
 
 export type VendorColorCreateManyVendorInput = {
@@ -407,6 +457,8 @@ export type VendorColorCreateManyVendorInput = {
   groups: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  altText?: string | null
+  fileName?: string | null
 }
 
 export type VendorColorUpdateWithoutVendorInput = {
@@ -414,6 +466,8 @@ export type VendorColorUpdateWithoutVendorInput = {
   groups?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  altText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type VendorColorUncheckedUpdateWithoutVendorInput = {
@@ -421,6 +475,8 @@ export type VendorColorUncheckedUpdateWithoutVendorInput = {
   groups?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  altText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type VendorColorUncheckedUpdateManyWithoutVendorInput = {
@@ -428,6 +484,8 @@ export type VendorColorUncheckedUpdateManyWithoutVendorInput = {
   groups?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageSrc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shopImageIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  altText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -438,6 +496,8 @@ export type VendorColorSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   groups?: boolean
   imageSrc?: boolean
   shopImageIds?: boolean
+  altText?: boolean
+  fileName?: boolean
   vendor?: boolean | Prisma.VendorDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["vendorColor"]>
 
@@ -447,6 +507,8 @@ export type VendorColorSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   groups?: boolean
   imageSrc?: boolean
   shopImageIds?: boolean
+  altText?: boolean
+  fileName?: boolean
   vendor?: boolean | Prisma.VendorDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["vendorColor"]>
 
@@ -456,6 +518,8 @@ export type VendorColorSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   groups?: boolean
   imageSrc?: boolean
   shopImageIds?: boolean
+  altText?: boolean
+  fileName?: boolean
   vendor?: boolean | Prisma.VendorDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["vendorColor"]>
 
@@ -465,9 +529,11 @@ export type VendorColorSelectScalar = {
   groups?: boolean
   imageSrc?: boolean
   shopImageIds?: boolean
+  altText?: boolean
+  fileName?: boolean
 }
 
-export type VendorColorOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"vendorName" | "color" | "groups" | "imageSrc" | "shopImageIds", ExtArgs["result"]["vendorColor"]>
+export type VendorColorOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"vendorName" | "color" | "groups" | "imageSrc" | "shopImageIds" | "altText" | "fileName", ExtArgs["result"]["vendorColor"]>
 export type VendorColorInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   vendor?: boolean | Prisma.VendorDefaultArgs<ExtArgs>
 }
@@ -489,6 +555,8 @@ export type $VendorColorPayload<ExtArgs extends runtime.Types.Extensions.Interna
     groups: runtime.JsonValue
     imageSrc: string | null
     shopImageIds: runtime.JsonValue | null
+    altText: string | null
+    fileName: string | null
   }, ExtArgs["result"]["vendorColor"]>
   composites: {}
 }
@@ -918,6 +986,8 @@ export interface VendorColorFieldRefs {
   readonly groups: Prisma.FieldRef<"VendorColor", 'Json'>
   readonly imageSrc: Prisma.FieldRef<"VendorColor", 'String'>
   readonly shopImageIds: Prisma.FieldRef<"VendorColor", 'Json'>
+  readonly altText: Prisma.FieldRef<"VendorColor", 'String'>
+  readonly fileName: Prisma.FieldRef<"VendorColor", 'String'>
 }
     
 
