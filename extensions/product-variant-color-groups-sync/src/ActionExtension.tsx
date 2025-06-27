@@ -130,8 +130,6 @@ function App() {
 
       const file = imageUploadResult.data.fileCreate.files[0];
 
-      console.log('****FILE', file)
-
       if (file.fileStatus != "FAILED") {        
         variantImageCategories.ready = [...variantImageCategories.ready, {
           ...variantsToUpdate[variantImage.color],
@@ -144,14 +142,14 @@ function App() {
       }
     }
 
-    console.log('****PREFETCH', shopImageIdUpdates)
+    const formData = new FormData();
+
+    formData.append('shopImageIdUpdates', JSON.stringify(shopImageIdUpdates));
 
     const res = await fetch(`api/updateVendorColorShopImageIds?vendorName=${variants[0].product.vendor}`, {
-      method: "POST",
-      body: JSON.stringify({shopImageIdUpdates})
+      method: "PUT",
+      body: formData
     });
-
-    console.log('****RES', res)
 
     if (!res.ok) {
       console.error("Network error");

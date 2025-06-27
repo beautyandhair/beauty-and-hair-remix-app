@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "5cede6d0934f771ccfb90174fb0fb0f1"
-application_url = "https://belief-ui-sector-treasures.trycloudflare.com"
+application_url = "https://writes-bye-latin-honduras.trycloudflare.com"
 embedded = true
 name = "beauty-and-hair-remix-app"
 handle = "beauty-and-hair-remix-app"
@@ -28,9 +28,9 @@ scopes = "write_products,read_products,write_discounts,write_files,read_files"
 
 [auth]
 redirect_urls = [
-  "https://belief-ui-sector-treasures.trycloudflare.com/auth/callback",
-  "https://belief-ui-sector-treasures.trycloudflare.com/auth/shopify/callback",
-  "https://belief-ui-sector-treasures.trycloudflare.com/api/auth/callback"
+  "https://writes-bye-latin-honduras.trycloudflare.com/auth/callback",
+  "https://writes-bye-latin-honduras.trycloudflare.com/auth/shopify/callback",
+  "https://writes-bye-latin-honduras.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]
