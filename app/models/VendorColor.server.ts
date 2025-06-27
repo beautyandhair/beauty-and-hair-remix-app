@@ -132,7 +132,6 @@ export async function stageColorImage(graphql: GraphQLClient<any>, file: {filena
 }
 
 export async function uploadColorImage(graphql: GraphQLClient<any>, resourceUrl: string, color: string, altText: string, shop: string) {
-
   const uploadResponse = await graphql(
   `
     mutation fileCreate($files: [FileCreateInput!]!) {

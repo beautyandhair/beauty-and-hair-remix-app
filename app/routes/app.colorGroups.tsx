@@ -18,9 +18,10 @@ import {
   Icon,
   Listbox,
   Tag,
-  Spinner
+  Spinner,
+  Collapsible
 } from '@shopify/polaris';
-import { CheckIcon, DeleteIcon, EditIcon, SearchIcon, XIcon } from '@shopify/polaris-icons';
+import { CheckIcon, DeleteIcon, EditIcon, PlusIcon, RefreshIcon, SearchIcon, XIcon } from '@shopify/polaris-icons';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   SubmitFunction,
@@ -60,7 +61,8 @@ enum Action {
   UpdateVendorColor = "UpdateVendorColor",
   DeleteVendorColor = "DeleteVendorColor",
   StageColorImage = "StageColorImage",
-  UploadColorImage = "UploadColorImage"
+  UploadColorImage = "UploadColorImage",
+  SyncAltText = "SyncAltText"
 }
 
 const COLOR_GROUPS = [
@@ -81,6 +83,8 @@ export async function loader() {
 
 export async function action({ request }: {request: Request }) {
   const { admin, session } = await authenticate.admin(request);
+  const { shop } = session;
+
   const data: any = {
     ...Object.fromEntries(await request.formData()),
   };
@@ -103,9 +107,37 @@ export async function action({ request }: {request: Request }) {
 
       return ({...stagedTargetResponse, color: data.color, altText: data.altText});
     case Action.UploadColorImage:
-      const { shop } = session;
-
       return await uploadColorImage(admin.graphql, data.resourceUrl, data.color, data.altText, shop);
+    case Action.SyncAltText:
+      const imagesToUpdate = JSON.parse(data.imagesToUpdate).map((image: any) => ({
+          "id": image.shopImageIds[shop],
+          "alt": image.altText
+        })
+      ).filter((image: any) => !!image.id);
+
+      const fileUpdateResponse = await admin.graphql(`
+        mutation FileUpdate($input: [FileUpdateInput!]!) {
+          fileUpdate(files: $input) {
+            userErrors {
+              code
+              field
+              message
+            }
+            files {
+              id
+              alt
+            }
+          }
+        }
+      `,
+        {
+          variables: {
+            "input": imagesToUpdate
+          }
+        }
+      );
+
+    return await fileUpdateResponse.json();
   }
 
   return Response.json({ errors: ['Invalid data passed.'] }, { status: 422 });
@@ -116,6 +148,8 @@ export default function ColorGroups() {
 
   const [vendors, setVendors] = useState<Vendor[]>(useLoaderData<Vendor[]>() ?? []);
   const [selected, setSelected] = useState(0);
+  const [openMoreActions, setMoreActions] = useState(false);
+  const [loadingSyncAltText, setLoadingSyncAltText] = useState(false);
 
   const vendorTabs = useMemo(() => vendors?.length ? vendors.map((vendor) => vendor.name) : [], [vendors]);
   const currentVendor = useMemo(() => vendors[selected], [vendors, selected]);
@@ -259,6 +293,21 @@ export default function ColorGroups() {
       ],
   }));
 
+  const onSyncAltText = useCallback(() => {
+    setLoadingSyncAltText(true);
+    const imagesToUpdate = currentVendor.colors?.map((vendorColor) => ({
+      altText: vendorColor.altText,
+      shopImageIds: vendorColor.shopImageIds
+    })).filter((image) => !!image.shopImageIds);
+
+    submit({
+      actionType: Action.SyncAltText,
+      imagesToUpdate: JSON.stringify(imagesToUpdate ?? [])
+    }, { method: "PUT" });
+
+    setTimeout(() => setLoadingSyncAltText(false), 3000);
+  }, [currentVendor.colors])
+
   return (
     <Page title="Color Groups">
       <Card>
@@ -269,15 +318,35 @@ export default function ColorGroups() {
           canCreateNewView
           onCreateNewView={onCreateVendor}
         >
-          <BlockStack gap="600">
+          <BlockStack gap="400">
             <VendorColorForm onAddVendorColor={onAddVendorColor} />
             <Divider />
-            <ColorGroupTable
-              currentVendor={currentVendor}
-              onDeleteVendorColor={onDeleteVendorColor}
-              onUpdateVendorColor={onUpdateVendorColor}
-              submit={submit}
-            />
+            <BlockStack gap="200">
+              <Box>
+                <Button
+                  icon={PlusIcon}
+                  variant="tertiary"
+                  ariaControls="more-actions-collapsible"
+                  onClick={() => setMoreActions((prev) => !prev)}
+                >
+                  More Actions
+                </Button>
+              </Box>
+              <Collapsible id="more-actions-collapsible" open={openMoreActions}>
+                <Box paddingInlineStart="300" paddingBlockEnd="400">
+                  <InlineStack blockAlign="center" gap="200">
+                    <Text as="span">Sync vendor color images alt text for uploaded images (only applies to this store)</Text>
+                    <Button icon={RefreshIcon} onClick={onSyncAltText} loading={loadingSyncAltText} />
+                  </InlineStack>
+                </Box>
+              </Collapsible>
+              <ColorGroupTable
+                currentVendor={currentVendor}
+                onDeleteVendorColor={onDeleteVendorColor}
+                onUpdateVendorColor={onUpdateVendorColor}
+                submit={submit}
+              />
+            </BlockStack>
           </BlockStack>
         </Tabs>
       </Card>
@@ -446,7 +515,8 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
 
   const onEdit = useCallback((vendorColor: VendorColor) => () => setEditing((prev) => ({...prev, [vendorColor.color]: {
     color: vendorColor.color,
-    groups: vendorColor.groups
+    groups: vendorColor.groups,
+    altText: vendorColor.altText
   }})), [setEditing]);
 
   const onCancelEdit = useCallback((color: string) => () => {
@@ -462,7 +532,8 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     if (editingVendorColor) {
       onUpdateVendorColor(color, {
         color: editingVendorColor.color,
-        groups: [...editingVendorColor.groups]
+        groups: [...editingVendorColor.groups],
+        altText: editingVendorColor.altText
       });
 
       delete editing[color];
