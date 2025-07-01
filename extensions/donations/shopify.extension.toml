@@ -48,13 +48,13 @@ api_access = true
 key = "donation_order"
 type = "single_line_text_field"
 name = "Order of Donations"
-description = "Comma seperated list (use acronym). Default: SU2C,BC"
+description = "Comma seperated list (use acronym). Default: SU2C,BC,EBEAUTY"
 
 [[extensions.settings.fields]]
 key = "donation_scheduled_order"
 type = "single_line_text_field"
 name = "Scheduled: Order of Donations"
-description = "Comma seperated list (use acronym). Default: BC,SU2C"
+description = "Comma seperated list (use acronym). Default: BC,SU2C,EBEAUTY"
 
 [[extensions.settings.fields]]
 key = "donation_scheduled_start_date"
@@ -67,16 +67,22 @@ type = "date"
 name = "Scheduled: Donation End Date"
 
 [[extensions.settings.fields]]
+key = "donation_su2c_gid"
+type = "variant_reference"
+name = "SU2C Variant"
+description = "Be sure to select variant, not product"
+
+[[extensions.settings.fields]]
 key = "donation_su2c_active"
 type = "boolean"
 name = "SU2C Activate?"
 description = "StandUpToCancer.org"
 
 [[extensions.settings.fields]]
-key = "donation_su2c_gid"
+key = "donation_bc_gid"
 type = "variant_reference"
-name = "Donation Variant"
-description = "Be sure to select variant, not product"
+name = "BC Variant"
+description = "Be sure to select variant, not product."
 
 [extensions.settings]
 [[extensions.settings.fields]]
@@ -86,7 +92,13 @@ name = "BC Activate?"
 description = "BreastCancer.org"
 
 [[extensions.settings.fields]]
-key = "donation_bc_gid"
+key = "donation_ebeauty_gid"
 type = "variant_reference"
-name = "Donation Variant"
+name = "EBEAUTY Variant"
 description = "Be sure to select variant, not product."
+
+[[extensions.settings.fields]]
+key = "donation_ebeauty_active"
+type = "boolean"
+name = "EBEAUTY Activate?"
+description = "EBeauty.com"
