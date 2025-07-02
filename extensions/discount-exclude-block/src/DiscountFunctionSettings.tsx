@@ -18,7 +18,8 @@ import {
   ProgressIndicator,
   Pressable,
   Badge,
-  Checkbox
+  Checkbox,
+  Banner
 } from '@shopify/ui-extensions-react/admin';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -58,17 +59,23 @@ function PercentageField({ defaultValue, value, onChange, i18n }) {
   );
 }
 
-function ClearancActiveCheckbox({
-  clearanceActiveCheckbox,
-  setClearanceActiveCheckbox,
-} : {clearanceActiveCheckbox: boolean, setClearanceActiveCheckbox: (value: boolean) => void}) {
-
-  const error = useMemo(() => clearanceActiveCheckbox ? undefined : "If clearance shouldn't remain active, use a different discount type." ,[clearanceActiveCheckbox]);
+function ExcludeClearanceCheckbox({
+  excludeClearance,
+  onChange,
+} : {excludeClearance: boolean, onChange: (value: boolean) => void}) {
 
   return (
     <Box>
       <BlockStack gap="base">
-        <Checkbox label="Keep Clearance Active" checked={clearanceActiveCheckbox} error={error} onChange={setClearanceActiveCheckbox}/>
+        <Banner title="ATTENTION" tone="info">
+          <Text>This discount will keep clearance active, regardless of clearance variant exclusion. If you want clearance to be turned off then use another discount method.</Text>
+        </Banner>
+        <Checkbox
+          checked={excludeClearance}
+          onChange={onChange}
+        >
+          <Text fontWeight="bold">EXCLUDE: Clearance Variants</Text>
+        </Checkbox>
     </BlockStack>
   </Box>
   );
@@ -217,8 +224,8 @@ function App() {
     onSelectCollections,
     handleRemoveCollection,
     selectedCollections,
-    clearanceActiveCheckbox,
-    setClearanceActiveCheckbox,
+    excludeClearance,
+    onExcludeClearanceChange,
     resetForm
   } = useExtensionData();
 
@@ -270,7 +277,7 @@ function App() {
         <Divider />
 
         <Section>
-          <ClearancActiveCheckbox clearanceActiveCheckbox={clearanceActiveCheckbox} setClearanceActiveCheckbox={setClearanceActiveCheckbox} />
+          <ExcludeClearanceCheckbox excludeClearance={excludeClearance} onChange={onExcludeClearanceChange} />
         </Section>
       </BlockStack>
     </Form>
@@ -287,7 +294,8 @@ function useExtensionData() {
   const [percentage, setPercentage] = useState(0);
   const [initialPercentage, setInitialPercentage] = useState(0);
 
-  const [clearanceActiveCheckbox, setClearanceActiveCheckbox] = useState<boolean>(true);
+  const [excludeClearance, setExcludeClearance] = useState<boolean>(true);
+  const [initialExcludeClearance, setInitialExcludeClearance] = useState(true);
 
   const [productTags, setProductTags] = useState<string[]>([]);
   const [initialProductTags, setInitialProductTags] = useState([]);
@@ -307,26 +315,31 @@ function useExtensionData() {
       const savedMetafieldsValue = parsedConfigMetafield ? JSON.parse(parsedConfigMetafield.value) : {
         percentage: 0,
         collections: [],
-        productTags: []
+        productTags: [],
+        excludeClearance: true
       };
 
       const transferPercentage = parsePercentage(savedMetafieldsValue);
       setInitialPercentage(Number(transferPercentage));
       setPercentage(Number(transferPercentage));
 
+      const transferExcludeClearance = parseExcludeClearance(savedMetafieldsValue);
+      setInitialExcludeClearance(transferExcludeClearance);
+      setExcludeClearance(transferExcludeClearance);
+
       const transferProductTags = parseProductTags(savedMetafieldsValue);
       setInitialProductTags(transferProductTags);
       setProductTags(transferProductTags);
 
-      const transferExcludedCollectionIds =
-      parseTransferExcludedCollectionIds(
+      const transferIncludedCollectionIds =
+      parseTransferIncludedCollectionIds(
           savedMetafields.find(
             (metafield) => metafield.key === 'function-configuration'
           )?.value
         );
-      setInitialCollectionIds(transferExcludedCollectionIds);
+      setInitialCollectionIds(transferIncludedCollectionIds);
 
-      await getCollectionTitles(transferExcludedCollectionIds, query).then(
+      await getCollectionTitles(transferIncludedCollectionIds, query).then(
         (results) => {
           const collections = results.data.nodes.map((collection) => ({
             id: collection.id,
@@ -345,6 +358,10 @@ function useExtensionData() {
 
   const onPercentageValueChange = async (value) => {
     setPercentage(Number(value));
+  };
+
+  const onExcludeClearanceChange = async (value) => {
+    setExcludeClearance(value);
   };
 
   const onProductTagsChange = (value: string) => {
@@ -378,14 +395,18 @@ function useExtensionData() {
   }
 
   async function applyExtensionMetafieldChange() {
-    if (!clearanceActiveCheckbox) {
-      return Promise.reject(new Error("Clearance must be active to use this discount type."));
+    if (!percentage) {
+      return Promise.reject(new Error("You need to include a discount percentage greater than 0."));
+    }
+    else if (!selectedCollections.length) {
+      return Promise.reject(new Error("You need to choose at least one collection."));
     }
 
     const commitFormValues = {
       percentage: Number(percentage),
       collections: selectedCollections.map((collection) => collection.id),
-      productTags
+      productTags,
+      excludeClearance
     };
     
     await applyMetafieldChange({
@@ -411,13 +432,13 @@ function useExtensionData() {
     onSelectCollections,
     handleRemoveCollection,
     selectedCollections,
-    clearanceActiveCheckbox,
-    setClearanceActiveCheckbox,
+    excludeClearance,
+    onExcludeClearanceChange,
     resetForm: () => {
       setPercentage(initialPercentage);
       setSelectedCollections(initialSelectedCollections);
       setProductTags(initialProductTags);
-      setClearanceActiveCheckbox(true);
+      setExcludeClearance(initialExcludeClearance);
     }
   };
 }
@@ -477,6 +498,14 @@ function parsePercentage(parsedObject) {
   }
 }
 
+function parseExcludeClearance(parsedObject) {
+  try {
+    return parsedObject.excludeClearance;
+  } catch {
+    return true;
+  }
+}
+
 function parseProductTags(parsedObject) {
   try {
     return parsedObject.productTags;
@@ -499,7 +528,7 @@ async function getCollectionTitles(collectionGids, adminApiQuery) {
   `);
 }
 
-function parseTransferExcludedCollectionIds(value) {
+function parseTransferIncludedCollectionIds(value) {
   try {
     return JSON.parse(value).collections;
   } catch {

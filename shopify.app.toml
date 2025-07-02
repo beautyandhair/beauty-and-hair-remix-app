@@ -1,9 +1,9 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "5cede6d0934f771ccfb90174fb0fb0f1"
-application_url = "https://substances-demonstrated-boundaries-checks.trycloudflare.com"
+application_url = "https://gained-bracelets-discrimination-alfred.trycloudflare.com"
 embedded = true
-name = "beauty-and-hair-remix-app"
+name = "Beauty&Hair Tools"
 handle = "beauty-and-hair-remix-app"
 
 [build]
@@ -28,9 +28,9 @@ scopes = "write_products,read_products,write_discounts,write_files,read_files"
 
 [auth]
 redirect_urls = [
-  "https://substances-demonstrated-boundaries-checks.trycloudflare.com/auth/callback",
-  "https://substances-demonstrated-boundaries-checks.trycloudflare.com/auth/shopify/callback",
-  "https://substances-demonstrated-boundaries-checks.trycloudflare.com/api/auth/callback"
+  "https://gained-bracelets-discrimination-alfred.trycloudflare.com/auth/callback",
+  "https://gained-bracelets-discrimination-alfred.trycloudflare.com/auth/shopify/callback",
+  "https://gained-bracelets-discrimination-alfred.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

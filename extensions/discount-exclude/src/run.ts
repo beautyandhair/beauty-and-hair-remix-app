@@ -14,7 +14,8 @@ const EMPTY_DISCOUNT: FunctionRunResult = {
 type Configuration = {
   percentage: number,
   collections: string[],
-  productTags: string[]
+  productTags: string[],
+  excludeClearance: boolean
 };
 
 export function run(input: RunInput): FunctionRunResult {
@@ -26,8 +27,8 @@ export function run(input: RunInput): FunctionRunResult {
     return EMPTY_DISCOUNT;
   }
 
-  const isClearance = (variantMetafield: string | undefined) => {
-    return variantMetafield === 'true';
+  const isExcluded = (variantMetafield: string | undefined) => {
+    return configuration.excludeClearance && variantMetafield === 'true';
   }
   
   const targets = input.cart.lines
@@ -35,7 +36,7 @@ export function run(input: RunInput): FunctionRunResult {
     if (line.merchandise.__typename == 'ProductVariant') {
       const variant = (line.merchandise);
 
-      return variant.product.inAnyCollection && !variant.product.hasAnyTag && !isClearance(variant.metafield?.value)
+      return variant.product.inAnyCollection && !variant.product.hasAnyTag && !isExcluded(variant.metafield?.value);
     } else {
       return false;
     }

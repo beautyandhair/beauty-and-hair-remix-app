@@ -1,6 +1,6 @@
 {
   "name": "Discount Settings",
-  "description": "Offer a discount on collection products and non-clearance variants that are not excluded.",
+  "description": "Offer a discount on collection products while KEEPING CLEARANCE ACTIVE. Optional product tags and clearance variants can be excluded from discount.",
   "discountPercentage": "Discount percentage",
   "addCollections": "Add collections"
 }
