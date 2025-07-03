@@ -9,7 +9,9 @@ import {
   Banner,
   ProgressIndicator,
   InlineStack,
-  Text
+  Text,
+  Badge,
+  Box
 } from '@shopify/ui-extensions-react/admin';
 
 import { getVariants, updateVariantMetafields, updateVariantImages, uploadVendorColorImage } from "./utils";
@@ -181,7 +183,23 @@ function App() {
     setSyncLoadingMessage("");
   }, [variants, colorGroups]);
 
-  const onSyncColorImages = useCallback(async () => {
+  const onSyncMissingColorImages = useCallback(async () => {
+    setSyncWarning(false);
+    setSyncLoadingMessage("Checking variants...");
+
+    const variantsToUpdate = variants.filter((variant) => !variant.image?.src).reduce((obj, variant) => {
+      obj[variant.title] = {
+        variantId: variant.id,
+        ...colorImages[variant.title]
+      };
+
+      return obj;
+    }, ({}));
+    
+    syncVariantColorImages(variantsToUpdate);
+  }, [variants, colorImages]);
+
+  const onSyncAllColorImages = useCallback(async () => {
     setSyncWarning(false);
     setSyncLoadingMessage("Checking variant images...");
 
@@ -194,6 +212,10 @@ function App() {
       return obj;
     }, ({}));
     
+    syncVariantColorImages(variantsToUpdate);
+  }, [variants, colorImages]);
+
+  const syncVariantColorImages = useCallback(async (variantsToUpdate: any) => {
     const variantImageCategories = Object.keys(variantsToUpdate).reduce((obj, key) => {
       const variantUpdating = {...variantsToUpdate[key], color: key};
 
@@ -228,7 +250,7 @@ function App() {
     await updateProductVariantImages(updatedVariants);
 
     setSyncLoadingMessage("");
-  }, [variants, colorImages]);
+  }, [onSyncMissingColorImages, onSyncAllColorImages])
 
   return (
     // The AdminAction component provides an API for setting the title and actions of the Action extension wrapper.
@@ -251,14 +273,25 @@ function App() {
       ) : (
         <BlockStack blockAlignment="center" gap="base large">
           <Paragraph>
-            Variant's color groups metafield will be updated and/or overridden to assigned groups in Color Groups Table
+            Variant's color groups metafield will be updated to assigned groups in Color Groups Table
           </Paragraph>
           <Button onClick={onSyncColorGroups}>
             Assign Color Groups
           </Button>
 
           <Paragraph>
-            Variant's image will be updated and/or overridden to default image set in Color Groups Table
+            Variant's with a missing image will be updated to default image set in Color Groups Table
+          </Paragraph>
+          <Button onClick={onSyncMissingColorImages}>
+            Assign Color Images
+          </Button>
+
+          <Box paddingBlockStart="large">
+            <Badge tone="warning" icon="AlertMinor">ATTENTION</Badge>
+          </Box>
+
+          <Paragraph>
+            Variant's image will be updated and/or <Text fontWeight="bold">OVERRIDDEN</Text> to default image set in Color Groups Table
           </Paragraph>
           <Button onClick={() => setSyncWarning(true)}>
             Assign Color Images
@@ -269,7 +302,7 @@ function App() {
               title="Confirm Action"
               tone="warning"
               primaryAction={<Button onClick={() => setSyncWarning(false)}>Cancel</Button>}
-              secondaryAction={<Button onClick={onSyncColorImages}>Confirm</Button>}
+              secondaryAction={<Button onClick={onSyncAllColorImages}>Confirm</Button>}
             >
               Are you sure you want to override variant images?
             </Banner>

@@ -69,6 +69,9 @@ export async function getVariants(productId) {
         nodes {
           id
           title
+          image {
+            src
+          }
           product {
             vendor
           }
