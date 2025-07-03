@@ -189,3 +189,10 @@ export async function uploadColorImage(graphql: GraphQLClient<any>, resourceUrl:
 
   return ({imageSrc, imageId, color, altText, shop});
 }
+
+export async function createManyVendorColors(data: any) {
+  return await prisma.vendorColor.createMany({
+    data,
+    skipDuplicates: true
+  });
+}
