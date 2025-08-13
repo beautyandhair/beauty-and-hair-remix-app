@@ -4,6 +4,7 @@ api_version = "2025-01"
 # Change the merchant-facing name of the extension in locales/en.default.json
 name = "t:name"
 handle = "discount-exclude-block"
+uid = "61f9e2d0-70db-7cfa-8bb8-c2ffbdf35c4d97eb2941"
 type = "ui_extension"
 
 

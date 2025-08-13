@@ -1,0 +1,20 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "81842b3602c55b4ca67376deb2d1d120"
+organization_id = "103691"
+name = "beauty-and-hair-remix-app"
+application_url = "https://beauty-and-hair-remix-app-103600f41d3c.herokuapp.com/"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2025-10"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_files,read_products,write_discounts,write_files,write_products"
+
+[auth]
+redirect_urls = [ "https://beauty-and-hair-remix-app-103600f41d3c.herokuapp.com/auth/callback" ]

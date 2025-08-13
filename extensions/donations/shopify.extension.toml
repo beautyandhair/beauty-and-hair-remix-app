@@ -8,6 +8,7 @@ api_version = "2025-01"
 [[extensions]]
 name = "donations"
 handle = "donations"
+uid = "afe52a50-4f64-1100-aae7-fb78dd5eaed3519622cb"
 type = "ui_extension"
 
 

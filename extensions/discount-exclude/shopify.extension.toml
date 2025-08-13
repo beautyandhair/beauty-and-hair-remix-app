@@ -3,6 +3,7 @@ api_version = "2025-01"
 [[extensions]]
 name = "t:name"
 handle = "discount-exclude"
+uid = "727f6f3e-5df3-84cb-727c-12235f3763670d256070"
 type = "function"
 
 description = "t:description"
