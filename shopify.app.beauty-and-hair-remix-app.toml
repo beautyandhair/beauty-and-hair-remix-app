@@ -1,8 +1,8 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "81842b3602c55b4ca67376deb2d1d120"
+client_id = "5cede6d0934f771ccfb90174fb0fb0f1"
 organization_id = "103691"
-name = "beauty-and-hair-remix-app"
+name = "Beauty&Hair Tools"
 application_url = "https://beauty-and-hair-remix-app-103600f41d3c.herokuapp.com"
 embedded = true
 
