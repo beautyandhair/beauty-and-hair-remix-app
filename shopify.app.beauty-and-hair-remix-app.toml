@@ -3,7 +3,7 @@
 client_id = "5cede6d0934f771ccfb90174fb0fb0f1"
 organization_id = "103691"
 name = "Beauty&Hair Tools"
-application_url = "https://beauty-and-hair-remix-app-103600f41d3c.herokuapp.com"
+application_url = "https://beauty-and-hair-remix-app-103600f41d3c.herokuapp.com/"
 embedded = true
 
 [build]

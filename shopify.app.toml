@@ -3,7 +3,7 @@
 client_id = "5cede6d0934f771ccfb90174fb0fb0f1"
 name = "Beauty&Hair Tools"
 handle = "beauty-and-hair-remix-app"
-application_url = "https://beauty-and-hair-remix-app-103600f41d3c.herokuapp.com"
+application_url = "https://beauty-and-hair-remix-app-103600f41d3c.herokuapp.com/"
 embedded = true
 
 [webhooks]
