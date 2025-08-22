@@ -1,26 +1,21 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "5cede6d0934f771ccfb90174fb0fb0f1"
-application_url = "https://gained-bracelets-discrimination-alfred.trycloudflare.com"
-embedded = true
 name = "Beauty&Hair Tools"
 handle = "beauty-and-hair-remix-app"
-
-[build]
-include_config_on_deploy = true
-dev_store_url = "kats-dev-store.myshopify.com"
-automatically_update_urls_on_dev = true
+application_url = "https://beauty-and-hair-remix-app-103600f41d3c.herokuapp.com/"
+embedded = true
 
 [webhooks]
 api_version = "2025-01"
 
   [[webhooks.subscriptions]]
-  topics = [ "app/uninstalled" ]
-  uri = "/webhooks/app/uninstalled"
+  topics = [ "app/scopes_update" ]
+  uri = "https://gained-bracelets-discrimination-alfred.trycloudflare.com/webhooks/app/scopes_update"
 
   [[webhooks.subscriptions]]
-  topics = [ "app/scopes_update" ]
-  uri = "/webhooks/app/scopes_update"
+  topics = [ "app/uninstalled" ]
+  uri = "https://gained-bracelets-discrimination-alfred.trycloudflare.com/webhooks/app/uninstalled"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -28,10 +23,14 @@ scopes = "write_products,read_products,write_discounts,write_files,read_files,wr
 
 [auth]
 redirect_urls = [
-  "https://gained-bracelets-discrimination-alfred.trycloudflare.com/auth/callback",
-  "https://gained-bracelets-discrimination-alfred.trycloudflare.com/auth/shopify/callback",
-  "https://gained-bracelets-discrimination-alfred.trycloudflare.com/api/auth/callback"
+  "https://beauty-and-hair-remix-app-103600f41d3c.herokuapp.com/auth/callback",
+  "https://beauty-and-hair-remix-app-103600f41d3c.herokuapp.com/auth/shopify/callback",
+  "https://beauty-and-hair-remix-app-103600f41d3c.herokuapp.com/api/auth/callback"
 ]
 
 [pos]
 embedded = false
+
+[build]
+include_config_on_deploy = true
+automatically_update_urls_on_dev = false

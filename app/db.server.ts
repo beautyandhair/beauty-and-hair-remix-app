@@ -1,9 +1,9 @@
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const connectionString = `${process.env.DATABASE_URL}`;
 
-const adapter = new PrismaPg({ connectionString },{ schema: 'myPostgresSchema' });
+const adapter = new PrismaPg({ connectionString });
 
 declare global {
   var prismaGlobal: PrismaClient;

@@ -8,7 +8,6 @@ api_version = "2025-01"
 [[extensions]]
 name = "shipping-protection"
 handle = "shipping-protection"
-uid = "f5280ec7-d1e3-68ea-1c3b-9b08eb0f7982db8ffe46"
 type = "ui_extension"
 
 
