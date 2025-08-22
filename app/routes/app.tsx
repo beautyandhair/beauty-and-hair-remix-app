@@ -25,6 +25,7 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/colorGroups">Color Groups</Link>
+         <Link to="/app/dataTables">Data Tables</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>
