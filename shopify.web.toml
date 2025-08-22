@@ -5,3 +5,7 @@ webhooks_path = "/webhooks/app/uninstalled"
 [commands]
 predev = "npx prisma generate"
 dev = "npx prisma migrate deploy && npm exec remix vite:dev"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products,read_products,write_app_proxy,unauthenticated_read_product_listings"
