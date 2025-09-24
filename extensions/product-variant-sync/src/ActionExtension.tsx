@@ -32,7 +32,7 @@ export default reactExtension(TARGET, () => <App />);
 
 function App() {
   // The useApi hook provides access to several useful APIs like i18n and data.
-  const { i18n, data, close } = useApi(TARGET);
+  const { data, close } = useApi(TARGET);
 
   const productId = data.selected[0].id;
   const [loading, setLoading] = useState(true);
@@ -66,7 +66,7 @@ function App() {
 
       return obj;
     }, ({}))
-  , [vendorColors]);
+  , [vendorColors, shop]);
 
   const getSessionShop = useCallback(async () => {
     const res = await fetch(`api/getSessionShop`);
@@ -108,12 +108,12 @@ function App() {
       setVariants(variants);
       getVendorColors(variants[0].product.vendor);
     }
-  }, [productId]);
+  }, [productId, getVendorColors]);
 
   useEffect(() => {
     getSessionShop();
     getProductVariants();
-  }, []);
+  }, [getSessionShop, getProductVariants]);
 
   const handleUploadVendorColorImages = useCallback(async (
     variantsToUpdate: any,
@@ -160,7 +160,7 @@ function App() {
   }, [shop, variants]);
 
   const updateProductVariantImages = useCallback(async (updatedVariants: {id: any, mediaId: {imageId: string}}[]) => {
-    const syncResult = await updateVariantImages(productId, updatedVariants);
+    await updateVariantImages(productId, updatedVariants);
   }, [productId]);
 
   const onSyncColorGroups = useCallback(async () => {
@@ -178,42 +178,10 @@ function App() {
       ]
     }));
 
-    const syncResult = await updateVariantMetafields(productId, updatedVariants);
+    await updateVariantMetafields(productId, updatedVariants);
 
     setSyncLoadingMessage("");
-  }, [variants, colorGroups]);
-
-  const onSyncMissingColorImages = useCallback(async () => {
-    setSyncWarning(false);
-    setSyncLoadingMessage("Checking variants...");
-
-    const variantsToUpdate = variants.filter((variant) => !variant.image?.src).reduce((obj, variant) => {
-      obj[variant.title] = {
-        variantId: variant.id,
-        ...colorImages[variant.title]
-      };
-
-      return obj;
-    }, ({}));
-    
-    syncVariantColorImages(variantsToUpdate);
-  }, [variants, colorImages]);
-
-  const onSyncAllColorImages = useCallback(async () => {
-    setSyncWarning(false);
-    setSyncLoadingMessage("Checking variant images...");
-
-    const variantsToUpdate = variants.reduce((obj, variant) => {
-      obj[variant.title] = {
-        variantId: variant.id,
-        ...colorImages[variant.title]
-      };
-
-      return obj;
-    }, ({}));
-    
-    syncVariantColorImages(variantsToUpdate);
-  }, [variants, colorImages]);
+  }, [variants, colorGroups, productId]);
 
   const syncVariantColorImages = useCallback(async (variantsToUpdate: any) => {
     const variantImageCategories = Object.keys(variantsToUpdate).reduce((obj, key) => {
@@ -250,7 +218,39 @@ function App() {
     await updateProductVariantImages(updatedVariants);
 
     setSyncLoadingMessage("");
-  }, [onSyncMissingColorImages, onSyncAllColorImages])
+  }, [handleUploadVendorColorImages, updateProductVariantImages]);
+
+  const onSyncAllColorImages = useCallback(async () => {
+    setSyncWarning(false);
+    setSyncLoadingMessage("Checking variant images...");
+
+    const variantsToUpdate = variants.reduce((obj, variant) => {
+      obj[variant.title] = {
+        variantId: variant.id,
+        ...colorImages[variant.title]
+      };
+
+      return obj;
+    }, ({}));
+    
+    syncVariantColorImages(variantsToUpdate);
+  }, [variants, colorImages, syncVariantColorImages]);
+
+  const onSyncMissingColorImages = useCallback(async () => {
+    setSyncWarning(false);
+    setSyncLoadingMessage("Checking variants...");
+
+    const variantsToUpdate = variants.filter((variant) => !variant.image?.src).reduce((obj, variant) => {
+      obj[variant.title] = {
+        variantId: variant.id,
+        ...colorImages[variant.title]
+      };
+
+      return obj;
+    }, ({}));
+    
+    syncVariantColorImages(variantsToUpdate);
+  }, [variants, colorImages, syncVariantColorImages]);
 
   return (
     // The AdminAction component provides an API for setting the title and actions of the Action extension wrapper.
