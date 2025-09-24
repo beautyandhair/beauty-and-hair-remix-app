@@ -1,8 +1,9 @@
+import type {
+  TabProps} from '@shopify/polaris';
 import {
   Page,
   Card, 
   Tabs,
-  TabProps,
   TextField,
   Button,
   InlineGrid,
@@ -19,35 +20,40 @@ import {
   Listbox,
   Tag,
   Spinner,
-  Collapsible
+  Collapsible,
+  ProgressBar
 } from '@shopify/polaris';
 import { CheckIcon, DeleteIcon, EditIcon, PlusIcon, RefreshIcon, SearchIcon, XIcon } from '@shopify/polaris-icons';
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import type {
+  SubmitFunction} from "@remix-run/react";
 import {
-  SubmitFunction,
   useActionData,
   useLoaderData,
   useSubmit
 } from "@remix-run/react";
 
+import type {
+  Vendor} from "../models/Vendor.server";
 import {
-  Vendor,
   getVendors,
   createVendor,
   updateVendor,
-  deleteVendor,
-  validateVendor
+  deleteVendor
 } from "../models/Vendor.server";
 
-import {
+import type {
   VendorColor,
-  VendorColorUpdate,
+  VendorColorUpdate} from "../models/VendorColor.server";
+import {
   createVendorColor,
   updateVendorColor,
+  upsertVendorColor,
+  upsertManyVendorColor,
   deleteVendorColor,
   stageColorImage,
   uploadColorImage,
-  validateVendorColor
+  uploadColorImagesBulk
 } from "../models/VendorColor.server";
 
 import { authenticate } from 'app/shopify.server';
@@ -59,9 +65,12 @@ enum Action {
   DeleteVendor = "DeleteVendor",
   CreateVendorColor = "CreateVendorColor",
   UpdateVendorColor = "UpdateVendorColor",
+  UpsertVendorColor = "UpsertVendorColor",
+  UpsertManyVendorColor = "UpsertManyVendorColor",
   DeleteVendorColor = "DeleteVendorColor",
   StageColorImage = "StageColorImage",
   UploadColorImage = "UploadColorImage",
+  UploadColorImagesBulk = "UploadColorImagesBulk",
   SyncAltText = "SyncAltText"
 }
 
@@ -76,6 +85,13 @@ const COLOR_GROUPS = [
   {value: 'fashion-color', label: 'Fashion Color'},
   {value: 'exclusive-color', label: 'Exclusive Color'},
 ];
+
+type VendorColorType = {
+  color: string,
+  vendorName: string,
+  imageSrc?: string,
+  altText?: string,
+}
 
 export async function loader() {
   return Response.json(await getVendors());
@@ -100,6 +116,10 @@ export async function action({ request }: {request: Request }) {
       return await createVendorColor(data.vendorName, data.color, JSON.parse(data.groups));
     case Action.UpdateVendorColor:
       return await updateVendorColor(data.vendorName, data.color, JSON.parse(data.vendorColorUpdate));
+    case Action.UpsertVendorColor:
+      return await upsertVendorColor(data.vendorName, data.color, JSON.parse(data.vendorColorUpdate));
+    case Action.UpsertManyVendorColor:
+      return await upsertManyVendorColor(JSON.parse(data.vendorColors));
     case Action.DeleteVendorColor:
       return await deleteVendorColor(data.vendorName, data.color);
     case Action.StageColorImage:
@@ -107,7 +127,9 @@ export async function action({ request }: {request: Request }) {
 
       return ({...stagedTargetResponse, color: data.color, altText: data.altText});
     case Action.UploadColorImage:
-      return await uploadColorImage(admin.graphql, data.resourceUrl, data.color, data.altText, shop);
+      return await uploadColorImage(admin.graphql, data.resourceUrl, data.color, data.altText, shop, data.vendorName, data.fileName);
+    case Action.UploadColorImagesBulk:
+      return await uploadColorImagesBulk(admin.graphql, shop, JSON.parse(data.images));
     case Action.SyncAltText:
       const imagesToUpdate = JSON.parse(data.imagesToUpdate).map((image: any) => ({
           "id": image.shopImageIds[shop],
@@ -148,8 +170,22 @@ export default function ColorGroups() {
 
   const [vendors, setVendors] = useState<Vendor[]>(useLoaderData<Vendor[]>() ?? []);
   const [selected, setSelected] = useState(0);
-  const [openMoreActions, setMoreActions] = useState(false);
+  const [openMoreActions, setOpenMoreActions] = useState(false);
   const [loadingSyncAltText, setLoadingSyncAltText] = useState(false);
+
+  const [openImportVendorColor, setOpenImportVendorColor] = useState(false);
+  const [loadingImport, setLoadingImport] = useState<{active: boolean, progress: number, total: number}>({active: false, progress: 0, total: 0});
+  const [pendingVendorColorsBulk, setPendingVendorColorsBulk] = useState<{
+    upserted: boolean,
+    data: {
+      altText?: string,
+      imageSrc: string,
+      color: string,
+      vendorName: string,
+      fileName?: string
+    }
+  }[]>([]);
+  const actionData = useActionData<any>();
 
   const vendorTabs = useMemo(() => vendors?.length ? vendors.map((vendor) => vendor.name) : [], [vendors]);
   const currentVendor = useMemo(() => vendors[selected], [vendors, selected]);
@@ -169,7 +205,7 @@ export default function ColorGroups() {
     setVendors((prev) => [...prev, { name: value, colors: [] }]);
 
     return true;
-  }, []);
+  }, [submit]);
 
   const onUpdateVendor = useCallback(async (value: string) => {
     await sleep(1);
@@ -184,7 +220,7 @@ export default function ColorGroups() {
     setVendors((prev) => [...prev]);
 
     return true;
-  }, [currentVendor]);
+  }, [currentVendor, submit]);
 
   const onDeleteVendor = useCallback(async () => {
     await sleep(1);
@@ -198,7 +234,7 @@ export default function ColorGroups() {
     setSelected(0);
 
     return true;
-  }, [currentVendor]);
+  }, [currentVendor, submit]);
 
   /* MUTATE VENDOR COLORS */
 
@@ -226,7 +262,7 @@ export default function ColorGroups() {
     }, { method: "POST" });
 
     setVendors((prev) => [...prev]);
-  }, [currentVendor]);
+  }, [currentVendor, submit]);
 
   const onUpdateVendorColor = useCallback(async (color: string, vendorColorUpdate: VendorColorUpdate) => {
     const vendorColor = currentVendor.colors?.find((vendorColor) => vendorColor.color === color);
@@ -236,8 +272,8 @@ export default function ColorGroups() {
       vendorColor.groups = vendorColorUpdate.groups ?? vendorColor.groups;
       vendorColor.imageSrc = vendorColorUpdate.imageSrc ?? vendorColor.imageSrc;
       vendorColor.shopImageIds = vendorColorUpdate.shopImageIds ?? vendorColor.shopImageIds;
-      vendorColor.altText = vendorColorUpdate.altText ?? vendorColor.altText
-      vendorColor.fileName = vendorColorUpdate.fileName ?? vendorColor.fileName
+      vendorColor.altText = vendorColorUpdate.altText ?? vendorColor.altText;
+      vendorColor.fileName = vendorColorUpdate.fileName ?? vendorColor.fileName;
     }
     else {
       return;
@@ -252,7 +288,74 @@ export default function ColorGroups() {
     }, { method: "PUT" });
 
     setVendors((prev) => [...prev]);
-  }, [currentVendor]);
+  }, [currentVendor, submit]);
+
+  const onUpsertVendorColor = useCallback(async (vendorName: string, color: string, vendorColorUpdate: VendorColorUpdate) => {
+    const vendor = vendors.find((vendor) => vendor.name === vendorName);
+    const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === color);
+
+    if (vendorColor) {
+      vendorColor.color = vendorColorUpdate.color ?? vendorColor.color;
+      vendorColor.groups = vendorColorUpdate.groups ?? vendorColor.groups;
+      vendorColor.imageSrc = vendorColorUpdate.imageSrc ?? vendorColor.imageSrc;
+      vendorColor.altText = vendorColorUpdate.altText ?? vendorColor.altText;
+      vendorColor.fileName = vendorColorUpdate.fileName ?? vendorColor.fileName;
+    }
+
+    setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / prev.total) * 100))}));
+
+    await sleep(1);
+    submit({
+      actionType: Action.UpsertVendorColor,
+      vendorName: vendorName,
+      color,
+      vendorColorUpdate: JSON.stringify(vendorColorUpdate)
+    }, { method: "PUT" });
+
+    setVendors((prev) => [...prev]);
+  }, [vendors, submit]);
+
+  const onUpsertManyVendorColor = useCallback(async (vendorColorsUpsert: {vendorName: string, color: string, vendorColorUpdate: VendorColorUpdate}[]) => {
+    for (const vendorColorUpsert of vendorColorsUpsert) {
+      const vendor = vendors.find((vendor) => vendor.name === vendorColorUpsert.vendorName);
+      const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === vendorColorUpsert.color);
+
+      if (vendorColor) {
+        vendorColor.color = vendorColorUpsert.vendorColorUpdate.color ?? vendorColor.color;
+        vendorColor.groups = vendorColorUpsert.vendorColorUpdate.groups ?? vendorColor.groups;
+        vendorColor.imageSrc = vendorColorUpsert.vendorColorUpdate.imageSrc ?? vendorColor.imageSrc;
+        vendorColor.altText = vendorColorUpsert.vendorColorUpdate.altText ?? vendorColor.altText;
+        vendorColor.fileName = vendorColorUpsert.vendorColorUpdate.fileName ?? vendorColor.fileName;
+      }
+      else if (vendor) {
+        const colorData = {
+          vendorName: vendorColorUpsert.vendorName,
+          color: vendorColorUpsert.color,
+          groups: [],
+          shopImageIds: {},
+          imageSrc: vendorColorUpsert.vendorColorUpdate.imageSrc ?? undefined,
+          altText: vendorColorUpsert.vendorColorUpdate.altText
+        };
+
+        if (vendor.colors) {
+          vendor.colors = [...vendor.colors, {...colorData}];
+        }
+        else {
+          vendor.colors = [{...colorData}];
+        }
+      }
+
+      setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / prev.total) * 100))}));
+    }
+
+    await sleep(1000);
+    submit({
+      actionType: Action.UpsertManyVendorColor,
+      vendorColors: JSON.stringify(vendorColorsUpsert)
+    }, { method: "PUT" });
+
+    setVendors((prev) => [...prev]);
+  }, [vendors, submit]);
 
   const onDeleteVendorColor = useCallback((color: string) => async () => {
     if (currentVendor.colors && currentVendor.colors) {
@@ -270,7 +373,7 @@ export default function ColorGroups() {
     }, { method: "DELETE" });
 
     setVendors((prev) => [...prev]);
-  }, [currentVendor]);
+  }, [currentVendor, submit]);
 
   /* OTHER FUNCTIONALITY */
 
@@ -306,10 +409,163 @@ export default function ColorGroups() {
     }, { method: "PUT" });
 
     setTimeout(() => setLoadingSyncAltText(false), 3000);
-  }, [currentVendor.colors])
+  }, [currentVendor.colors, submit])
+
+  /* IMPORT VENDOR COLOR CSV */
+
+  useEffect(() => {
+    if (loadingImport.active && loadingImport.progress >= 100) {
+      setLoadingImport({active: false, progress: 0, total: 0});
+      setPendingVendorColorsBulk([]);
+    }
+  }, [loadingImport]);
+
+  useEffect(() => {
+    const validPendingVendorColorsBulk = pendingVendorColorsBulk.filter((vendorColor) => !vendorColor.upserted);
+
+    if (actionData?.images && validPendingVendorColorsBulk.length) {
+      const imagesImported = JSON.parse(actionData.images);
+      const vendorColorsUpsert = [];
+
+      setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / prev.total) * 100 * actionData.failedImages))}));
+
+      for (const imageImport of imagesImported) {
+        let vendorColor = validPendingVendorColorsBulk.find((vendorColor) => imageImport.imageSrc.includes(vendorColor.data.fileName));
+
+        if (vendorColor) {
+          vendorColorsUpsert.push({
+            vendorName: vendorColor.data.vendorName,
+            color: vendorColor.data.color, 
+            vendorColorUpdate: {
+              imageSrc: imageImport.imageSrc,
+              fileName: vendorColor.data.fileName,
+              shopImageIds: {[actionData.shop]: imageImport.imageId},
+              altText: imageImport.altText
+            }
+          });
+
+          vendorColor.upserted = true
+        }
+      }
+
+      if (vendorColorsUpsert.length) {
+        onUpsertManyVendorColor(vendorColorsUpsert);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionData, pendingVendorColorsBulk]);
+
+  const submitPendingVendorColorsBulk = useCallback(async (vendorColorsBulkPayload: {
+    upserted: boolean;
+    data: VendorColorType & {
+        imageSrc: string;
+        fileName: string;
+    };
+  }[]) => {
+    setPendingVendorColorsBulk((prev) => prev.concat(vendorColorsBulkPayload));
+
+    submit({
+      actionType: Action.UploadColorImagesBulk,
+      images: JSON.stringify(vendorColorsBulkPayload.map((vendorColor) => ({
+        resourceUrl: vendorColor.data.imageSrc,
+        color: vendorColor.data.color,
+        altText: vendorColor.data.altText,
+        fileName: vendorColor.data.fileName + (vendorColor.data.imageSrc?.match(/(\.\w+)(?=\?.+)|(\.\w+)$/g)?.[0] ?? '.jpg'),
+        vendorName: vendorColor.data.vendorName
+      })))
+    }, { method: "POST" });
+  }, [submit]);
+
+  const handleImportVendorColorsBulk = useCallback(async (vendorColors: VendorColorType[]) => {
+    const vendorColorsBulk: ({upserted: boolean, data: VendorColorType & {imageSrc: string, fileName: string}})[] = [];
+    
+    for (const vendorColor of vendorColors) {
+      if (vendorColor.imageSrc) {
+        let fileName = handleize(`${vendorColor.vendorName}_${vendorColor.color}_swatch`);
+
+        vendorColorsBulk.push({upserted: false, data: {...vendorColor, imageSrc: vendorColor.imageSrc, fileName}});
+      }
+      else {
+        onUpsertVendorColor(vendorColor.vendorName, vendorColor.color, {
+          altText: vendorColor.altText
+        });
+      }
+
+      if (vendorColorsBulk.length === 10) {
+        submitPendingVendorColorsBulk([...vendorColorsBulk]);
+
+        vendorColorsBulk.length = 0;
+
+        await sleep(10000);
+      }
+    }
+
+    if (vendorColorsBulk.length) {
+      submitPendingVendorColorsBulk([...vendorColorsBulk]);
+    }
+  }, [onUpsertVendorColor, submitPendingVendorColorsBulk]);
+
+  const handleImportVendorColorFile = useCallback((_files: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
+    const file = acceptedFiles[0];
+
+    if (file) {
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+
+        if (!content) {
+          return;
+        }
+        
+        let rows = content.split(/\r\n|\n/);
+        let rowHeaders = rows[0].split(',');
+        let vendorColors = [];
+        
+        for (let i = 1; i < rows.length; i = i + 1) {
+          let rowData = rows[i].split(',').reduce<{[key: string]: string}>(
+            (rowObject, currentValue, currentIndex) => {
+              rowObject[rowHeaders[currentIndex]] = currentValue;
+
+              return rowObject;
+            }, {}
+          );
+
+          vendorColors.push(rowData);
+        }
+
+        setLoadingImport({active: true, progress: 0, total: vendorColors.length});
+
+        handleImportVendorColorsBulk(vendorColors as VendorColorType[]);
+      };
+
+      reader.readAsText(file);
+    }
+  }, [handleImportVendorColorsBulk]);
 
   return (
     <Page title="Color Groups">
+      <Button
+        icon={PlusIcon}
+        variant="tertiary"
+        ariaControls="vendor-color-import"
+        onClick={() => setOpenImportVendorColor((prev) => !prev)}
+      >
+        Vendor Color Import
+      </Button>
+
+      <Collapsible id="vendor-color-import" open={openImportVendorColor}>
+        <Box paddingBlockEnd="400">
+          {loadingImport.active ? (
+            <ProgressBar progress={loadingImport.progress} />
+          ) : (
+            <DropZone onDrop={handleImportVendorColorFile} allowMultiple={false} type="file">
+              <DropZone.FileUpload actionHint="Formatted CSV File" />
+            </DropZone>
+          )}
+        </Box>
+      </Collapsible>
+
       <Card>
         <Tabs
           tabs={tabs}
@@ -327,7 +583,7 @@ export default function ColorGroups() {
                   icon={PlusIcon}
                   variant="tertiary"
                   ariaControls="more-actions-collapsible"
-                  onClick={() => setMoreActions((prev) => !prev)}
+                  onClick={() => setOpenMoreActions((prev) => !prev)}
                 >
                   More Actions
                 </Button>
@@ -381,7 +637,7 @@ function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups, hideSelect 
     <Tag key={`option-${group}`}>
       {group}
     </Tag>
-  )), [selectedGroups, onChangeSelectedGroups]);
+  )), [selectedGroups]);
 
   const escapeSpecialRegExCharacters = useCallback((value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), []);
 
@@ -408,7 +664,7 @@ function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups, hideSelect 
     }
 
     updateText('');
-  }, [selectedGroups, updateText]);
+  }, [selectedGroups, updateText, onChangeSelectedGroups]);
 
   return (
     <BlockStack gap="200">
@@ -447,7 +703,7 @@ function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: strin
     
     setColor('');
     setGroups([]);
-  }, [color, groups]);
+  }, [color, groups, onAddVendorColor]);
 
   const handleColorChange = useCallback((value: string) => setColor(value), []);
 
@@ -539,26 +795,9 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
       delete editing[color];
       setEditing((prev) => ({...prev}));
     }
-  }, [editing, setEditing]);
+  }, [editing, setEditing, onUpdateVendorColor]);
 
   /* UPDATING VENDOR COLOR: IMAGE FUNCTIONALITY */
-
-  useEffect(() => {
-    if (actionData?.stagedTarget) {
-      handleUploadImage(actionData.stagedTarget, actionData.color, actionData.altText);
-    }
-    else if (actionData?.imageSrc && colorFiles[actionData.color]) {
-      onUpdateVendorColor(actionData.color, {
-        imageSrc: actionData.imageSrc,
-        fileName: colorFiles[actionData.color].fileName,
-        shopImageIds: {[actionData.shop]: actionData.imageId},
-        altText: actionData.altText
-      });
-
-      delete colorFiles[actionData.color];
-      setColorFiles((prev) => ({...prev}));
-    }
-  }, [actionData]);
 
   const handleUploadImage = useCallback(async (stagedTarget: any, color: string, altText: string) => {
     const colorFile = colorFiles[color];
@@ -590,7 +829,25 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
       color,
       altText
     }, { method: "POST" });
-  }, [colorFiles]);
+  }, [colorFiles, submit]);
+
+  useEffect(() => {
+    if (actionData?.stagedTarget) {
+      handleUploadImage(actionData.stagedTarget, actionData.color, actionData.altText);
+    }
+    else if (actionData?.imageSrc && colorFiles[actionData.color]) {
+      onUpdateVendorColor(actionData.color, {
+        imageSrc: actionData.imageSrc,
+        fileName: colorFiles[actionData.color].fileName,
+        shopImageIds: {[actionData.shop]: actionData.imageId},
+        altText: actionData.altText
+      });
+
+      delete colorFiles[actionData.color];
+      setColorFiles((prev) => ({...prev}));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionData]);
 
   const handleDropZoneDrop = useCallback((color: string, altText: string | undefined) => async (_dropFiles: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
     const acceptedFile = acceptedFiles[0];
@@ -604,7 +861,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
       altText: altText ?? `${currentVendor.name} Color ${color} Swatch`,
       file: JSON.stringify({ filename: fileName, mimeType: acceptedFile.type, fileSize: acceptedFile.size.toString()})
     }, { method: "POST" });
-  }, [setColorFiles]);
+  }, [currentVendor.name, setColorFiles, submit]);
 
   const rows = useMemo(() => {
     const selectedVendorColors = currentVendor.colors;
@@ -697,7 +954,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     else {
       return null;
     }
-  }, [currentVendor.colors, colorFiles, editing]);
+  }, [currentVendor.colors, colorFiles, editing, handleAltTextChange, handleColorChange, handleDropZoneDrop, handleGroupsChange, onCancelEdit, onDeleteVendorColor, onEdit, onSaveEdit]);
 
   return (
     <Card padding="0">

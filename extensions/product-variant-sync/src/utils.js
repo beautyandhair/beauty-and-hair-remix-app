@@ -1,4 +1,4 @@
-export async function updateVariantMetafields(producGid, updatedVariants) {
+export async function updateVariantMetafields(productGid, updatedVariants) {
   return await makeGraphQLQuery(
     `mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
       productVariantsBulkUpdate(productId: $productId, variants: $variants) {
@@ -24,7 +24,7 @@ export async function updateVariantMetafields(producGid, updatedVariants) {
       }
     }`,
     {
-      "productId": producGid,
+      "productId": productGid,
       "variants": updatedVariants
     }
   );
