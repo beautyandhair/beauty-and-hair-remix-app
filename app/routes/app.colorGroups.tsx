@@ -21,7 +21,9 @@ import {
   Tag,
   Spinner,
   Collapsible,
-  ProgressBar
+  ProgressBar,
+  InlineError,
+  EmptySearchResult
 } from '@shopify/polaris';
 import { CheckIcon, DeleteIcon, EditIcon, PlusIcon, RefreshIcon, SearchIcon, XIcon } from '@shopify/polaris-icons';
 import { useState, useCallback, useMemo, useEffect } from 'react';
@@ -85,6 +87,29 @@ const COLOR_GROUPS = [
   {value: 'fashion-color', label: 'Fashion Color'},
   {value: 'exclusive-color', label: 'Exclusive Color'},
 ];
+
+export const useDebounce = (funct: ((...args: any[]) => void), delay = 500) => {
+  const [timer, setTimer] = useState<NodeJS.Timeout>();
+
+  const debouncedFunct = ((...args: any[]) => {
+    const newTimer = setTimeout(() => funct(...args), delay);
+
+    clearTimeout(timer);
+    setTimer(newTimer);
+  });
+
+  useEffect(() => {
+    return () => {
+      if (!timer) {
+        return;
+      }
+
+      clearTimeout(timer);
+    };
+  }, []);
+
+  return debouncedFunct;
+}
 
 type VendorColorType = {
   color: string,
@@ -172,6 +197,8 @@ export default function ColorGroups() {
   const [selected, setSelected] = useState(0);
   const [openMoreActions, setOpenMoreActions] = useState(false);
   const [loadingSyncAltText, setLoadingSyncAltText] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
 
   const [openImportVendorColor, setOpenImportVendorColor] = useState(false);
   const [loadingImport, setLoadingImport] = useState<{active: boolean, progress: number, total: number}>({active: false, progress: 0, total: 0});
@@ -191,6 +218,12 @@ export default function ColorGroups() {
   const currentVendor = useMemo(() => vendors[selected], [vendors, selected]);
 
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const submitSearch = useDebounce(setSearch);
+
+  useEffect(() => {
+    submitSearch(searchInput);
+  }, [searchInput]);
 
   /* MUTATE VENDORS */
 
@@ -239,6 +272,10 @@ export default function ColorGroups() {
   /* MUTATE VENDOR COLORS */
 
   const onAddVendorColor = useCallback(async (color: string, groups: string[]) => {
+    if (currentVendor.colors?.find((vendorColor) => vendorColor.color === color)) {
+      return false;
+    }
+
     const colorData = {
       vendorName: currentVendor.name,
       color,
@@ -247,7 +284,7 @@ export default function ColorGroups() {
     };
 
     if (currentVendor.colors) {
-      currentVendor.colors = [...currentVendor.colors, {...colorData}];
+      currentVendor.colors = [{...colorData}, ...currentVendor.colors];
     }
     else {
       currentVendor.colors = [{...colorData}];
@@ -262,6 +299,8 @@ export default function ColorGroups() {
     }, { method: "POST" });
 
     setVendors((prev) => [...prev]);
+
+    return true;
   }, [currentVendor, submit]);
 
   const onUpdateVendorColor = useCallback(async (color: string, vendorColorUpdate: VendorColorUpdate) => {
@@ -409,7 +448,7 @@ export default function ColorGroups() {
     }, { method: "PUT" });
 
     setTimeout(() => setLoadingSyncAltText(false), 3000);
-  }, [currentVendor.colors, submit])
+  }, [currentVendor.colors, submit]);
 
   /* IMPORT VENDOR COLOR CSV */
 
@@ -452,7 +491,6 @@ export default function ColorGroups() {
         onUpsertManyVendorColor(vendorColorsUpsert);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionData, pendingVendorColorsBulk]);
 
   const submitPendingVendorColorsBulk = useCallback(async (vendorColorsBulkPayload: {
@@ -575,8 +613,12 @@ export default function ColorGroups() {
           onCreateNewView={onCreateVendor}
         >
           <BlockStack gap="400">
-            <VendorColorForm onAddVendorColor={onAddVendorColor} />
+            <VendorColorForm onAddVendorColor={onAddVendorColor}  />
             <Divider />
+
+            <TextField label="Search Color" value={searchInput} onChange={setSearchInput} autoComplete="off" clearButton onClearButtonClick={() => setSearchInput('')} />
+            <Divider />
+
             <BlockStack gap="200">
               <Box>
                 <Button
@@ -601,6 +643,7 @@ export default function ColorGroups() {
                 onDeleteVendorColor={onDeleteVendorColor}
                 onUpdateVendorColor={onUpdateVendorColor}
                 submit={submit}
+                search={search}
               />
             </BlockStack>
           </BlockStack>
@@ -694,16 +737,26 @@ function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups, hideSelect 
   );
 }
 
-function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: string, groups: string[]) => void }) {
+function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: string, groups: string[]) => Promise<boolean> }) {
   const [color, setColor] = useState('');
   const [groups, setGroups] = useState<string[]>([]);
+  const [showError, setShowError] = useState(false);
 
   const handleAddColorGroup = useCallback(() => {
-    onAddVendorColor(color, groups);
-    
+    const responseSuccess = onAddVendorColor(color, groups);
+
+    responseSuccess.then((success) => {
+      if (!success) {
+        setShowError(true);
+      }
+      else if (showError) {
+        setShowError(false);
+      }
+    });
+
     setColor('');
     setGroups([]);
-  }, [color, groups, onAddVendorColor]);
+  }, [color, groups, onAddVendorColor, showError]);
 
   const handleColorChange = useCallback((value: string) => setColor(value), []);
 
@@ -717,20 +770,23 @@ function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: strin
         label="Color"
         type="text"
         autoComplete="off"
+        id="vendorColor"
       />
       <MultiSelectGroups selectedGroups={groups} onChangeSelectedGroups={onChangeSelectedGroups} hideSelect={false} />
-      <Box>
+      <InlineStack gap="400" blockAlign="center">
         <Button onClick={handleAddColorGroup} size="slim" disabled={!color || !groups.length}>Add Vendor Color</Button>
-      </Box>
+        {showError && <InlineError message="Color Already Exists" fieldID="vendorColor" />}
+      </InlineStack>
     </InlineGrid>
   );
 }
 
-function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColor, submit}: {
+function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColor, submit, search}: {
   currentVendor: Vendor,
   onDeleteVendorColor: (color: string) => () => void,
   onUpdateVendorColor: (color: string, vendorColorUpdate: VendorColorUpdate) => Promise<void>,
-  submit: SubmitFunction
+  submit: SubmitFunction,
+  search: string
 }) {
   const actionData = useActionData<any>();
   const [colorFiles, setColorFiles] = useState<{[key: string]: {
@@ -846,7 +902,6 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
       delete colorFiles[actionData.color];
       setColorFiles((prev) => ({...prev}));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionData]);
 
   const handleDropZoneDrop = useCallback((color: string, altText: string | undefined) => async (_dropFiles: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
@@ -864,7 +919,15 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
   }, [currentVendor.name, setColorFiles, submit]);
 
   const rows = useMemo(() => {
-    const selectedVendorColors = currentVendor.colors;
+    const selectedVendorColors = currentVendor.colors?.filter((color) => color.color.toLocaleLowerCase().includes(search.toLocaleLowerCase())).sort((a, b) => {
+      if (a.imageSrc && !b.imageSrc) {
+        return -1;
+      }
+      else if (!a.imageSrc && b.imageSrc) {
+        return 1;
+      }
+      return 0;
+    });
 
     if (selectedVendorColors && Object.keys(selectedVendorColors).length) {
       return selectedVendorColors.map((vendorColor, index) => {
@@ -930,7 +993,14 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
               )}
             </IndexTable.Cell>
 
-            <td style={{width: "100px"}} className="Polaris-IndexTable__TableCell">
+            <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
+              <InlineStack align="center">
+                <Button icon={DeleteIcon} accessibilityLabel="Delete Color Group" onClick={onDeleteVendorColor(vendorColor.color)} />
+              </InlineStack>
+            </td>
+
+            <td className="Polaris-IndexTable__TableCell">
+              <Box minWidth="120px">
               <InlineStack align="center">
                 {editing[vendorColor.color] ? (
                   <InlineGrid gap="100" columns={2} alignItems="center">
@@ -941,12 +1011,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
                   <Button icon={EditIcon} accessibilityLabel="Edit Color Group" onClick={onEdit(vendorColor)} />
                 )}
               </InlineStack>
-            </td>
-            
-            <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
-              <InlineStack align="center">
-                <Button icon={DeleteIcon} accessibilityLabel="Delete Color Group" onClick={onDeleteVendorColor(vendorColor.color)} />
-              </InlineStack>
+              </Box>
             </td>
           </IndexTable.Row>
       )});
@@ -954,7 +1019,14 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     else {
       return null;
     }
-  }, [currentVendor.colors, colorFiles, editing, handleAltTextChange, handleColorChange, handleDropZoneDrop, handleGroupsChange, onCancelEdit, onDeleteVendorColor, onEdit, onSaveEdit]);
+  }, [currentVendor.colors, colorFiles, editing, handleAltTextChange, handleColorChange, handleDropZoneDrop, handleGroupsChange, onCancelEdit, onDeleteVendorColor, onEdit, onSaveEdit, search]);
+
+  const emptyStateMarkup = (
+    <EmptySearchResult
+      title={'No Vendor Colors'}
+      withIllustration
+    />
+  );
 
   return (
     <Card padding="0">
@@ -966,9 +1038,11 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
             {title: 'Color'},
             {title: 'Group(s)'},
             {title: 'Alt Text'},
-            {title: 'Edit', alignment: 'center'},
-            {title: 'Remove', alignment: 'end'}
+            {title: 'Remove', alignment: 'center'},
+            {title: 'Edit', alignment: 'center'}
           ]}
+        emptyState={emptyStateMarkup}
+        lastColumnSticky
       >
         {rows}
       </IndexTable>

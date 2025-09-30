@@ -3,7 +3,7 @@ import { authenticate } from "../shopify.server";
 import {
   updateVendorColorShopImageIds
 } from "../models/VendorColor.server";
-import { LoaderFunctionArgs } from "@remix-run/node";
+import type { LoaderFunctionArgs } from "@remix-run/node";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { cors } = await authenticate.admin(request);

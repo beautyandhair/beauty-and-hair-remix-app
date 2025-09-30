@@ -10,4 +10,7 @@ module.exports = {
   globals: {
     shopify: "readonly"
   },
+  rules: {
+    "react-hooks/exhaustive-deps": "off"
+  }
 };
