@@ -23,7 +23,8 @@ import {
   Collapsible,
   ProgressBar,
   InlineError,
-  EmptySearchResult
+  EmptySearchResult,
+  Banner
 } from '@shopify/polaris';
 import { CheckIcon, DeleteIcon, EditIcon, PlusIcon, RefreshIcon, SearchIcon, XIcon } from '@shopify/polaris-icons';
 import { useState, useCallback, useMemo, useEffect } from 'react';
@@ -116,6 +117,7 @@ type VendorColorType = {
   vendorName: string,
   imageSrc?: string,
   altText?: string,
+  groups?: string
 }
 
 export async function loader() {
@@ -209,9 +211,11 @@ export default function ColorGroups() {
       imageSrc: string,
       color: string,
       vendorName: string,
-      fileName?: string
+      fileName?: string,
+      groups?: string
     }
   }[]>([]);
+  const [vendorColorsFailed, setVendorColorsFailed] = useState('');
   const actionData = useActionData<any>();
 
   const vendorTabs = useMemo(() => vendors?.length ? vendors.map((vendor) => vendor.name) : [], [vendors]);
@@ -339,6 +343,27 @@ export default function ColorGroups() {
       vendorColor.imageSrc = vendorColorUpdate.imageSrc ?? vendorColor.imageSrc;
       vendorColor.altText = vendorColorUpdate.altText ?? vendorColor.altText;
       vendorColor.fileName = vendorColorUpdate.fileName ?? vendorColor.fileName;
+
+      if (vendor?.colors) {
+        vendor.colors = [...vendor.colors];
+      }
+    }
+    else if (vendor) {
+      const colorData = {
+        vendorName: vendorName,
+        color: color,
+        groups: vendorColorUpdate.groups ?? [],
+        shopImageIds: {},
+        imageSrc: vendorColorUpdate.imageSrc ?? undefined,
+        altText: vendorColorUpdate.altText
+      };
+
+      if (vendor.colors) {
+        vendor.colors = [...vendor.colors, {...colorData}];
+      }
+      else {
+        vendor.colors = [{...colorData}];
+      }
     }
 
     setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / prev.total) * 100))}));
@@ -365,12 +390,16 @@ export default function ColorGroups() {
         vendorColor.imageSrc = vendorColorUpsert.vendorColorUpdate.imageSrc ?? vendorColor.imageSrc;
         vendorColor.altText = vendorColorUpsert.vendorColorUpdate.altText ?? vendorColor.altText;
         vendorColor.fileName = vendorColorUpsert.vendorColorUpdate.fileName ?? vendorColor.fileName;
+
+        if (vendor?.colors) {
+          vendor.colors = [...vendor.colors];
+        }
       }
       else if (vendor) {
         const colorData = {
           vendorName: vendorColorUpsert.vendorName,
           color: vendorColorUpsert.color,
-          groups: [],
+          groups: vendorColorUpsert.vendorColorUpdate.groups ?? [],
           shopImageIds: {},
           imageSrc: vendorColorUpsert.vendorColorUpdate.imageSrc ?? undefined,
           altText: vendorColorUpsert.vendorColorUpdate.altText
@@ -454,6 +483,22 @@ export default function ColorGroups() {
 
   useEffect(() => {
     if (loadingImport.active && loadingImport.progress >= 100) {
+      const remainingPendingVendorColors = pendingVendorColorsBulk.filter((vendorColor) => !vendorColor.upserted);
+
+      if (remainingPendingVendorColors.length) {
+        onUpsertManyVendorColor(remainingPendingVendorColors.map((vendorColor) => ({
+            vendorName: vendorColor.data.vendorName,
+            color: vendorColor.data.color, 
+            vendorColorUpdate: {
+              altText: vendorColor.data.altText,
+              groups: vendorColor.data.groups ? vendorColor.data.groups.split(';') : []
+            }
+          })
+        ));
+
+        setVendorColorsFailed(remainingPendingVendorColors.map((vendorColor) => vendorColor.data.color).join(', '));
+      }
+
       setLoadingImport({active: false, progress: 0, total: 0});
       setPendingVendorColorsBulk([]);
     }
@@ -479,7 +524,8 @@ export default function ColorGroups() {
               imageSrc: imageImport.imageSrc,
               fileName: vendorColor.data.fileName,
               shopImageIds: {[actionData.shop]: imageImport.imageId},
-              altText: imageImport.altText
+              altText: imageImport.altText,
+              groups: vendorColor.data.groups ? vendorColor.data.groups.split(';') : []
             }
           });
 
@@ -525,7 +571,8 @@ export default function ColorGroups() {
       }
       else {
         onUpsertVendorColor(vendorColor.vendorName, vendorColor.color, {
-          altText: vendorColor.altText
+          altText: vendorColor.altText,
+          groups: vendorColor.groups ? vendorColor.groups.split(';') : []
         });
       }
 
@@ -583,6 +630,16 @@ export default function ColorGroups() {
 
   return (
     <Page title="Color Groups">
+      {vendorColorsFailed && (
+        <Banner
+          title="Failed Vendor Color Images"
+          tone="critical"
+          onDismiss={() => setVendorColorsFailed('')}
+        >
+          <Text fontWeight="bold" as="span">Colors failed:</Text> {vendorColorsFailed}
+        </Banner>
+      )}
+
       <Button
         icon={PlusIcon}
         variant="tertiary"
