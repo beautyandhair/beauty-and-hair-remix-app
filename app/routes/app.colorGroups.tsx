@@ -763,7 +763,7 @@ function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: strin
   const onChangeSelectedGroups = useCallback((values: string[]) => setGroups(values), []);
 
   return (
-    <InlineGrid gap="400" columns={2}>
+    <InlineGrid gap="100" columns={2}>
       <TextField
         value={color}
         onChange={handleColorChange}
@@ -774,7 +774,7 @@ function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: strin
       />
       <MultiSelectGroups selectedGroups={groups} onChangeSelectedGroups={onChangeSelectedGroups} hideSelect={false} />
       <InlineStack gap="400" blockAlign="center">
-        <Button onClick={handleAddColorGroup} size="slim" disabled={!color || !groups.length}>Add Vendor Color</Button>
+        <Button onClick={handleAddColorGroup} size="slim" disabled={!color || !groups.length} variant="primary">Add Vendor Color</Button>
         {showError && <InlineError message="Color Already Exists" fieldID="vendorColor" />}
       </InlineStack>
     </InlineGrid>
@@ -824,6 +824,16 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
       altText: value
     }
   })), [setEditing]);
+
+  const handleClearImage = useCallback((color: string) => () => {
+    onUpdateVendorColor(color, {
+      shopImageIds: {},
+      imageSrc: ""
+    });
+
+    // Forces row update
+    setEditing((prev) => ({...prev}));
+  }, [onUpdateVendorColor]);
 
   const onEdit = useCallback((vendorColor: VendorColor) => () => setEditing((prev) => ({...prev, [vendorColor.color]: {
     color: vendorColor.color,
@@ -919,15 +929,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
   }, [currentVendor.name, setColorFiles, submit]);
 
   const rows = useMemo(() => {
-    const selectedVendorColors = currentVendor.colors?.filter((color) => color.color.toLocaleLowerCase().includes(search.toLocaleLowerCase())).sort((a, b) => {
-      if (a.imageSrc && !b.imageSrc) {
-        return -1;
-      }
-      else if (!a.imageSrc && b.imageSrc) {
-        return 1;
-      }
-      return 0;
-    });
+    const selectedVendorColors = currentVendor.colors?.filter((color) => color.color.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
 
     if (selectedVendorColors && Object.keys(selectedVendorColors).length) {
       return selectedVendorColors.map((vendorColor, index) => {
@@ -951,6 +953,21 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
                   )}
                 </DropZone>
               </Box>
+
+              {vendorColor.imageSrc && (
+                <span style={{margin: "0 12px"}}>
+                  <Button
+                    accessibilityLabel="Clear Image"
+                    variant="plain"
+                    tone="critical"
+                    textAlign="center"
+                    onClick={handleClearImage(vendorColor.color)}
+                    fullWidth
+                  >
+                    Clear
+                  </Button>
+                </span>
+              )}
             </td>
 
             <IndexTable.Cell>
@@ -995,7 +1012,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
 
             <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
               <InlineStack align="center">
-                <Button icon={DeleteIcon} accessibilityLabel="Delete Color Group" onClick={onDeleteVendorColor(vendorColor.color)} />
+                <Button icon={DeleteIcon} accessibilityLabel="Delete Color Group" onClick={onDeleteVendorColor(vendorColor.color)} variant="primary" tone="critical" />
               </InlineStack>
             </td>
 

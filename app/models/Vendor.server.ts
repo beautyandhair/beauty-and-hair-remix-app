@@ -1,5 +1,6 @@
 import prisma from "../db.server";
-import { parseVendorColor, VendorColor } from "./VendorColor.server";
+import type { VendorColor } from "./VendorColor.server";
+import { parseVendorColor } from "./VendorColor.server";
 
 
 const DEFAULT_VENDOR = "Vendor";
@@ -20,7 +21,16 @@ export async function getVendor(vendorName: string): Promise<Vendor | null> {
   if (!vendor) {
     return null;
   }
-  return ({...vendor, colors: vendor.colors.map((color) => parseVendorColor(color))});
+  return ({...vendor, colors: vendor.colors.map((color) => parseVendorColor(color)).sort((a, b) => {
+      if (a.imageSrc && !b.imageSrc) {
+        return -1;
+      }
+      else if (!a.imageSrc && b.imageSrc) {
+        return 1;
+      }
+      return 0;
+    })
+  });
 }
 
 export async function getVendors(): Promise<Vendor[]> {
@@ -39,7 +49,15 @@ export async function getVendors(): Promise<Vendor[]> {
 
   return vendors.map((vendor) => ({
     ...vendor,
-    colors: vendor.colors.map((color) => parseVendorColor(color))
+    colors: vendor.colors.map((color) => parseVendorColor(color)).sort((a, b) => {
+      if (a.imageSrc && !b.imageSrc) {
+        return -1;
+      }
+      else if (!a.imageSrc && b.imageSrc) {
+        return 1;
+      }
+      return 0;
+    })
   }));
 }
 
