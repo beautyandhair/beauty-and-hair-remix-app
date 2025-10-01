@@ -366,8 +366,6 @@ export default function ColorGroups() {
       }
     }
 
-    setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / prev.total) * 100))}));
-
     await sleep(1);
     submit({
       actionType: Action.UpsertVendorColor,
@@ -376,10 +374,20 @@ export default function ColorGroups() {
       vendorColorUpdate: JSON.stringify(vendorColorUpdate)
     }, { method: "PUT" });
 
+    setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / prev.total) * 100))}));
+
     setVendors((prev) => [...prev]);
   }, [vendors, submit]);
 
   const onUpsertManyVendorColor = useCallback(async (vendorColorsUpsert: {vendorName: string, color: string, vendorColorUpdate: VendorColorUpdate}[]) => {
+    await sleep(1000);
+    submit({
+      actionType: Action.UpsertManyVendorColor,
+      vendorColors: JSON.stringify(vendorColorsUpsert)
+    }, { method: "PUT" });
+
+    setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / vendorColorsUpsert.length) * 100))}));
+
     for (const vendorColorUpsert of vendorColorsUpsert) {
       const vendor = vendors.find((vendor) => vendor.name === vendorColorUpsert.vendorName);
       const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === vendorColorUpsert.color);
@@ -412,15 +420,7 @@ export default function ColorGroups() {
           vendor.colors = [{...colorData}];
         }
       }
-
-      setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / prev.total) * 100))}));
     }
-
-    await sleep(1000);
-    submit({
-      actionType: Action.UpsertManyVendorColor,
-      vendorColors: JSON.stringify(vendorColorsUpsert)
-    }, { method: "PUT" });
 
     setVendors((prev) => [...prev]);
   }, [vendors, submit]);
@@ -511,8 +511,6 @@ export default function ColorGroups() {
       const imagesImported = JSON.parse(actionData.images);
       const vendorColorsUpsert = [];
 
-      setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / prev.total) * 100 * actionData.failedImages))}));
-
       for (const imageImport of imagesImported) {
         let vendorColor = validPendingVendorColorsBulk.find((vendorColor) => imageImport.imageSrc.includes(vendorColor.data.fileName));
 
@@ -536,6 +534,8 @@ export default function ColorGroups() {
       if (vendorColorsUpsert.length) {
         onUpsertManyVendorColor(vendorColorsUpsert);
       }
+
+      setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / prev.total) * 100 * actionData.failedImages))}));
     }
   }, [actionData, pendingVendorColorsBulk]);
 

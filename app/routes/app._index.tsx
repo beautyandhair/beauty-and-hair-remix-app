@@ -1,6 +1,3 @@
-import { useEffect } from "react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { useFetcher } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -20,7 +17,7 @@ export default function Index() {
       <BlockStack gap="500">
         <Layout>
           <Card>
-            :)
+            A work in progress. For any questions or feature requests, ask either John or Kat! :)
           </Card>
         </Layout>
       </BlockStack>
