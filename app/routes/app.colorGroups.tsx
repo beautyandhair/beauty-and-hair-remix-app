@@ -980,7 +980,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     submit({
       actionType: Action.StageColorImage,
       color,
-      altText: altText ?? `${currentVendor.name} Color ${color} Swatch`,
+      altText: altText ?? "",
       file: JSON.stringify({ filename: fileName, mimeType: acceptedFile.type, fileSize: acceptedFile.size.toString()})
     }, { method: "POST" });
   }, [currentVendor.name, setColorFiles, submit]);
