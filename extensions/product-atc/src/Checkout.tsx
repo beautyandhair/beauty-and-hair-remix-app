@@ -17,6 +17,7 @@ import {
   useApi,
   useSettings,
   useLocalizationCountry,
+  useCustomer
 } from "@shopify/ui-extensions-react/checkout";
 
 // 1. Choose an extension target
@@ -27,6 +28,7 @@ export default reactExtension("purchase.checkout.block.render", () => (
 function Extension() {
   const {query, i18n} = useApi();
 
+  const customer = useCustomer();
   const country = useLocalizationCountry();
   const applyCartLinesChange = useApplyCartLinesChange();
 
@@ -171,7 +173,7 @@ function Extension() {
     return <LoadingSkeleton/>;
   }
 
-  if (!loading && !product) {
+  if ((!loading && !product) || !customer) {
     return null;
   }
 
