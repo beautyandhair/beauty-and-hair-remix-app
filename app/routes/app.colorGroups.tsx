@@ -1058,7 +1058,9 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
                   labelHidden
                   value={editing[vendorColor.color].altText}
                   onChange={handleAltTextChange(vendorColor.color)}
+                  maxLength={512}
                   autoComplete="off"
+                  multiline
                 />
               ) : (
                 <Text variant="bodyMd" as="span">
