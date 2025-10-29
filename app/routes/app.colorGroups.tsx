@@ -998,7 +998,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
           >
             <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
               <Box width="60px">
-                <DropZone onDrop={handleDropZoneDrop(vendorColor.color, vendorColor.altText)} allowMultiple={false} accept="image/png, image/jpeg">
+                <DropZone onDrop={handleDropZoneDrop(vendorColor.color, vendorColor.altText)} allowMultiple={false} accept="image/png, image/jpeg, .webp">
                   {colorFiles[vendorColor.color] ? <Box paddingInline="500" paddingBlockStart="200"><Spinner accessibilityLabel="Loading Image" size="small" /></Box> : (
                     vendorColor.imageSrc ? (
                       <Thumbnail
