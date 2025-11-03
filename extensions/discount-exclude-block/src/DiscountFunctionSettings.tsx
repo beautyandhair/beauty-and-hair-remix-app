@@ -378,7 +378,8 @@ function useExtensionData() {
       selectionIds: selectedCollections.map((collection) => ({
         id: collection.id,
       })),
-      action: 'select'
+      action: 'select',
+      multiple: true
     });
 
     if (selection != undefined) {
