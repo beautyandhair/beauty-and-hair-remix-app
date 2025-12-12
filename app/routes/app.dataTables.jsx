@@ -6,14 +6,20 @@ import React, { useEffect, useState, useCallback } from "react";
 
 const ProductPicker = () => {
  const [checked, setChecked] = useState(false);
+ const [checkedAllStores, setCheckedAllStores] = useState(true);
  const [statusText, setStatusText] = useState('Select products to refresh their data tables or refresh all products\' data tables.');
  const [refreshButtonText, setRefreshButtonText] = useState('Begin Data Tables Refresh');
  const [refreshButtonStatus, setRefreshButtonStatus] = useState(false);
+ const [currentItem,setCurrentItem] = useState(1);
  const [resourceList, setResourceList] = useState([]);
  let selectedProducts = [];
  let [picker, setPicker] = useState(null);
  const handleChange = useCallback(
     (newChecked) => setChecked(newChecked),
+    [],
+  );
+   const handleChangeAllStores = useCallback(
+    (newChecked) => setCheckedAllStores(newChecked),
     [],
   );
 
@@ -76,17 +82,19 @@ const ProductPicker = () => {
     try {
       const response = await fetch(url, options);
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+         let error_response_message = await response.text();
+
+        setStatusText(error_response_message);
+        throw new Error(`HTTP error! status: ${response.status} - ${error_response_message}`);
       }
       const data = await response.text();
-      setResourceList([]);
-      setRefreshButtonStatus(false);setStatusText('Data Tables Refresh Complete. Select more products or refresh all products\' data tables.');
-      setRefreshButtonText('Begin Data Tables Refresh');
+      
       
       return data;
     }
     catch (error) {
       console.error('Error making request:', error);
+      
       throw error; // Re-throw the error for further handling if needed
     }
   };  
@@ -97,9 +105,9 @@ const ProductPicker = () => {
 
             if (checked) {
                   console.log('Refreshing all products data tables');
-                  // Add your logic to refresh all products' data tables here
+                  
                   setRefreshButtonStatus(true);setRefreshButtonText('Refreshing all products data tables');
-                   let response = await makeRequest('https://scripts.wigs.com/shopify/products/data-tables/generate-data-tables-bulk-ws.php', 'POST', {
+                   let response = await makeRequest('https://scripts.wigs.com/shopify/products/data-tables/gen-data-tables.php', 'POST', {
                         store: shopify.config.shop
                       }).then(x => {console.log('Response from data tables refresh:', x);});
                       
@@ -110,25 +118,36 @@ const ProductPicker = () => {
                   console.log('Refreshing selected products data tables:', picker);
                   selectedProducts = picker;
                   console.log('Selected products:', selectedProducts);
+                  
                   if(selectedProducts.length > 0){
                       console.log('Refreshing selected products data tables:', selectedProducts);
-                      setRefreshButtonStatus(true);setRefreshButtonText('Refreshing selected products data tables');setStatusText('Refreshing '+selectedProducts.length +' selected products data tables, please wait...');
-                       let payloadProducts = selectedProducts.map(product => product.id);
-                      let response = await makeRequest('https://scripts.wigs.com/shopify/products/data-tables/generate-data-tables-single-ws.php', 'POST', {
-                        products: payloadProducts,
-                        store: shopify.config.shop
-                      });
-                      console.log('Response from data tables refresh:', response);
+                      setRefreshButtonStatus(true);setRefreshButtonText('Refreshing selected products data tables');setStatusText('Refreshing '+ currentItem +' of '+ selectedProducts.length +' selected products data tables, please wait...');
+                       let payloadProducts = selectedProducts.map(product => {
+                            
+                          return {products: [product.id], store: shopify.config.shop, update_all_stores: checkedAllStores  }
+                       }
+
+                       );
+                   
+                       
+                       for(let i = 0; i < payloadProducts.length; i++){
+                        
+                        setStatusText('Refreshing '+ (i + 1) +' of '+ selectedProducts.length +' selected products data tables, please wait...');
+                        const singleItemList =  buildSelectedList([picker[i]]);    
+                        setResourceList(singleItemList);
+                        let response = await makeRequest('https://scripts.wigs.com/shopify/products/data-tables/gen-tables-dev.php', 'POST', payloadProducts[i]);
+                        
+                       }
+                     
+                      setResourceList([]);
+      setRefreshButtonStatus(false);setStatusText('Data Tables Refresh Complete. Select more products or refresh all products\' data tables.');
+      setRefreshButtonText('Begin Data Tables Refresh');
                     }
                 }else{
 
 
                       console.log('No products selected');
-                      // Add your logic to handle no products selected here
-                      // For example, show a message to the user
-                      
-
-                        //return redirect("/apps/polaris-test-app-11/app/additional");
+                   
                       
                   
                 }
@@ -137,18 +156,8 @@ const ProductPicker = () => {
             }
       } catch (error) {
             console.error('Error refreshing data tables:', error);
-
-
-
-
-
-
-
-
-
-
             console.error('Error refreshing data tables:', picker);
-            console.error('Refresh successful:', selectedProducts);
+            console.error('Refresh unsuccessful:', selectedProducts);
             
 
       }
@@ -216,6 +225,13 @@ const ProductPicker = () => {
                         checked={checked}
                         onChange={handleChange}
                         disabled={true}
+                      />      
+                      <Divider borderColor="border" />
+                      <Checkbox
+                        label="Update data tables across all stores using wigs.com table tags. "
+                        checked={checkedAllStores}
+                        onChange={handleChangeAllStores} 
+
                       />        
                   <Divider borderColor="border-inverse" />
                   <Text as="p" variant="bodyMd">
