@@ -246,9 +246,7 @@ function ProductOffer({product, i18n, adding, addToCartHandlerButton, showError,
 
   return (
     <BlockStack spacing='base'>
-      <Divider/>
-
-      <BlockStack spacing='loose'>
+      <BlockStack spacing='loose' border='base' borderRadius='base' padding='base'>
         <InlineLayout
           spacing='base'
           columns={[64, 'fill', 'auto']}
@@ -354,7 +352,7 @@ function ProductOffer({product, i18n, adding, addToCartHandlerButton, showError,
               </Link>
             </InlineStack>
               
-            <Text appearance='subdued'>{renderPrice}</Text>
+            <Text appearance='accent'>{renderPrice}</Text>
           </BlockStack>
 
           <Button

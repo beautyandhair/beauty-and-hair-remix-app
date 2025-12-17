@@ -300,7 +300,7 @@ function DonationCheckbox({toggleCheckbox, donation, isLoading, index, currentSl
   }
 
   return (
-    <BlockStack spacing="base" border="base" cornerRadius="base" padding="tight" display={currentSlide != index ? 'none' : 'auto'}>
+    <BlockStack spacing="base" border="base" cornerRadius="base" padding="base" display={currentSlide != index ? 'none' : 'auto'}>
       <InlineStack
         padding="none"
         inlineAlignment="start"
@@ -333,7 +333,7 @@ function DonationCheckbox({toggleCheckbox, donation, isLoading, index, currentSl
               </Popover>
             }
           >
-            <Icon source="info"/>
+            <Icon source="info" appearance="accent" />
           </Pressable>
         </InlineStack>
       </InlineStack>
