@@ -19,6 +19,9 @@ export default function App() {
         />
         <Meta />
         <Links />
+        <meta name="shopify-api-key" content="25fc13124ae4688f8095bc35dbdb8782" />
+        <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+        <script src="https://cdn.shopify.com/shopifycloud/polaris.js"></script>
       </head>
       <body>
         <Outlet />
