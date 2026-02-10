@@ -2,8 +2,8 @@
 <script src="{{ 'swatches.js' | asset_url }}" defer="defer"></script>
 
 {% style %}
-    {% assign color_groups = 'all,brunettes,blondes,reds,blacks,grays,greys,fashion-color,exclusive-color' | split: ',' %}
-    {% for color in color_groups %}
+    {% assign color_groups_list = 'all,brunettes,blondes,reds,blacks,grays,greys,fashion-color,exclusive-color' | split: ',' %}
+    {% for color in color_groups_list %}
         variant-swatch-picker[data-group="{{ color }}"] .swatch-picker__color-group[data-group="{{ color }}"] {
             background-color: #141414;
             color: white;
@@ -119,7 +119,7 @@
     assign available_variants = product.variants | where: 'available'
     assign unavailable_variants = product.variants | where: 'available', false
 
-    assign color_groups = product.variants | map: 'metafields' | map: 'custom' | map: 'color_group' | map: 'value' | uniq
+    assign color_groups = product.variants | map: 'metafields' | map: 'custom' | map: 'color_group' | map: 'value' | uniq | compact
 %}
 
 <!-- begin app block - swatches -->
