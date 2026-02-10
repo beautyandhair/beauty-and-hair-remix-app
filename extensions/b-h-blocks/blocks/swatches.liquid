@@ -119,7 +119,11 @@
     assign available_variants = product.variants | where: 'available'
     assign unavailable_variants = product.variants | where: 'available', false
 
-    assign color_groups = product.variants | map: 'metafields' | map: 'custom' | map: 'color_group' | map: 'value' | uniq | compact
+    if block.settings.hide_OOS_colors
+        assign color_groups = available_variants | map: 'metafields' | map: 'custom' | map: 'color_group' | map: 'value' | uniq | compact
+    else
+        assign color_groups = product.variants | map: 'metafields' | map: 'custom' | map: 'color_group' | map: 'value' | uniq | compact
+    endif
 %}
 
 <!-- begin app block - swatches -->
