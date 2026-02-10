@@ -1,0 +1,24 @@
+api_version = "2026-01"
+
+[[extensions]]
+name = "t:name"
+handle = "discount-order-exclude"
+type = "function"
+uid = "389602f8-bd94-9167-d591-dfddb0869b9947c6d720"
+description = "t:description"
+
+  [[extensions.targeting]]
+  target = "cart.lines.discounts.generate.run"
+  input_query = "src/cart_lines_discounts_generate_run.graphql"
+  export = "cart-lines-discounts-generate-run"
+
+  [extensions.build]
+  command = ""
+  path = "dist/function.wasm"
+
+[extensions.ui]
+handle = "discount-order-exclude-block"
+
+[extensions.input.variables]
+namespace = "$app:discount-order-exclude"
+key = "function-configuration"

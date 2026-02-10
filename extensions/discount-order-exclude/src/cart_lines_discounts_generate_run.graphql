@@ -1,0 +1,26 @@
+query CartInput($productTags: [String!]!, $collectionIds: [ID!]!) {
+  cart {
+    lines {
+      id
+      merchandise {
+        __typename
+        ... on ProductVariant {
+          id
+          metafield(namespace: "global", key: "CLEARANCE") {
+            value
+          }
+          product {
+            hasAnyTag(tags: $productTags)
+            inAnyCollection(ids: $collectionIds)
+          }
+        }
+      }
+    }
+  }
+  discount {
+    discountClasses
+    metafield(namespace: "$app:discount-order-exclude", key: "function-configuration") {
+      value
+    }
+  }
+}

@@ -83,10 +83,8 @@ const COLOR_GROUPS = [
   {value: 'blacks', label: 'Blacks'},
   {value: 'grays', label: 'Grays'},
   {value: 'reds', label: 'Reds'},
-  {value: 'new_colors', label: 'New Colors'},
-  {value: 'best_sellers', label: 'Best Sellers'},
-  {value: 'fashion-color', label: 'Fashion Color'},
-  {value: 'exclusive-color', label: 'Exclusive Color'},
+  {value: 'fashion-color', label: 'Fashion Colors'},
+  {value: 'exclusive-color', label: 'Exclusive Colors'},
 ];
 
 export const useDebounce = (funct: ((...args: any[]) => void), delay = 500) => {

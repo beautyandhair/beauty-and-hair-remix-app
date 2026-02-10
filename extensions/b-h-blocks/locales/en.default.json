@@ -1,0 +1,27 @@
+{
+  "ratings": {
+    "stars": {
+      "label": "Ratings"
+    },
+    "home": {
+      "recommendationText": "Recommended Product!"
+    }
+  },
+  "swatch-picker": {
+    "colorGroups": {
+      "all": "All",
+      "brunettes": "Brunettes",
+      "blondes": "Blondes",
+      "blacks": "Blacks",
+      "grays": "Grays",
+      "greys": "Greys",
+      "reds": "Reds",
+      "fashion-color": "Fashion Colors",
+      "exclusive-color": "Exclusive Colors",
+    },
+    "clearance": {
+      "message": "CLEARANCE UP TO {{ clearance_max_off }}% OFF",
+      "colorsBelow": "Colors below!"
+    }
+  }
+}

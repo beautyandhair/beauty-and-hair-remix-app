@@ -1,0 +1,15 @@
+<label class="swatch-picker__box" data-groups="{{ variant.metafields.custom.color_group.value | join: ',' }}">
+    <input type="radio" name="swatch_color" value="{{ variant.title }}" class="hidden" {% if variant.selected %}checked{% endif %}>
+    <img
+        data-available="{{ variant.available }}"
+        data-variant-id="{{ variant.id }}"
+        data-variant-title="{{ variant.title }}"
+        {% if variant_divider %}data-divider="{{ variant_divider }}"{% endif %}
+        class="swatch-picker__swatch"
+        src="{{ variant.image | image_url: width: 60 }}"
+        alt="{{ variant.image.alt | escape | replace: '"', '&quot;' }}"
+        loading="lazy"
+        height="76"
+        width="57"
+    >
+</label>

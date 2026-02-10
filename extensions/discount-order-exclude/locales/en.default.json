@@ -1,0 +1,4 @@
+{
+  "name": "[ORDER] Discount - Keep Clearance Active",
+  "description": "Create an order discount that can exclude products by tags and/or clearance variants."
+}

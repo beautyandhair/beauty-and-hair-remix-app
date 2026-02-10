@@ -1,0 +1,381 @@
+{%- if product.variants.size > 1 -%}
+<script src="{{ 'swatches.js' | asset_url }}" defer="defer"></script>
+
+{% style %}
+    {% assign color_groups = 'all,brunettes,blondes,reds,blacks,grays,greys,fashion-color,exclusive-color' | split: ',' %}
+    {% for color in color_groups %}
+        variant-swatch-picker[data-group="{{ color }}"] .swatch-picker__color-group[data-group="{{ color }}"] {
+            background-color: #141414;
+            color: white;
+        }
+
+        {% if color != 'all' %}
+            variant-swatch-picker[data-group="{{ color }}"] *[data-groups]:not([data-groups*="{{ color }}"]) {
+                display: none;
+            }
+        {% endif %}
+    {% endfor %}
+
+    variant-swatch-picker {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .swatch-picker__color-groups-list {
+        padding: 0;
+        margin: 0;
+        display: flex;
+        gap: 4px;
+    }
+
+    .swatch-picker__color-groups-list > li {
+        list-style: none;
+    }
+
+    .swatch-picker__color-group {
+        background: none;
+        border: 1px solid #141414;
+        color: #141414;
+        font-size: 1.4rem;
+        padding: 6px 12px;
+        cursor: pointer;
+    }
+
+    .swatch-picker__container {
+        display: flex;
+        flex-flow: row wrap;
+        gap: 8px 1px;
+        object-fit: contain;
+        border: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .swatch-picker__box {
+        margin: 0;
+    }
+
+    .swatch-picker__box .swatch-picker__swatch {
+        cursor: pointer;
+    }
+
+    .swatch-picker__swatch, .swatch-picker__divider {
+        padding: 1px;
+        border: 1px solid transparent;
+        display: block;
+        box-sizing: content-box;
+        object-fit: contain;
+    }
+
+    .swatch-picker__box > input:checked ~ img {
+        border-color: {{ block.settings.brand_color }};
+    }
+
+    .swatch-picker__clearance-label {
+    width: 100%;
+    color: {{ block.settings.brand_color }};
+    margin: 8px 0;
+    font-size: 1.8rem;
+    }
+
+    .swatch-picker__clearance-price {
+        background-color: rgba({{ block.settings.brand_color.red }}, {{ block.settings.brand_color.green }}, {{ block.settings.brand_color.blue }}, 0.1);
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
+    #high-return-banner img {
+        width: 100%;
+        max-width: 600px;
+        height: auto;
+        padding: 0 0 1rem 0;
+    }
+{% endstyle %}
+{%- endif -%}
+
+{% liquid
+    assign product = block.settings.product
+
+    assign variant_dividers = product.metafields.custom.variant_dividers_json.value
+    assign variant_dividers_json = variant_dividers | json
+
+    assign divider_order = block.settings.divider_order | split: ','
+
+    assign available_variants = product.variants | where: 'available'
+    assign unavailable_variants = product.variants | where: 'available', false
+
+    assign color_groups = product.variants | map: 'metafields' | map: 'custom' | map: 'color_group' | map: 'value' | uniq
+%}
+
+<!-- begin app block - swatches -->
+<div id="high-return-banner" style="display: none;">
+    <img 
+        src="{{ block.settings.frequently_returned_banner| image_url: width: 600 }}"
+        alt="{{ block.settings.frequently_returned_banner.alt }}"
+        width="600"
+        height="156"
+    />
+</div>
+
+{%- if product.variants.size > 1 -%}
+<!-- begin swatch-picker -->
+<variant-swatch-picker
+    data-section-id="{{ section.id }}"
+    data-default-picker="{{ block.settings.default_picker }}"
+    data-group="all"
+>
+    <ul class="swatch-picker__color-groups-list">
+        <li>
+            <button class="swatch-picker__color-group" data-group="all">{{ 'swatch-picker.colorGroups.all' | t }}</button>
+        </li>
+
+        {% for group in color_groups %}
+        <li>
+            <button class="swatch-picker__color-group" data-group="{{ group }}">{{ 'swatch-picker.colorGroups' | append: '.' | append: group | t }}</button>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <fieldset class="swatch-picker__container">
+    {% for variant in available_variants %}
+        {% unless variant_dividers_json contains variant.id %}
+            {% render 'variant-swatch', image: variant.image, variant: variant %}
+        {% endunless %}
+    {% endfor %}
+
+    {% for variant_divider in divider_order %}
+        {% assign divider_variants = variant_dividers[variant_divider] %}
+        {% assign divider = metaobjects['variant_picker_dividers'][variant_divider] %}
+        {% assign data_color_groups = '' %}
+
+        {% if divider_variants and divider %}     
+            {% capture divider_group %}
+            {% for variant_gid in divider_variants %}
+                {% assign variant_id = variant_gid | remove: 'gid://shopify/ProductVariant/' | plus: 0 %}
+                {% assign variant_found = available_variants | find: 'id', variant_id %}
+                {% assign data_color_groups = variant_found.metafields.custom.color_group.value | join: ',' | append: ',' | append: data_color_groups %}
+
+                {% render 'variant-swatch', image: variant_found.image, variant: variant_found, variant_divider: variant_divider %}
+            {% endfor %}
+            {% endcapture %}
+
+            <figure class="swatch-picker__box" data-groups="{{ data_color_groups }}">
+                <img
+                    class="swatch-picker__divider"
+                    src="{{ divider.image | image_url: width: 60 }}"
+                    alt="{{ divider.image.alt }}"
+                    loading="lazy"
+                    height="76"
+                    width="57"
+                >
+            </figure>
+
+            {{ divider_group }}
+        {% endif %}
+    {% endfor %}
+
+    {% unless block.settings.hide_OOS_colors %}
+        {% assign data_color_groups = '' %}
+
+        {% capture unavailable_group %}
+        {% for variant in unavailable_variants %}
+            {% assign data_color_groups = variant.metafields.custom.color_group.value | join: ',' | append: ',' | append: data_color_groups %}
+
+            {% render 'variant-swatch', image: variant.image, variant: variant %}
+        {% endfor %}
+        {% endcapture %}
+
+        {% if unavailable_variants.size > 0 %}
+            <figure class="swatch-picker__box" data-groups="{{ data_color_groups }}">
+                <img
+                    class="swatch-picker__divider"
+                    src="{{ block.settings.back_soon_divider | image_url: width: 60 }}"
+                    alt="{{ block.settings.back_soon_divider.alt }}"
+                    loading="lazy"
+                    height="76"
+                    width="57"
+                >
+            </figure>
+
+            {{ unavailable_group }}
+        {% endif %}
+    {% endunless %}
+
+    {% if variant_dividers_json contains 'clearance' %}
+        {% assign clearance_max_off = 0 %}
+        {% assign clearance_min_price = 0 %}
+        {% assign data_color_groups = '' %}
+
+        {% capture clearance_group %}
+        {% for variant_gid in variant_dividers['clearance'] %}
+            {% liquid
+                assign variant_id = variant_gid | remove: 'gid://shopify/ProductVariant/' | plus: 0
+                assign variant_found = available_variants | find: 'id', variant_id
+
+                assign var_price_difference = variant_found.compare_at_price | minus: variant_found.price
+                assign var_discount_off = 100.00 | times: var_price_difference | divided_by: variant_found.compare_at_price | round
+
+                if clearance_max_off < var_discount_off
+                    assign clearance_max_off = var_discount_off
+                endif
+
+                if clearance_min_price == 0 or clearance_min_price < variant_found.price
+                    assign clearance_min_price = variant_found.price
+                endif
+
+                assign data_color_groups = variant_found.metafields.custom.color_group.value | join: ',' | append: ',' | append: data_color_groups
+            %}
+
+            {% render 'variant-swatch', image: variant_found.image, variant: variant_found %}
+        {% endfor %}
+        {% endcapture %}
+
+        <div class="swatch-picker__clearance-label" data-groups="{{ data_color_groups }}">
+            <strong>{{ 'swatch-picker.clearance.message' | t: clearance_max_off: clearance_max_off }} <span class="swatch-picker__clearance-price">{{ clearance_min_price | money }}</span></strong> {{ 'swatch-picker.clearance.colorsBelow' | t }}
+        </div>
+
+        {{ clearance_group }}
+    {% endif %}
+    </fieldset>
+</variant-swatch-picker>
+<!-- end swatch-picker -->
+{%- endif -%}
+
+<!-- out of stock form template -->
+<template id="oos-form-template">
+    <div
+        id="esc-oos-form"
+        style="display: block;"
+        class="back-in-stock-snippet"
+        data-oos-color-form=""
+    >
+        <div id="esc-out-of-stock-inputs">
+            <div class="esc-out-of-stock-title">This color is out of stock - notify me!
+                <br/>
+            </div>
+            <div class="esc-out-of-stock-subtitle">Add your email address or phone number to be notified as soon as this is back in stock:</div>
+            <input
+                type="hidden"
+                id="hidden_variant"
+                name="contact[variant sku]"
+                value=""
+                >
+            <input
+                type="hidden"
+                id="hidden_title"
+                name="contact[variant title]"
+                value=""
+            >
+            <form
+                id="new-back-in-stock-form"
+                action="#"
+                onsubmit="javascript:event.preventDefault();"
+            >
+                <input
+                    type="hidden"
+                    id="hidden_variant"
+                    name="product_variant_id"
+                    value=""
+                >
+                <div class="esc-sms-container" style="margin: 2rem 0">
+                    <div style="display: flex; gap: 10px;">
+                        <input
+                            type="text"
+                            id="phone"
+                            name="sms"
+                            autocomplete="off"
+                            class="field__input2"
+                            placeholder="+1234567890"
+                        >
+
+                        <button
+                            class="esc-btn button button--primary"
+                            data-alert-type="sms"
+                            type="button"
+                            width="120px;"
+                        >
+                            Text Me
+                        </button>
+                    </div>
+
+                    <div style="clear:both;">&nbsp;</div>
+                    <div style="display: flex; gap: 10px;">
+                        <input
+                            type="email"
+                            name="email"
+                            placeholder="you@example.com"
+                            class="field__input2"
+                        >
+
+                        <button
+                            class="esc-btn button button--primary"
+                            data-alert-type="email"
+                            type="button"
+                            width="120px;"
+                        >
+                            Email Me
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</template>
+
+<!-- end app block - swatches -->
+
+{% schema %}
+{
+  "name": "Variant Swatch Picker",
+  "stylesheet": "app.css",
+  "target": "section",
+  "templates": ["product"],
+  "settings": [
+    {
+        "type": "product",
+        "id": "product",
+        "label": "Product",
+        "autofill": true
+    },
+    {
+        "type": "color",
+        "id": "brand_color",
+        "label": "Brand Color",
+        "default": "#C41949"
+    },
+    {
+        "type" : "checkbox",
+        "id" : "hide_OOS_colors",
+        "default" : false,
+        "label" : "Hide Out of Stock Colors",
+        "info" : "When checked hides out of stock swatches and group."
+    },
+    {
+        "type": "image_picker",
+        "id": "frequently_returned_banner",
+        "label": "Frequently Returne Banner"
+    },
+    {
+        "type": "header",
+        "content": "Dividers"
+    },
+    {
+        "type": "paragraph",
+        "content": "Include metaobject entries in divider order to include them. Regardless of order, Back Soon will always appear at the end."
+    },
+    {
+        "type": "text",
+        "id": "divider_order",
+        "label": "Divider Order",
+        "default": "pre-launch,new",
+        "info": "Comma separated list of dividers. Ex: pre-launch,new,[metaobject-entry-name]"
+    },
+    {
+        "type": "image_picker",
+        "id": "back_soon_divider",
+        "label": "Back Soon"
+    }
+  ]
+}
+{% endschema %}

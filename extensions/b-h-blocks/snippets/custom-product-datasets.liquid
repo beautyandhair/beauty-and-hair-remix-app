@@ -1,0 +1,112 @@
+{% liquid
+    assign list_unavailable = ''
+    assign list_pre_launch = ''
+    assign list_new_color = ''
+
+    assign list_on_clearance = ''
+    assign list_high_return = ''
+
+    assign list_custom_divider = ''
+    assign list_default = ''
+
+    assign color_index = 1
+
+    for option in product.options
+        assign to_find = 'color'
+        assign lower_case_option = option | downcase
+
+        if lower_case_option == to_find
+            assign color_index = forloop.index
+
+            break
+        endif
+    endfor
+
+    assign metaobject_entries = block.settings.divider_order | append: ',' | remove: 'back-soon,' | remove : 'pre-launch,' | remove : 'new,'
+    assign list_custom_divider = metaobject_entries | replace: ',', ':[],' | remove_last: ','
+
+    assign color_option = 'option' | append: color_index
+%}
+
+{% for variant in product.variants %}
+    {% assign search_prelaunch = "Liquid:PRE-LAUNCH-" | append: variant.title %}
+    {% assign search_new_color = 'Liquid:NEW-COLOR-' | append: variant.title %}
+
+    {% for entry in metaobject_entries %}
+        
+    {% endfor %}
+
+    {% if variant.available == false %}
+        {% capture list_unavailable %},{{ variant.id }}{{ list_unavailable }}{% endcapture %}
+    {% elsif product.tags contains search_prelaunch %}
+        {% capture list_pre_launch %},{{ variant.id }}{{ list_pre_launch }}{% endcapture %}
+    {% elsif product.tags contains search_new_color %}
+        {% capture list_new_color %},{{ variant.id }}{{ list_new_color }}{% endcapture %}
+    {% elsif variant.metafields.global.CLEARANCE == "true" %}
+        {% capture list_on_clearance %},{{ variant.id }}{{ list_on_clearance }}{% endcapture %}
+    {% elsif variant.metafields.global.color_banner.value == true %}
+        {% capture list_high_return %},{{ variant.id }}{{ list_high_return }}{% endcapture %}
+    {% else %}
+        {% capture list_default %},{{ variant.id }}{{ list_high_return }}{% endcapture %}
+    {% endif %}
+{% endfor %}
+
+{% assign list_unavailable = list_unavailable | remove_first: ',' | split: ',' %}
+{% assign list_pre_launch = list_pre_launch | remove_first: ',' | split: ',' %}
+{% assign list_new_color = list_new_color | remove_first: ',' | split: ',' %}
+
+{% assign list_on_clearance = list_on_clearance | remove_first: ',' | split: ',' %}
+{% assign list_high_return = list_high_return | remove_first: ',' | split: ',' %}
+
+{% assign list_custom_divider = list_custom_divider | remove_first: ',' | split: ',' %}
+{% assign list_default = list_default | remove_first: ',' | split: ',' %}
+
+
+<script type="application/json" id='variant-groups'>
+  {"datasets": {
+  {{ list_on_clearance }},
+  {{ list_pre_launch_status }} ,
+  {{ list_newcolor_status }} ,
+  {{ list_unavailable }} ,
+  {{ list_best_sellers }},
+  {{ list_clearance_percent_discount }},
+  {{ list_high_return }}
+  }
+  }
+</script>
+<script type="application/json" id="color-option-index">
+  {"color_option_index":"{{ color_option }}"}
+</script>
+<script type="application/json" id='variant-data'>
+  {{ product.variants | json }}
+</script>
+
+{% comment %}
+client side event handling
+
+function handleUnavailable(){
+
+console.log('handling it');
+}
+
+let elements_to_callbacks =
+[
+{"element_selector":"figure[data-variant-id] img", callback: handleUnavailable},
+{"element_selector":"figure[data-variant-id] img", callback: function(){console.log('2')}},
+{"element_selector":"figure[data-variant-id] img", callback: function(){console.log('3')}},
+{"element_selector":"figure[data-variant-id]", callback: function(){console.log('4')}},
+{"element_selector":"figure[data-variant-id] img", callback: function(){console.log('5')}}
+];
+
+
+document.addEventListener('click',function(e){
+
+let target = e.target;
+
+let elems = elements_to_callbacks.filter(elem => { if(target.matches( elem.element_selector)){ return elem }  });
+elems.forEach(el => el.callback(target));
+//if(e.target.matches("figure[data-variant-id] img")){console.log(e.target);}
+
+});
+
+{% endcomment %}
