@@ -33,3 +33,9 @@ embedded = false
 
 [build]
 automatically_update_urls_on_dev = false
+
+[discount.metafields.b-h-discounts.function-configuration]
+type = "json"
+name = "Function configuration"
+access.admin = "merchant_read_write"
+access.storefront = "none"

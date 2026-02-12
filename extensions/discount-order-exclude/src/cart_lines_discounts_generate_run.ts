@@ -7,7 +7,7 @@ import {
 } from '../generated/api';
 
 type Configuration = {
-  percentage: number,
+  orderPercentage: number,
   collectionIds: string[],
   productTags: string[],
   excludeClearance: boolean
@@ -37,9 +37,9 @@ export function cartLinesDiscountsGenerateRun(
     if (line.merchandise.__typename == 'ProductVariant') {
       const variant = (line.merchandise);
 
-      return variant.product.inAnyCollection && !variant.product.hasAnyTag && !isExcluded(variant.metafield?.value);
+      return !variant.product.inAnyCollection || variant.product.hasAnyTag || isExcluded(variant.metafield?.value);
     } else {
-      return false;
+      return true;
     }
   })
   .map((line) =>  line.id);
@@ -60,7 +60,7 @@ export function cartLinesDiscountsGenerateRun(
             ],
             value: {
               percentage: {
-                value: configuration.percentage,
+                value: configuration.orderPercentage,
               },
             },
           },

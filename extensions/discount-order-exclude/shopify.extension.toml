@@ -20,5 +20,5 @@ description = "t:description"
 handle = "discount-order-exclude-block"
 
 [extensions.input.variables]
-namespace = "$app:discount-order-exclude"
+namespace = "b-h-discounts"
 key = "function-configuration"

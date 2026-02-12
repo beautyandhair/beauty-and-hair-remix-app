@@ -39,18 +39,19 @@ function App() {
   const {
     applyExtensionMetafieldChange,
     i18n,
-    initialPercentages,
-    onPercentageValueChange,
-    percentages,
     resetForm,
+    initialPercentages,
+    percentages,
+    onPercentageValueChange,
+    initialCollections,
     collections,
-    removeCollection,
+    onRemoveCollection,
     onSelectedCollections,
     loading,
+    intialProductTags,
     productTags,
+    onProductTagsChange,
     excludeClearance,
-    onAddProductTag,
-    onRemoveProductTag,
     onToggleExcludeClearance
   } = useExtensionData();
 
@@ -78,7 +79,7 @@ function App() {
       return;
     }
 
-    onAddProductTag(tagInputRef.current.value);
+    onProductTagsChange(tagInputRef.current.value);
 
     tagInputRef.current.value = '';
   };
@@ -101,6 +102,14 @@ function App() {
         <s-stack gap="base">
           {error ? <s-banner tone="critical">{error}</s-banner> : null}
 
+          <s-box display="none">
+            <s-text-field label="Tags" name="tags" labelAccessibilityVisibility="exclusive" defaultValue={intialProductTags} value={productTags} />
+          </s-box>
+
+          <s-box display="none">
+            <s-text-field label="Collections" name="collections" labelAccessibilityVisibility="exclusive" defaultValue={initialCollections} value={collections} />
+          </s-box>
+
           <s-stack gap="base">
             <s-number-field
               label={i18n.translate("discountPercentage")}
@@ -121,7 +130,7 @@ function App() {
               INCLUDE: Collections
             </s-text>
 
-            <CollectionsSection collections={collections} onClickRemove={removeCollection} />
+            <CollectionsSection collections={collections} onClickRemove={onRemoveCollection} />
             
             <s-box inlineSize="180px">
               <s-button onClick={onSelectedCollections} icon="plus-circle">
@@ -135,7 +144,7 @@ function App() {
 
             <s-stack direction="inline" gap="small-200" display={productTags.length ? 'auto' : 'none'}>
               {productTags.map((tag) => (
-                <s-clickable-chip key={tag} color="base" removable onRemove={() => onRemoveProductTag(tag)}>
+                <s-clickable-chip key={tag} color="base" removable onRemove={() => onProductTagsChange(tag)}>
                   {tag}
                 </s-clickable-chip>
               ))}
@@ -145,7 +154,7 @@ function App() {
               <s-text>Tag</s-text>
 
               <s-grid gridTemplateColumns="1fr auto" gap="base">
-                <s-text-field label="Tag" labelAccessibilityVisibility="exclusive" ref={tagInputRef} />
+                <s-text-field label="Tag to Add" labelAccessibilityVisibility="exclusive" ref={tagInputRef} />
                 <s-button onClick={createTag}>
                   Add
                 </s-button>
@@ -158,7 +167,7 @@ function App() {
               This discount will keep clearance active, regardless of clearance variant exclusion. If you want clearance to be turned off then use another discount method.
             </s-banner>
 
-            <s-checkbox label="EXCLUDE: Clearance Variants" checked={excludeClearance} onClick={onToggleExcludeClearance} />
+            <s-checkbox label="EXCLUDE: Clearance Variants" checked={excludeClearance} onChange={onToggleExcludeClearance} />
           </s-stack>
         </s-stack>
       </s-section>
@@ -213,7 +222,7 @@ function useExtensionData() {
   async function applyExtensionMetafieldChange() {
     await applyMetafieldChange({
       type: "updateMetafield",
-      namespace: "$app:discount-order-exclude",
+      namespace: "b-h-discounts",
       key: "function-configuration",
       value: JSON.stringify({
         orderPercentage: percentages.order,
@@ -247,31 +256,38 @@ function useExtensionData() {
     setCollections(selection ?? []);
   };
 
-  const removeCollection = (id) => {
+  const onRemoveCollection = (id) => {
     setCollections(prev => prev.filter(collection => collection.id !== id));
   };
 
-  const onAddProductTag = (tag) => setProductTags((prev) => ([...prev, tag]));
-  const onRemoveProductTag = (tag) => setProductTags((prev) => prev.filter((prevTag) => prevTag != tag));
+  const onProductTagsChange = (value) => {
+    if (productTags.includes(value)) {
+      setProductTags((prev) => ([...prev.filter((tag) => tag !== value)]));
+    }
+    else {
+      setProductTags((prev) => ([...prev, value]));
+    }
+  };
+
 
   const onToggleExcludeClearance = () => setExcludeClearance((prev) => !prev);
 
   return {
     applyExtensionMetafieldChange,
     i18n,
-    initialPercentages: metafieldConfig.percentages,
-    onPercentageValueChange,
-    percentages,
     resetForm,
-    collections,
+    initialPercentages: metafieldConfig.percentages,
+    percentages,
+    onPercentageValueChange,
     initialCollections,
-    removeCollection,
+    collections,
+    onRemoveCollection,
     onSelectedCollections,
     loading,
+    intialProductTags: metafieldConfig.productTags,
     productTags,
+    onProductTagsChange,
     excludeClearance,
-    onAddProductTag,
-    onRemoveProductTag,
     onToggleExcludeClearance
   };
 }

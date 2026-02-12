@@ -19,7 +19,7 @@ query CartInput($productTags: [String!]!, $collectionIds: [ID!]!) {
   }
   discount {
     discountClasses
-    metafield(namespace: "$app:discount-order-exclude", key: "function-configuration") {
+    metafield(namespace: "b-h-discounts", key: "function-configuration") {
       value
     }
   }
