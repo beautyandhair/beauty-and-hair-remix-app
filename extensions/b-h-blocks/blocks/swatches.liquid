@@ -114,7 +114,7 @@
 {% liquid
     assign product = block.settings.product
 
-    assign variant_dividers = product.metafields.custom.variant_dividers_json.value
+    assign variant_dividers = product.metafields.swatch_picker.dividers_json.value
     assign variant_dividers_json = variant_dividers | json
 
     assign divider_order = block.settings.divider_order | split: ','
