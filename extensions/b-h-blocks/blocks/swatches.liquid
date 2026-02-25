@@ -117,7 +117,8 @@
     assign variant_dividers = product.metafields.swatch_picker.dividers_json.value
     assign variant_dividers_json = variant_dividers | json
 
-    assign divider_order = block.settings.divider_order | split: ','
+    assign divider_entries = metaobjects['swatch_picker_dividers'].values | map: 'name'
+    assign divider_order = block.settings.divider_order | split: ','| concat: divider_entries | uniq
 
     assign available_variants = product.variants | where: 'available'
     assign unavailable_variants = product.variants | where: 'available', false
@@ -391,7 +392,7 @@
     },
     {
         "type": "paragraph",
-        "content": "Include metaobject entries in divider order to include them. Regardless of order, Back Soon will always appear at the end."
+        "content": "Enforces an order, if not set it will be random. Regardless of order, Back Soon will always appear at the end."
     },
     {
         "type": "text",
