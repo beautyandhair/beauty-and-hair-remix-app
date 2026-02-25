@@ -75,16 +75,18 @@
     }
 
     .swatch-picker__box:has(img[data-available="false"])::after {
-        content: 'X';
+        content: '';
         position: absolute;
-        height: 100%;
-        width: 100%;
-        top: -2px;
+        height: calc(100% - 4px);
+        width: calc(100% - 4px);
+        top: 2px;
+        left: 2px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 96px;
-        color: rgba(255, 255, 255, 0.5);
+        background-color: rgba(255, 255, 255, 0.5);
+        clip-path: polygon(10% 0%, 0% 10%, 40% 50%, 0% 90%, 10% 100%, 50% 60%, 90% 100%, 100% 90%, 60% 50%, 100% 10%, 90% 0%, 50% 40%)
     }
 
     .swatch-picker__clearance-label {
@@ -125,6 +127,8 @@
     else
         assign color_groups = product.variants | map: 'metafields' | map: 'custom' | map: 'color_group' | map: 'value' | uniq | compact
     endif
+
+    assign clearance_divider = variant_dividers['clearance']
 %}
 
 <!-- begin app block - swatches -->
@@ -171,26 +175,30 @@
         {% if divider_variants and divider %}     
             {% capture divider_group %}
             {% for variant_gid in divider_variants %}
-                {% assign variant_id = variant_gid | remove: 'gid://shopify/ProductVariant/' | plus: 0 %}
-                {% assign variant_found = available_variants | find: 'id', variant_id %}
-                {% assign data_color_groups = variant_found.metafields.custom.color_group.value | join: ',' | append: ',' | append: data_color_groups %}
+                {%- unless clearance_divider contains variant_gid -%}               
+                    {% assign variant_id = variant_gid | remove: 'gid://shopify/ProductVariant/' | plus: 0 %}
+                    {% assign variant_found = available_variants | find: 'id', variant_id %}
+                    {% assign data_color_groups = variant_found.metafields.custom.color_group.value | join: ',' | append: ',' | append: data_color_groups %}
 
-                {% render 'variant-swatch', image: variant_found.image, variant: variant_found, variant_divider: variant_divider %}
+                    {% render 'variant-swatch', image: variant_found.image, variant: variant_found, variant_divider: variant_divider %}
+                {%- endunless -%}
             {% endfor %}
             {% endcapture %}
 
-            <figure class="swatch-picker__box" data-groups="{{ data_color_groups }}">
-                <img
-                    class="swatch-picker__divider"
-                    src="{{ divider.image | image_url: width: 60 }}"
-                    alt="{{ divider.image.alt }}"
-                    loading="lazy"
-                    height="76"
-                    width="57"
-                >
-            </figure>
+            {%- if divider_group != blank -%}
+                <figure class="swatch-picker__box" data-groups="{{ data_color_groups }}">
+                    <img
+                        class="swatch-picker__divider"
+                        src="{{ divider.image | image_url: width: 60 }}"
+                        alt="{{ divider.image.alt }}"
+                        loading="lazy"
+                        height="76"
+                        width="57"
+                    >
+                </figure>
 
-            {{ divider_group }}
+                {{ divider_group }}
+            {%- endif -%}
         {% endif %}
     {% endfor %}
 
@@ -205,7 +213,7 @@
         {% endfor %}
         {% endcapture %}
 
-        {% if unavailable_variants.size > 0 %}
+        {% if unavailable_variants.size > 0 and unavailable_group != blank %}
             <figure class="swatch-picker__box" data-groups="{{ data_color_groups }}">
                 <img
                     class="swatch-picker__divider"
@@ -227,7 +235,7 @@
         {% assign data_color_groups = '' %}
 
         {% capture clearance_group %}
-        {% for variant_gid in variant_dividers['clearance'] %}
+        {% for variant_gid in clearance_divider %}
             {% liquid
                 assign variant_id = variant_gid | remove: 'gid://shopify/ProductVariant/' | plus: 0
                 assign variant_found = available_variants | find: 'id', variant_id
@@ -250,11 +258,13 @@
         {% endfor %}
         {% endcapture %}
 
-        <div class="swatch-picker__clearance-label" data-groups="{{ data_color_groups }}">
-            <strong>{{ 'swatch-picker.clearance.message' | t: clearance_max_off: clearance_max_off }} <span class="swatch-picker__clearance-price">{{ clearance_min_price | money }}</span></strong> {{ 'swatch-picker.clearance.colorsBelow' | t }}
-        </div>
+        {%- if clearance_group != blank -%}
+            <div class="swatch-picker__clearance-label" data-groups="{{ data_color_groups }}">
+                <strong>{{ 'swatch-picker.clearance.message' | t: clearance_max_off: clearance_max_off }} <span class="swatch-picker__clearance-price">{{ clearance_min_price | money }}</span></strong> {{ 'swatch-picker.clearance.colorsBelow' | t }}
+            </div>
 
-        {{ clearance_group }}
+            {{ clearance_group }}
+        {%- endif -%}
     {% endif %}
     </fieldset>
 </variant-swatch-picker>
