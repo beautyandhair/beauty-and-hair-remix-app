@@ -24,7 +24,8 @@ import {
   ProgressBar,
   InlineError,
   EmptySearchResult,
-  Banner
+  Banner,
+  Checkbox
 } from '@shopify/polaris';
 import { CheckIcon, DeleteIcon, EditIcon, PlusIcon, RefreshIcon, SearchIcon, XIcon } from '@shopify/polaris-icons';
 import { useState, useCallback, useMemo, useEffect } from 'react';
@@ -214,6 +215,7 @@ export default function ColorGroups() {
     }
   }[]>([]);
   const [vendorColorsFailed, setVendorColorsFailed] = useState('');
+  const [importOverride, setImportOverride] = useState(false);
   const actionData = useActionData<any>();
 
   const vendorTabs = useMemo(() => vendors?.length ? vendors.map((vendor) => vendor.name) : [], [vendors]);
@@ -378,17 +380,19 @@ export default function ColorGroups() {
   }, [vendors, submit]);
 
   const onUpsertManyVendorColor = useCallback(async (vendorColorsUpsert: {vendorName: string, color: string, vendorColorUpdate: VendorColorUpdate}[]) => {
-    await sleep(1000);
-    submit({
-      actionType: Action.UpsertManyVendorColor,
-      vendorColors: JSON.stringify(vendorColorsUpsert)
-    }, { method: "PUT" });
-
-    setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / vendorColorsUpsert.length) * 100))}));
+    setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / vendorColorsUpsert.length) * 100 * vendorColorsUpsert.length))}));
 
     for (const vendorColorUpsert of vendorColorsUpsert) {
       const vendor = vendors.find((vendor) => vendor.name === vendorColorUpsert.vendorName);
       const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === vendorColorUpsert.color);
+
+      if (vendorColor && !importOverride) {
+        vendorColorUpsert.vendorColorUpdate.shopImageIds =  {...(vendorColorUpsert.vendorColorUpdate.shopImageIds ?? {}), ...(vendorColor.shopImageIds ?? {})};
+        vendorColorUpsert.vendorColorUpdate.groups = vendorColor.groups.length ? undefined : vendorColorUpsert.vendorColorUpdate.groups;
+        vendorColorUpsert.vendorColorUpdate.imageSrc = vendorColor.imageSrc ? undefined : vendorColorUpsert.vendorColorUpdate.imageSrc;
+        vendorColorUpsert.vendorColorUpdate.altText = vendorColor.altText ? undefined : vendorColorUpsert.vendorColorUpdate.altText;
+        vendorColorUpsert.vendorColorUpdate.fileName = vendorColor.fileName ? undefined : vendorColorUpsert.vendorColorUpdate.fileName;
+      }
 
       if (vendorColor) {
         vendorColor.color = vendorColorUpsert.vendorColorUpdate.color ?? vendorColor.color;
@@ -408,7 +412,7 @@ export default function ColorGroups() {
           groups: vendorColorUpsert.vendorColorUpdate.groups ?? [],
           shopImageIds: {},
           imageSrc: vendorColorUpsert.vendorColorUpdate.imageSrc ?? undefined,
-          altText: vendorColorUpsert.vendorColorUpdate.altText
+          altText: vendorColorUpsert.vendorColorUpdate.altText ?? undefined
         };
 
         if (vendor.colors) {
@@ -419,6 +423,12 @@ export default function ColorGroups() {
         }
       }
     }
+
+    await sleep(1000);
+    submit({
+      actionType: Action.UpsertManyVendorColor,
+      vendorColors: JSON.stringify(vendorColorsUpsert)
+    }, { method: "PUT" });
 
     setVendors((prev) => [...prev]);
   }, [vendors, submit]);
@@ -652,9 +662,12 @@ export default function ColorGroups() {
           {loadingImport.active ? (
             <ProgressBar progress={loadingImport.progress} />
           ) : (
+            <>
+            <Checkbox checked={importOverride} onChange={(isChecked) => setImportOverride(isChecked)} label="Override Swatch Attributes?" />
             <DropZone onDrop={handleImportVendorColorFile} allowMultiple={false} type="file">
               <DropZone.FileUpload actionHint="Formatted CSV File" />
             </DropZone>
+            </>
           )}
         </Box>
       </Collapsible>
@@ -767,23 +780,25 @@ function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups, hideSelect 
   return (
     <BlockStack gap="200">
       {!hideSelect && (
-        <Combobox
-          allowMultiple
-          activator={
-            <Combobox.TextField
-              prefix={<Icon source={SearchIcon}/>}
-              onChange={updateText}
-              label="Group(s)"
-              value={inputValue}
-              placeholder="Search groups"
-              autoComplete="off"
-            />
-          }
-        >
-          {optionsMarkup ? (
-            <Listbox onSelect={updateSelection}>{optionsMarkup}</Listbox>
-          ) : null}
-        </Combobox>
+        <Box minWidth='164px'>
+          <Combobox
+            allowMultiple
+            activator={
+              <Combobox.TextField
+                prefix={<Icon source={SearchIcon}/>}
+                onChange={updateText}
+                label="Group(s)"
+                value={inputValue}
+                placeholder="Search groups"
+                autoComplete="off"
+              />
+            }
+          >
+            {optionsMarkup ? (
+              <Listbox onSelect={updateSelection}>{optionsMarkup}</Listbox>
+            ) : null}
+          </Combobox>
+        </Box>
       )}
       <InlineStack gap="200">
         {tagsMarkup}
@@ -1009,7 +1024,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
                 </DropZone>
               </Box>
 
-              {vendorColor.imageSrc && (
+              {vendorColor.imageSrc && editing[vendorColor.color] && (
                 <span style={{margin: "0 12px"}}>
                   <Button
                     accessibilityLabel="Clear Image"

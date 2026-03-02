@@ -28,6 +28,8 @@ const STAND_UP_TO_CANCER_TITLE = "Donation to Stand Up To Cancer";
 const BREAST_CANCER_TITLE = "Donation to Breastcancer.org";
 const EBEAUTY_TITLE = "Donation to Ebeauty";
 
+const ENABLE_CAROUSEL = false;
+
 const parseDate = (str) => {
   const [year, month, day] = str.split('-');
 
@@ -260,14 +262,16 @@ function Extension() {
         />
       )}
 
-      <InlineLayout columns={['auto', 'auto']} inlineAlignment="center" spacing="tight" display={activeDonations.length > 1 ? 'auto' : 'none'}>
-        <Pressable maxBlockSize={32} maxInlineSize={32} border="base" cornerRadius="base" padding="extraTight" blockAlignment="center" disabled={slide === 0} onPress={() => setSlide((prev) => prev - 1)}>
-          <Icon source="chevronLeft" appearance="accent" />
-        </Pressable>
-        <Pressable maxBlockSize={32} maxInlineSize={32} border="base" cornerRadius="base" padding="extraTight" blockAlignment="center" disabled={slide === activeDonations.length - 1} onPress={() => setSlide((prev) => prev + 1)}>
-          <Icon source="chevronRight" appearance="accent" />
-        </Pressable>
-      </InlineLayout>
+      {ENABLE_CAROUSEL && (
+        <InlineLayout columns={['auto', 'auto']} inlineAlignment="center" spacing="tight" display={activeDonations.length > 1 ? 'auto' : 'none'}>
+          <Pressable maxBlockSize={32} maxInlineSize={32} border="base" cornerRadius="base" padding="extraTight" blockAlignment="center" disabled={slide === 0} onPress={() => setSlide((prev) => prev - 1)}>
+            <Icon source="chevronLeft" appearance="accent" />
+          </Pressable>
+          <Pressable maxBlockSize={32} maxInlineSize={32} border="base" cornerRadius="base" padding="extraTight" blockAlignment="center" disabled={slide === activeDonations.length - 1} onPress={() => setSlide((prev) => prev + 1)}>
+            <Icon source="chevronRight" appearance="accent" />
+          </Pressable>
+        </InlineLayout>
+      )}
     </ BlockStack>
   );
 }
@@ -300,7 +304,7 @@ function DonationCheckbox({toggleCheckbox, donation, isLoading, index, currentSl
   }
 
   return (
-    <BlockStack spacing="base" border="base" cornerRadius="base" padding="base" display={currentSlide != index ? 'none' : 'auto'}>
+    <BlockStack spacing="base" border="base" cornerRadius="base" padding="base" display={ENABLE_CAROUSEL && currentSlide != index ? 'none' : 'auto'}>
       <InlineStack
         padding="none"
         inlineAlignment="start"

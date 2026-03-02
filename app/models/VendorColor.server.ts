@@ -245,7 +245,7 @@ export async function uploadColorImagesBulk(graphql: GraphQLClient<any>, shop: s
     {
       variables: {
         "files": images.map((image) => ({
-          "alt": image.altText,
+          "alt": image.altText.replace(/^"(.*)$/, "$1"),
           "contentType": "IMAGE",
           "originalSource": image.resourceUrl,
           "filename": image.fileName
