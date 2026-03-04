@@ -341,6 +341,7 @@ export default function ColorGroups() {
     setVendors((prev) => [...prev]);
   }, [currentVendor, submit]);
 
+  /*
   const onUpsertVendorColor = useCallback(async (vendorName: string, color: string, isHumanHair: boolean, vendorColorUpdate: VendorColorUpdate) => {
     const vendor = vendors.find((vendor) => vendor.name === vendorName);
     const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === color && vendorColor.isHumanHair === isHumanHair);
@@ -386,7 +387,7 @@ export default function ColorGroups() {
       }
     }
 
-    await sleep(1);
+    await sleep(100);
     submit({
       actionType: Action.UpsertVendorColor,
       vendorName: vendorName,
@@ -399,10 +400,9 @@ export default function ColorGroups() {
 
     setVendors((prev) => [...prev]);
   }, [vendors, submit]);
+  */
 
   const onUpsertManyVendorColor = useCallback(async (vendorColorsUpsert: {vendorName: string, color: string, isHumanHair: boolean, vendorColorUpdate: VendorColorUpdate}[]) => {
-    setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / vendorColorsUpsert.length) * 100 * vendorColorsUpsert.length))}));
-
     for (const vendorColorUpsert of vendorColorsUpsert) {
       const vendor = vendors.find((vendor) => vendor.name === vendorColorUpsert.vendorName);
       const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === vendorColorUpsert.color && vendorColor.isHumanHair === vendorColorUpsert.isHumanHair);
@@ -454,6 +454,8 @@ export default function ColorGroups() {
       actionType: Action.UpsertManyVendorColor,
       vendorColors: JSON.stringify(vendorColorsUpsert)
     }, { method: "PUT" });
+
+    setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / prev.total) * 100 * vendorColorsUpsert.length))}));
 
     setVendors((prev) => [...prev]);
   }, [vendors, submit]);
@@ -541,7 +543,7 @@ export default function ColorGroups() {
 
   useEffect(() => {
     const validPendingVendorColorsBulk = pendingVendorColorsBulk.filter((vendorColor) => !vendorColor.upserted);
-
+    
     if (actionData?.images && validPendingVendorColorsBulk.length) {
       const imagesImported = JSON.parse(actionData.images);
       const vendorColorsUpsert = [];
@@ -584,6 +586,7 @@ export default function ColorGroups() {
   }[]) => {
     setPendingVendorColorsBulk((prev) => prev.concat(vendorColorsBulkPayload));
 
+    await sleep(10000);
     submit({
       actionType: Action.UploadColorImagesBulk,
       images: JSON.stringify(vendorColorsBulkPayload.map((vendorColor) => ({
@@ -592,13 +595,15 @@ export default function ColorGroups() {
         altText: vendorColor.data.altText,
         fileName: vendorColor.data.fileName + (vendorColor.data.imageSrc?.match(/(\.\w+)(?=\?.+)|(\.\w+)$/g)?.[0] ?? '.jpg'),
         vendorName: vendorColor.data.vendorName,
-        isHumanHair: vendorColor.data.isHumanHair
+        isHumanHair: vendorColor.data.isHumanHair === "true" ? true : false
       })))
     }, { method: "POST" });
   }, [submit]);
 
   const handleImportVendorColorsBulk = useCallback(async (vendorColorsImport: VendorColorType[]) => {
     const vendorColorsBulk: ({upserted: boolean, data: VendorColorType & {imageSrc: string, fileName: string}})[] = [];
+
+    const vendorColorsUpsert = [];
     
     for (const vendorColorImport of vendorColorsImport) {
       const isHumanHair = vendorColorImport.isHumanHair === "true" ? true : false;
@@ -606,30 +611,43 @@ export default function ColorGroups() {
       const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === vendorColorImport.color && vendorColor.isHumanHair === isHumanHair);
 
       if ((importOverride || !vendorColor?.imageSrc) && vendorColorImport.imageSrc) {
-        let fileName = handleize(`${vendorColorImport.vendorName}_${vendorColorImport.color}_swatch`);
+        let fileName = handleize(`${vendorColorImport.vendorName}_${vendorColorImport.color}${isHumanHair ? '_hh' : ''}_swatch`);
 
         vendorColorsBulk.push({upserted: false, data: {...vendorColorImport, imageSrc: vendorColorImport.imageSrc, fileName}});
       }
       else {
-        onUpsertVendorColor(vendorColorImport.vendorName, vendorColorImport.color, isHumanHair, {
-          altText: vendorColorImport.altText,
-          groups: vendorColorImport.groups ? vendorColorImport.groups.split(';') : []
+        vendorColorsUpsert.push({
+          vendorName: vendorColorImport.vendorName,
+          color: vendorColorImport.color,
+          isHumanHair: isHumanHair,
+          vendorColorUpdate: {
+            altText: vendorColorImport.altText,
+            groups: vendorColorImport.groups ? vendorColorImport.groups.split(';') : []
+          }
         });
+      }
+
+      if (vendorColorsUpsert.length === 10) {
+        onUpsertManyVendorColor([...vendorColorsUpsert]);
+
+        vendorColorsUpsert.length = 0;
       }
 
       if (vendorColorsBulk.length === 10) {
         submitPendingVendorColorsBulk([...vendorColorsBulk]);
 
         vendorColorsBulk.length = 0;
-
-        await sleep(10000);
       }
+    }
+
+    if (vendorColorsUpsert.length) {
+      onUpsertManyVendorColor(vendorColorsUpsert);
     }
 
     if (vendorColorsBulk.length) {
       submitPendingVendorColorsBulk([...vendorColorsBulk]);
     }
-  }, [onUpsertVendorColor, submitPendingVendorColorsBulk]);
+  }, [onUpsertManyVendorColor, submitPendingVendorColorsBulk]);
 
   const handleImportVendorColorFile = useCallback((_files: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
     const file = acceptedFiles[0];

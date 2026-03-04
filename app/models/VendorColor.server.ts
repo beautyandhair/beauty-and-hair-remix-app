@@ -230,7 +230,7 @@ export async function uploadColorImage(graphql: GraphQLClient<any>, resourceUrl:
   return ({imageSrc, imageId, color, isHumanHair, altText, shop, vendorName, imageStatus: "success"});
 }
 
-export async function uploadColorImagesBulk(graphql: GraphQLClient<any>, shop: string, images: {resourceUrl: string, color: string, altText: string, vendorName?: string, fileName?: string}[]) {
+export async function uploadColorImagesBulk(graphql: GraphQLClient<any>, shop: string, images: {resourceUrl: string, color: string, isHumanHair: boolean, altText: string, vendorName?: string, fileName?: string}[]) {
   const uploadResponse = await graphql(
   `
     mutation fileCreate($files: [FileCreateInput!]!) {
