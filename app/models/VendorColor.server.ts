@@ -11,7 +11,8 @@ export interface VendorColor {
   imageSrc?: string,
   shopImageIds?: {[key: string]: string},
   altText?: string,
-  fileName?: string
+  fileName?: string,
+  isHumanHair: boolean
 }
 
 export interface VendorColorUpdate {
@@ -21,6 +22,7 @@ export interface VendorColorUpdate {
   shopImageIds?: {[key: string]: string},
   altText?: string,
   fileName?: string
+  isHumanHair?: boolean
 }
 
 export function parseVendorColor(vendorColorData: any): VendorColor {
@@ -44,22 +46,22 @@ export async function getVendorColors(): Promise<VendorColor[]> {
   return vendorColors.map((vendorColor) => parseVendorColor(vendorColor));
 }
 
-export async function createVendorColor(vendorName: string, color: string, groups: string[]): Promise<VendorColor> {
-  const vendorColor = await prisma.vendorColor.create({ data: { vendorName, color, groups } });
+export async function createVendorColor(vendorName: string, color: string, isHumanHair: boolean, groups: string[]): Promise<VendorColor> {
+  const vendorColor = await prisma.vendorColor.create({ data: { vendorName, color, groups, isHumanHair } });
 
   return parseVendorColor(vendorColor);
 }
 
-export async function updateVendorColor(vendorName: string, color: string, vendorColorUpdate: VendorColorUpdate): Promise<VendorColor> {
-  const vendorColor = await prisma.vendorColor.update({ where: { colorId: { vendorName, color } }, data: {
+export async function updateVendorColor(vendorName: string, color: string, isHumanHair: boolean, vendorColorUpdate: VendorColorUpdate): Promise<VendorColor> {
+  const vendorColor = await prisma.vendorColor.update({ where: { colorId: { vendorName, color, isHumanHair } }, data: {
       ...vendorColorUpdate
     } });
 
   return parseVendorColor(vendorColor);
 }
 
-export async function upsertVendorColor(vendorName: string, color: string, vendorColorUpdate: VendorColorUpdate): Promise<VendorColor> {
-  const vendorColor = await prisma.vendorColor.upsert({ where: { colorId: { vendorName, color } },
+export async function upsertVendorColor(vendorName: string, color: string, isHumanHair: boolean, vendorColorUpdate: VendorColorUpdate): Promise<VendorColor> {
+  const vendorColor = await prisma.vendorColor.upsert({ where: { colorId: { vendorName, color, isHumanHair } },
     update: {
       ...vendorColorUpdate
     }, create: {
@@ -72,10 +74,10 @@ export async function upsertVendorColor(vendorName: string, color: string, vendo
   return parseVendorColor(vendorColor);
 }
 
-export async function upsertManyVendorColor(vendorColors: {vendorName: string, color: string, vendorColorUpdate: VendorColorUpdate}[]): Promise<{[key: string]: string}> {
+export async function upsertManyVendorColor(vendorColors: {vendorName: string, color: string, isHumanHair: boolean, vendorColorUpdate: VendorColorUpdate}[]): Promise<{[key: string]: string}> {
   await prisma.$transaction(async (prisma) => {
     for (const vendorColor of vendorColors) {
-      await prisma.vendorColor.upsert({ where: { colorId: { vendorName: vendorColor.vendorName, color: vendorColor.color } },
+      await prisma.vendorColor.upsert({ where: { colorId: { vendorName: vendorColor.vendorName, color: vendorColor.color, isHumanHair: vendorColor.isHumanHair } },
         update: {
           ...vendorColor.vendorColorUpdate
         }, create: {
@@ -90,16 +92,16 @@ export async function upsertManyVendorColor(vendorColors: {vendorName: string, c
   return ({status: "success"});
 }
 
-export async function updateVendorColorShopImageIds(vendorName: string, shopImageIdUpdates: {color: string, shopImageIds: {[key: string]: string}}[]): Promise<Boolean> {
+export async function updateVendorColorShopImageIds(vendorName: string, shopImageIdUpdates: {color: string, isHumanHair: boolean, shopImageIds: {[key: string]: string}}[]): Promise<Boolean> {
   shopImageIdUpdates.forEach(async (vendorColor) => {
-    await updateVendorColor(vendorName, vendorColor.color, { shopImageIds: vendorColor.shopImageIds });
+    await updateVendorColor(vendorName, vendorColor.color, vendorColor.isHumanHair, { shopImageIds: vendorColor.shopImageIds });
   });
 
   return true;
 }
 
-export async function deleteVendorColor(vendorName: string, color: string) {
-  return await prisma.vendorColor.delete({ where: { colorId: { vendorName, color } } });
+export async function deleteVendorColor(vendorName: string, color: string, isHumanHair: boolean) {
+  return await prisma.vendorColor.delete({ where: { colorId: { vendorName, color, isHumanHair } } });
 }
 
 export function validateVendorColor(data: VendorColor) {
@@ -163,7 +165,7 @@ export async function stageColorImage(graphql: GraphQLClient<any>, file: {filena
   return ({stagedTarget});
 }
 
-export async function uploadColorImage(graphql: GraphQLClient<any>, resourceUrl: string, color: string, altText: string, shop: string, vendorName?: string, fileName?: string) {
+export async function uploadColorImage(graphql: GraphQLClient<any>, resourceUrl: string, color: string, isHumanHair: boolean, altText: string, shop: string, vendorName?: string, fileName?: string) {
   const uploadResponse = await graphql(
   `
     mutation fileCreate($files: [FileCreateInput!]!) {
@@ -192,7 +194,7 @@ export async function uploadColorImage(graphql: GraphQLClient<any>, resourceUrl:
   const uploadResponseData = await uploadResponse.json();
 
   if (!uploadResponseData.data.fileCreate.files?.[0]) {
-    return ({color, altText, shop, vendorName, imageStatus: "failed"});
+    return ({color, isHumanHair, altText, shop, vendorName, imageStatus: "failed"});
   }
 
   const imageId: string = uploadResponseData.data.fileCreate.files[0].id;
@@ -225,7 +227,7 @@ export async function uploadColorImage(graphql: GraphQLClient<any>, resourceUrl:
     }
   }
 
-  return ({imageSrc, imageId, color, altText, shop, vendorName, imageStatus: "success"});
+  return ({imageSrc, imageId, color, isHumanHair, altText, shop, vendorName, imageStatus: "success"});
 }
 
 export async function uploadColorImagesBulk(graphql: GraphQLClient<any>, shop: string, images: {resourceUrl: string, color: string, altText: string, vendorName?: string, fileName?: string}[]) {

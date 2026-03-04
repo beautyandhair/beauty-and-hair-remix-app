@@ -116,7 +116,8 @@ type VendorColorType = {
   vendorName: string,
   imageSrc?: string,
   altText?: string,
-  groups?: string
+  groups?: string,
+  isHumanHair: string
 }
 
 export async function loader() {
@@ -131,6 +132,8 @@ export async function action({ request }: {request: Request }) {
     ...Object.fromEntries(await request.formData()),
   };
 
+  let isHumanHair = data.isHumanHair === true || data.isHumanHair === "true" ? true : false;
+
   switch (data.actionType) {
     case Action.CreateVendor:
       return await createVendor(data.vendorName);
@@ -139,21 +142,21 @@ export async function action({ request }: {request: Request }) {
     case Action.DeleteVendor:
       return await deleteVendor(data.vendorName);
     case Action.CreateVendorColor:
-      return await createVendorColor(data.vendorName, data.color, JSON.parse(data.groups));
+      return await createVendorColor(data.vendorName, data.color, isHumanHair, JSON.parse(data.groups));
     case Action.UpdateVendorColor:
-      return await updateVendorColor(data.vendorName, data.color, JSON.parse(data.vendorColorUpdate));
+      return await updateVendorColor(data.vendorName, data.color, isHumanHair, JSON.parse(data.vendorColorUpdate));
     case Action.UpsertVendorColor:
-      return await upsertVendorColor(data.vendorName, data.color, JSON.parse(data.vendorColorUpdate));
+      return await upsertVendorColor(data.vendorName, data.color, isHumanHair, JSON.parse(data.vendorColorUpdate));
     case Action.UpsertManyVendorColor:
       return await upsertManyVendorColor(JSON.parse(data.vendorColors));
     case Action.DeleteVendorColor:
-      return await deleteVendorColor(data.vendorName, data.color);
+      return await deleteVendorColor(data.vendorName, data.color, isHumanHair);
     case Action.StageColorImage:
       const stagedTargetResponse = await stageColorImage(admin.graphql, JSON.parse(data.file));
 
-      return ({...stagedTargetResponse, color: data.color, altText: data.altText});
+      return ({...stagedTargetResponse, color: data.color, isHumanHair: isHumanHair, altText: data.altText});
     case Action.UploadColorImage:
-      return await uploadColorImage(admin.graphql, data.resourceUrl, data.color, data.altText, shop, data.vendorName, data.fileName);
+      return await uploadColorImage(admin.graphql, data.resourceUrl, data.color, isHumanHair, data.altText, shop, data.vendorName, data.fileName);
     case Action.UploadColorImagesBulk:
       return await uploadColorImagesBulk(admin.graphql, shop, JSON.parse(data.images));
     case Action.SyncAltText:
@@ -211,7 +214,8 @@ export default function ColorGroups() {
       color: string,
       vendorName: string,
       fileName?: string,
-      groups?: string
+      groups?: string,
+      isHumanHair: string
     }
   }[]>([]);
   const [vendorColorsFailed, setVendorColorsFailed] = useState('');
@@ -275,8 +279,8 @@ export default function ColorGroups() {
 
   /* MUTATE VENDOR COLORS */
 
-  const onAddVendorColor = useCallback(async (color: string, groups: string[]) => {
-    if (currentVendor.colors?.find((vendorColor) => vendorColor.color === color)) {
+  const onAddVendorColor = useCallback(async (color: string, groups: string[], isHumanHair: boolean) => {
+    if (currentVendor.colors?.find((vendorColor) => vendorColor.color === color && vendorColor.isHumanHair === isHumanHair)) {
       return false;
     }
 
@@ -284,7 +288,8 @@ export default function ColorGroups() {
       vendorName: currentVendor.name,
       color,
       groups,
-      shopImageIds: {}
+      shopImageIds: {},
+      isHumanHair
     };
 
     if (currentVendor.colors) {
@@ -299,7 +304,8 @@ export default function ColorGroups() {
       actionType: Action.CreateVendorColor,
       vendorName: currentVendor.name,
       color,
-      groups: JSON.stringify(groups)
+      groups: JSON.stringify(groups),
+      isHumanHair
     }, { method: "POST" });
 
     setVendors((prev) => [...prev]);
@@ -307,8 +313,8 @@ export default function ColorGroups() {
     return true;
   }, [currentVendor, submit]);
 
-  const onUpdateVendorColor = useCallback(async (color: string, vendorColorUpdate: VendorColorUpdate) => {
-    const vendorColor = currentVendor.colors?.find((vendorColor) => vendorColor.color === color);
+  const onUpdateVendorColor = useCallback(async (color: string, isHumanHair: boolean, vendorColorUpdate: VendorColorUpdate) => {
+    const vendorColor = currentVendor.colors?.find((vendorColor) => vendorColor.color === color && vendorColor.isHumanHair === isHumanHair);
 
     if (vendorColor) {
       vendorColor.color = vendorColorUpdate.color ?? vendorColor.color;
@@ -317,6 +323,7 @@ export default function ColorGroups() {
       vendorColor.shopImageIds = vendorColorUpdate.shopImageIds ?? vendorColor.shopImageIds;
       vendorColor.altText = vendorColorUpdate.altText ?? vendorColor.altText;
       vendorColor.fileName = vendorColorUpdate.fileName ?? vendorColor.fileName;
+      vendorColor.isHumanHair = vendorColorUpdate.isHumanHair ?? vendorColor.isHumanHair
     }
     else {
       return;
@@ -327,15 +334,26 @@ export default function ColorGroups() {
       actionType: Action.UpdateVendorColor,
       vendorName: currentVendor.name,
       color,
-      vendorColorUpdate: JSON.stringify(vendorColorUpdate)
+      vendorColorUpdate: JSON.stringify(vendorColorUpdate),
+      isHumanHair
     }, { method: "PUT" });
 
     setVendors((prev) => [...prev]);
   }, [currentVendor, submit]);
 
-  const onUpsertVendorColor = useCallback(async (vendorName: string, color: string, vendorColorUpdate: VendorColorUpdate) => {
+  const onUpsertVendorColor = useCallback(async (vendorName: string, color: string, isHumanHair: boolean, vendorColorUpdate: VendorColorUpdate) => {
     const vendor = vendors.find((vendor) => vendor.name === vendorName);
-    const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === color);
+    const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === color && vendorColor.isHumanHair === isHumanHair);
+
+    // Set undefined to prevent overriding previous values
+    if (vendorColor && !importOverride) {
+      vendorColorUpdate.shopImageIds =  {...(vendorColorUpdate.shopImageIds ?? {}), ...(vendorColor.shopImageIds ?? {})};
+      vendorColorUpdate.groups = vendorColor.groups.length ? undefined : vendorColorUpdate.groups;
+      vendorColorUpdate.imageSrc = vendorColor.imageSrc ? undefined : vendorColorUpdate.imageSrc;
+      vendorColorUpdate.altText = vendorColor.altText ? undefined : vendorColorUpdate.altText;
+      vendorColorUpdate.fileName = vendorColor.fileName ? undefined : vendorColorUpdate.fileName;
+      vendorColorUpdate.isHumanHair = vendorColor.isHumanHair ? undefined : vendorColorUpdate.isHumanHair
+    }
 
     if (vendorColor) {
       vendorColor.color = vendorColorUpdate.color ?? vendorColor.color;
@@ -343,6 +361,7 @@ export default function ColorGroups() {
       vendorColor.imageSrc = vendorColorUpdate.imageSrc ?? vendorColor.imageSrc;
       vendorColor.altText = vendorColorUpdate.altText ?? vendorColor.altText;
       vendorColor.fileName = vendorColorUpdate.fileName ?? vendorColor.fileName;
+      vendorColor.isHumanHair = vendorColorUpdate.isHumanHair ?? vendorColor.isHumanHair;
 
       if (vendor?.colors) {
         vendor.colors = [...vendor.colors];
@@ -355,7 +374,8 @@ export default function ColorGroups() {
         groups: vendorColorUpdate.groups ?? [],
         shopImageIds: {},
         imageSrc: vendorColorUpdate.imageSrc ?? undefined,
-        altText: vendorColorUpdate.altText
+        altText: vendorColorUpdate.altText,
+        isHumanHair: isHumanHair
       };
 
       if (vendor.colors) {
@@ -371,7 +391,8 @@ export default function ColorGroups() {
       actionType: Action.UpsertVendorColor,
       vendorName: vendorName,
       color,
-      vendorColorUpdate: JSON.stringify(vendorColorUpdate)
+      vendorColorUpdate: JSON.stringify(vendorColorUpdate),
+      isHumanHair
     }, { method: "PUT" });
 
     setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / prev.total) * 100))}));
@@ -379,19 +400,21 @@ export default function ColorGroups() {
     setVendors((prev) => [...prev]);
   }, [vendors, submit]);
 
-  const onUpsertManyVendorColor = useCallback(async (vendorColorsUpsert: {vendorName: string, color: string, vendorColorUpdate: VendorColorUpdate}[]) => {
+  const onUpsertManyVendorColor = useCallback(async (vendorColorsUpsert: {vendorName: string, color: string, isHumanHair: boolean, vendorColorUpdate: VendorColorUpdate}[]) => {
     setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / vendorColorsUpsert.length) * 100 * vendorColorsUpsert.length))}));
 
     for (const vendorColorUpsert of vendorColorsUpsert) {
       const vendor = vendors.find((vendor) => vendor.name === vendorColorUpsert.vendorName);
-      const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === vendorColorUpsert.color);
+      const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === vendorColorUpsert.color && vendorColor.isHumanHair === vendorColorUpsert.isHumanHair);
 
+      // Set undefined to prevent overriding previous values
       if (vendorColor && !importOverride) {
         vendorColorUpsert.vendorColorUpdate.shopImageIds =  {...(vendorColorUpsert.vendorColorUpdate.shopImageIds ?? {}), ...(vendorColor.shopImageIds ?? {})};
         vendorColorUpsert.vendorColorUpdate.groups = vendorColor.groups.length ? undefined : vendorColorUpsert.vendorColorUpdate.groups;
         vendorColorUpsert.vendorColorUpdate.imageSrc = vendorColor.imageSrc ? undefined : vendorColorUpsert.vendorColorUpdate.imageSrc;
         vendorColorUpsert.vendorColorUpdate.altText = vendorColor.altText ? undefined : vendorColorUpsert.vendorColorUpdate.altText;
         vendorColorUpsert.vendorColorUpdate.fileName = vendorColor.fileName ? undefined : vendorColorUpsert.vendorColorUpdate.fileName;
+        vendorColorUpsert.vendorColorUpdate.isHumanHair = undefined;
       }
 
       if (vendorColor) {
@@ -400,6 +423,7 @@ export default function ColorGroups() {
         vendorColor.imageSrc = vendorColorUpsert.vendorColorUpdate.imageSrc ?? vendorColor.imageSrc;
         vendorColor.altText = vendorColorUpsert.vendorColorUpdate.altText ?? vendorColor.altText;
         vendorColor.fileName = vendorColorUpsert.vendorColorUpdate.fileName ?? vendorColor.fileName;
+        vendorColor.isHumanHair = vendorColorUpsert.vendorColorUpdate.isHumanHair ?? vendorColor.isHumanHair;
 
         if (vendor?.colors) {
           vendor.colors = [...vendor.colors];
@@ -412,7 +436,8 @@ export default function ColorGroups() {
           groups: vendorColorUpsert.vendorColorUpdate.groups ?? [],
           shopImageIds: {},
           imageSrc: vendorColorUpsert.vendorColorUpdate.imageSrc ?? undefined,
-          altText: vendorColorUpsert.vendorColorUpdate.altText ?? undefined
+          altText: vendorColorUpsert.vendorColorUpdate.altText ?? undefined,
+          isHumanHair: vendorColorUpsert.isHumanHair
         };
 
         if (vendor.colors) {
@@ -433,7 +458,7 @@ export default function ColorGroups() {
     setVendors((prev) => [...prev]);
   }, [vendors, submit]);
 
-  const onDeleteVendorColor = useCallback((color: string) => async () => {
+  const onDeleteVendorColor = useCallback((color: string, isHumanHair: boolean) => async () => {
     if (currentVendor.colors && currentVendor.colors) {
       currentVendor.colors = currentVendor.colors.filter((vendorColor) => vendorColor.color != color);
     }
@@ -445,7 +470,8 @@ export default function ColorGroups() {
     submit({
       actionType: Action.DeleteVendorColor,
       vendorName: currentVendor.name,
-      color
+      color,
+      isHumanHair
     }, { method: "DELETE" });
 
     setVendors((prev) => [...prev]);
@@ -496,7 +522,8 @@ export default function ColorGroups() {
       if (remainingPendingVendorColors.length) {
         onUpsertManyVendorColor(remainingPendingVendorColors.map((vendorColor) => ({
             vendorName: vendorColor.data.vendorName,
-            color: vendorColor.data.color, 
+            color: vendorColor.data.color,
+            isHumanHair: vendorColor.data.isHumanHair === "true" ? true : false,
             vendorColorUpdate: {
               altText: vendorColor.data.altText,
               groups: vendorColor.data.groups ? vendorColor.data.groups.split(';') : []
@@ -525,7 +552,8 @@ export default function ColorGroups() {
         if (vendorColor) {
           vendorColorsUpsert.push({
             vendorName: vendorColor.data.vendorName,
-            color: vendorColor.data.color, 
+            color: vendorColor.data.color,
+            isHumanHair: vendorColor.data.isHumanHair === "true" ? true : false,
             vendorColorUpdate: {
               imageSrc: imageImport.imageSrc,
               fileName: vendorColor.data.fileName,
@@ -563,24 +591,29 @@ export default function ColorGroups() {
         color: vendorColor.data.color,
         altText: vendorColor.data.altText,
         fileName: vendorColor.data.fileName + (vendorColor.data.imageSrc?.match(/(\.\w+)(?=\?.+)|(\.\w+)$/g)?.[0] ?? '.jpg'),
-        vendorName: vendorColor.data.vendorName
+        vendorName: vendorColor.data.vendorName,
+        isHumanHair: vendorColor.data.isHumanHair
       })))
     }, { method: "POST" });
   }, [submit]);
 
-  const handleImportVendorColorsBulk = useCallback(async (vendorColors: VendorColorType[]) => {
+  const handleImportVendorColorsBulk = useCallback(async (vendorColorsImport: VendorColorType[]) => {
     const vendorColorsBulk: ({upserted: boolean, data: VendorColorType & {imageSrc: string, fileName: string}})[] = [];
     
-    for (const vendorColor of vendorColors) {
-      if (vendorColor.imageSrc) {
-        let fileName = handleize(`${vendorColor.vendorName}_${vendorColor.color}_swatch`);
+    for (const vendorColorImport of vendorColorsImport) {
+      const isHumanHair = vendorColorImport.isHumanHair === "true" ? true : false;
+      const vendor = vendors.find((vendor) => vendor.name === vendorColorImport.vendorName);
+      const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === vendorColorImport.color && vendorColor.isHumanHair === isHumanHair);
 
-        vendorColorsBulk.push({upserted: false, data: {...vendorColor, imageSrc: vendorColor.imageSrc, fileName}});
+      if ((importOverride || !vendorColor?.imageSrc) && vendorColorImport.imageSrc) {
+        let fileName = handleize(`${vendorColorImport.vendorName}_${vendorColorImport.color}_swatch`);
+
+        vendorColorsBulk.push({upserted: false, data: {...vendorColorImport, imageSrc: vendorColorImport.imageSrc, fileName}});
       }
       else {
-        onUpsertVendorColor(vendorColor.vendorName, vendorColor.color, {
-          altText: vendorColor.altText,
-          groups: vendorColor.groups ? vendorColor.groups.split(';') : []
+        onUpsertVendorColor(vendorColorImport.vendorName, vendorColorImport.color, isHumanHair, {
+          altText: vendorColorImport.altText,
+          groups: vendorColorImport.groups ? vendorColorImport.groups.split(';') : []
         });
       }
 
@@ -721,10 +754,11 @@ export default function ColorGroups() {
   );
 }
 
-function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups, hideSelect = false }: {
+function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups, hideSelect = false, labelHidden = false }: {
   selectedGroups: string[],
   onChangeSelectedGroups: (values: string[]) => void,
-  hideSelect: boolean
+  hideSelect: boolean,
+  labelHidden?: boolean
 }) {
   const [options, setOptions] = useState(COLOR_GROUPS);
   const [inputValue, setInputValue] = useState('');
@@ -788,6 +822,7 @@ function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups, hideSelect 
                 prefix={<Icon source={SearchIcon}/>}
                 onChange={updateText}
                 label="Group(s)"
+                labelHidden={labelHidden}
                 value={inputValue}
                 placeholder="Search groups"
                 autoComplete="off"
@@ -807,13 +842,14 @@ function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups, hideSelect 
   );
 }
 
-function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: string, groups: string[]) => Promise<boolean> }) {
+function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: string, groups: string[], isHumanHair: boolean) => Promise<boolean> }) {
   const [color, setColor] = useState('');
   const [groups, setGroups] = useState<string[]>([]);
+  const [isHumanHair, setIsHumanHair] = useState<boolean>(false);
   const [showError, setShowError] = useState(false);
 
   const handleAddColorGroup = useCallback(() => {
-    const responseSuccess = onAddVendorColor(color, groups);
+    const responseSuccess = onAddVendorColor(color, groups, isHumanHair);
 
     responseSuccess.then((success) => {
       if (!success) {
@@ -834,14 +870,17 @@ function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: strin
 
   return (
     <InlineGrid gap="100" columns={2}>
-      <TextField
-        value={color}
-        onChange={handleColorChange}
-        label="Color"
-        type="text"
-        autoComplete="off"
-        id="vendorColor"
-      />
+      <Box>
+        <TextField
+          value={color}
+          onChange={handleColorChange}
+          label="Color"
+          type="text"
+          autoComplete="off"
+          id="vendorColor"
+        />
+        <Checkbox label="Human Hair?" checked={isHumanHair} onChange={(isChecked) => setIsHumanHair(isChecked)} />
+      </Box>
       <MultiSelectGroups selectedGroups={groups} onChangeSelectedGroups={onChangeSelectedGroups} hideSelect={false} />
       <InlineStack gap="400" blockAlign="center">
         <Button onClick={handleAddColorGroup} size="slim" disabled={!color || !groups.length} variant="primary">Add Vendor Color</Button>
@@ -853,8 +892,8 @@ function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: strin
 
 function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColor, submit, search}: {
   currentVendor: Vendor,
-  onDeleteVendorColor: (color: string) => () => void,
-  onUpdateVendorColor: (color: string, vendorColorUpdate: VendorColorUpdate) => Promise<void>,
+  onDeleteVendorColor: (color: string, isHumanHair: boolean) => () => void,
+  onUpdateVendorColor: (color: string, isHumanHair: boolean, vendorColorUpdate: VendorColorUpdate) => Promise<void>,
   submit: SubmitFunction,
   search: string
 }) {
@@ -866,37 +905,64 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
   const [editing, setEditing] = useState<{[key: string]: {
     color: string,
     groups: string[],
-    altText?: string
+    altText?: string,
+    isHumanHair: boolean
   }}>({});
 
   /* UPDATING VENDOR COLOR */
 
-  const handleColorChange = useCallback((color: string) => (value: string) => setEditing((prev) => ({
-    ...prev,
-    [color]: {
-      ...prev[color],
-      color: value
-    }
-  })), [setEditing]);
+  const getVendorColorKey = (color: string, isHumanHair: boolean) => isHumanHair ? `${color}#${isHumanHair}` : color;
 
-  const handleGroupsChange = useCallback((color: string) => (values: string[]) => setEditing((prev) => ({
-    ...prev,
-    [color]: {
-      ...prev[color],
-      groups: values
-    }
-  })), [setEditing]);
+  const handleColorChange = useCallback((color: string, isHumanHair: boolean) => (value: string) => setEditing((prev) => {
+    const colorKey = getVendorColorKey(color, isHumanHair);
 
-  const handleAltTextChange = useCallback((color: string) => (value: string) => setEditing((prev) => ({
-    ...prev,
-    [color]: {
-      ...prev[color],
-      altText: value
-    }
-  })), [setEditing]);
+    return ({
+      ...prev,
+      [colorKey]: {
+        ...prev[colorKey],
+        color: value
+      }
+    })
+  }), [setEditing]);
 
-  const handleClearImage = useCallback((color: string) => () => {
-    onUpdateVendorColor(color, {
+  const handleisHumanHair = useCallback((color: string, isHumanHair: boolean) => (value: boolean) => setEditing((prev) => {
+    const colorKey = getVendorColorKey(color, isHumanHair);
+
+    return ({
+      ...prev,
+      [colorKey]: {
+        ...prev[colorKey],
+        isHumanHair: value
+      }
+    })
+  }), [setEditing]);
+
+  const handleGroupsChange = useCallback((color: string, isHumanHair: boolean) => (values: string[]) => setEditing((prev) => {
+    const colorKey = getVendorColorKey(color, isHumanHair);
+
+    return ({
+      ...prev,
+      [colorKey]: {
+        ...prev[colorKey],
+        groups: values
+      }
+    })
+  }), [setEditing]);
+
+  const handleAltTextChange = useCallback((color: string, isHumanHair: boolean) => (value: string) => setEditing((prev) => {
+    const colorKey = getVendorColorKey(color, isHumanHair);
+
+    return ({
+      ...prev,
+      [colorKey]: {
+        ...prev[colorKey],
+        altText: value
+      }
+    })
+  }), [setEditing]);
+
+  const handleClearImage = useCallback((color: string, isHumanHair: boolean) => () => {
+    onUpdateVendorColor(color, isHumanHair, {
       shopImageIds: {},
       imageSrc: ""
     });
@@ -905,38 +971,43 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     setEditing((prev) => ({...prev}));
   }, [onUpdateVendorColor]);
 
-  const onEdit = useCallback((vendorColor: VendorColor) => () => setEditing((prev) => ({...prev, [vendorColor.color]: {
+  const onEdit = useCallback((vendorColor: VendorColor) => () => setEditing((prev) => ({...prev, [getVendorColorKey(vendorColor.color, vendorColor.isHumanHair)]: {
     color: vendorColor.color,
     groups: vendorColor.groups,
-    altText: vendorColor.altText
+    altText: vendorColor.altText,
+    isHumanHair: vendorColor.isHumanHair
   }})), [setEditing]);
 
-  const onCancelEdit = useCallback((color: string) => () => {
-    if (editing[color]) {
-      delete editing[color];
+  const onCancelEdit = useCallback((color: string, isHumanHair: boolean) => () => {
+    const colorKey = getVendorColorKey(color, isHumanHair);
+
+    if (editing[colorKey]) {
+      delete editing[colorKey];
       setEditing((prev) => ({...prev}));
     }
   }, [editing, setEditing]);
 
-  const onSaveEdit = useCallback((color: string) => () => {
-    const editingVendorColor = editing[color];
+  const onSaveEdit = useCallback((color: string, isHumanHair: boolean) => () => {
+    const colorKey = getVendorColorKey(color, isHumanHair);
+    const editingVendorColor = editing[colorKey];
 
     if (editingVendorColor) {
-      onUpdateVendorColor(color, {
+      onUpdateVendorColor(color, isHumanHair, {
         color: editingVendorColor.color,
         groups: [...editingVendorColor.groups],
-        altText: editingVendorColor.altText
+        altText: editingVendorColor.altText,
+        isHumanHair: editingVendorColor.isHumanHair
       });
 
-      delete editing[color];
+      delete editing[colorKey];
       setEditing((prev) => ({...prev}));
     }
   }, [editing, setEditing, onUpdateVendorColor]);
 
   /* UPDATING VENDOR COLOR: IMAGE FUNCTIONALITY */
 
-  const handleUploadImage = useCallback(async (stagedTarget: any, color: string, altText: string) => {
-    const colorFile = colorFiles[color];
+  const handleUploadImage = useCallback(async (stagedTarget: any, color: string, isHumanHair: boolean, altText: string) => {
+    const colorFile = colorFiles[getVendorColorKey(color, isHumanHair)];
     
     if (!colorFile) {
       return;
@@ -963,38 +1034,43 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
       actionType: Action.UploadColorImage,
       resourceUrl,
       color,
-      altText
+      altText,
+      isHumanHair
     }, { method: "POST" });
   }, [colorFiles, submit]);
 
   useEffect(() => {
+    const colorKey = actionData && actionData.imageSrc && actionData.color ? getVendorColorKey(actionData.color, actionData.isHumanHair) : undefined;
+
     if (actionData?.stagedTarget) {
-      handleUploadImage(actionData.stagedTarget, actionData.color, actionData.altText);
+      handleUploadImage(actionData.stagedTarget, actionData.color, actionData.isHumanHair, actionData.altText);
     }
-    else if (actionData?.imageSrc && colorFiles[actionData.color]) {
-      onUpdateVendorColor(actionData.color, {
+    else if (colorKey && colorFiles[colorKey]) {
+      onUpdateVendorColor(actionData.color, actionData.isHumanHair, {
         imageSrc: actionData.imageSrc,
-        fileName: colorFiles[actionData.color].fileName,
+        fileName: colorFiles[colorKey].fileName,
         shopImageIds: {[actionData.shop]: actionData.imageId},
         altText: actionData.altText
       });
 
-      delete colorFiles[actionData.color];
+      delete colorFiles[colorKey];
       setColorFiles((prev) => ({...prev}));
     }
   }, [actionData]);
 
-  const handleDropZoneDrop = useCallback((color: string, altText: string | undefined) => async (_dropFiles: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
+  const handleDropZoneDrop = useCallback((color: string, isHumanHair: boolean, altText: string | undefined) => async (_dropFiles: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
     const acceptedFile = acceptedFiles[0];
-    const fileName = handleize(`${currentVendor.name}_${color}_swatch`);
+    const fileName = handleize(`${currentVendor.name}_${color}${isHumanHair ? '_hh' : ''}_swatch`);
+    const colorKey = getVendorColorKey(color, isHumanHair);
 
-    setColorFiles((prev) => ({...prev, [color]: { file: acceptedFile, fileName }}));
+    setColorFiles((prev) => ({...prev, [colorKey]: { file: acceptedFile, fileName }}));
 
     submit({
       actionType: Action.StageColorImage,
       color,
       altText: altText ?? "",
-      file: JSON.stringify({ filename: fileName, mimeType: acceptedFile.type, fileSize: acceptedFile.size.toString()})
+      file: JSON.stringify({ filename: fileName, mimeType: acceptedFile.type, fileSize: acceptedFile.size.toString()}),
+      isHumanHair
     }, { method: "POST" });
   }, [currentVendor.name, setColorFiles, submit]);
 
@@ -1003,16 +1079,18 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
 
     if (selectedVendorColors && Object.keys(selectedVendorColors).length) {
       return selectedVendorColors.map((vendorColor, index) => {
+        const colorKey = getVendorColorKey(vendorColor.color, vendorColor.isHumanHair);
+
         return (
           <IndexTable.Row
-            id={vendorColor.color}
-            key={vendorColor.color}
+            id={colorKey}
+            key={colorKey}
             position={index}
           >
             <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
               <Box width="60px">
-                <DropZone onDrop={handleDropZoneDrop(vendorColor.color, vendorColor.altText)} allowMultiple={false} accept="image/png, image/jpeg, .webp">
-                  {colorFiles[vendorColor.color] ? <Box paddingInline="500" paddingBlockStart="200"><Spinner accessibilityLabel="Loading Image" size="small" /></Box> : (
+                <DropZone onDrop={handleDropZoneDrop(vendorColor.color, vendorColor.isHumanHair, vendorColor.altText)} allowMultiple={false} accept="image/png, image/jpeg, .webp">
+                  {colorFiles[colorKey] ? <Box paddingInline="500" paddingBlockStart="200"><Spinner accessibilityLabel="Loading Image" size="small" /></Box> : (
                     vendorColor.imageSrc ? (
                       <Thumbnail
                         size="medium"
@@ -1024,14 +1102,14 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
                 </DropZone>
               </Box>
 
-              {vendorColor.imageSrc && editing[vendorColor.color] && (
+              {vendorColor.imageSrc && editing[colorKey] && (
                 <span style={{margin: "0 12px"}}>
                   <Button
                     accessibilityLabel="Clear Image"
                     variant="plain"
                     tone="critical"
                     textAlign="center"
-                    onClick={handleClearImage(vendorColor.color)}
+                    onClick={handleClearImage(vendorColor.color, vendorColor.isHumanHair)}
                     fullWidth
                   >
                     Clear
@@ -1041,36 +1119,47 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
             </td>
 
             <IndexTable.Cell>
-              {editing[vendorColor.color] ? (
-                <TextField
-                  label="Color"
-                  labelHidden
-                  value={editing[vendorColor.color].color}
-                  onChange={handleColorChange(vendorColor.color)}
-                  autoComplete="off"
-                />
+              {editing[colorKey] ? (
+                <Box>
+                  <TextField
+                    label="Color"
+                    labelHidden
+                    value={editing[colorKey].color}
+                    onChange={handleColorChange(vendorColor.color, vendorColor.isHumanHair)}
+                    autoComplete="off"
+                  />
+                  <Checkbox label="Human Hair?" checked={editing[colorKey].isHumanHair} onChange={handleisHumanHair(vendorColor.color, vendorColor.isHumanHair)} />
+                </Box>
               ) : (
-                <Text variant="bodyMd" fontWeight="bold" as="span">
-                  {vendorColor.color}
-                </Text>
+                <BlockStack>
+                  <Text variant="bodyMd" fontWeight="bold" as="span">
+                    {vendorColor.color}
+                  </Text>
+                  {vendorColor.isHumanHair && (
+                    <Box>
+                      <Text tone="subdued" as="p">Human Hair</Text>
+                    </Box>
+                  )}
+                </BlockStack>
               )}
             </IndexTable.Cell>
 
             <IndexTable.Cell>
               <MultiSelectGroups
-                selectedGroups={editing[vendorColor.color] ? editing[vendorColor.color].groups : vendorColor.groups}
-                onChangeSelectedGroups={handleGroupsChange(vendorColor.color)}
-                hideSelect={!editing[vendorColor.color]}
+                selectedGroups={editing[colorKey] ? editing[colorKey].groups : vendorColor.groups}
+                onChangeSelectedGroups={handleGroupsChange(vendorColor.color, vendorColor.isHumanHair)}
+                hideSelect={!editing[colorKey]}
+                labelHidden={true}
               />
             </IndexTable.Cell>
 
             <IndexTable.Cell>
-              {editing[vendorColor.color] ? (
+              {editing[colorKey] ? (
                 <TextField
                   label="Color"
                   labelHidden
-                  value={editing[vendorColor.color].altText}
-                  onChange={handleAltTextChange(vendorColor.color)}
+                  value={editing[colorKey].altText}
+                  onChange={handleAltTextChange(vendorColor.color, vendorColor.isHumanHair)}
                   maxLength={512}
                   autoComplete="off"
                   multiline
@@ -1084,17 +1173,17 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
 
             <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
               <InlineStack align="center">
-                <Button icon={DeleteIcon} accessibilityLabel="Delete Color Group" onClick={onDeleteVendorColor(vendorColor.color)} variant="primary" tone="critical" />
+                <Button icon={DeleteIcon} accessibilityLabel="Delete Color Group" onClick={onDeleteVendorColor(vendorColor.color, vendorColor.isHumanHair)} variant="primary" tone="critical" />
               </InlineStack>
             </td>
 
             <td className="Polaris-IndexTable__TableCell">
               <Box minWidth="120px">
               <InlineStack align="center">
-                {editing[vendorColor.color] ? (
+                {editing[colorKey] ? (
                   <InlineGrid gap="100" columns={2} alignItems="center">
-                    <Button icon={XIcon} accessibilityLabel="Cancel Color Group Edit" onClick={onCancelEdit(vendorColor.color)} /><Text as="span">Cancel</Text>
-                    <Button icon={CheckIcon} accessibilityLabel="Save Color Group Edit" onClick={onSaveEdit(vendorColor.color)} /><Text as="span">Save</Text>
+                    <Button icon={XIcon} accessibilityLabel="Cancel Color Group Edit" onClick={onCancelEdit(vendorColor.color, vendorColor.isHumanHair)} /><Text as="span">Cancel</Text>
+                    <Button icon={CheckIcon} accessibilityLabel="Save Color Group Edit" onClick={onSaveEdit(vendorColor.color, vendorColor.isHumanHair)} /><Text as="span">Save</Text>
                   </InlineGrid>
                 ) : (
                   <Button icon={EditIcon} accessibilityLabel="Edit Color Group" onClick={onEdit(vendorColor)} />

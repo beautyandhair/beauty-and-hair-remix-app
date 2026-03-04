@@ -39,14 +39,15 @@ model Vendor {
 }
 
 model VendorColor {
-  vendor        Vendor      @relation(fields: [vendorName], references: [name], onDelete: Cascade)
+  vendor        Vendor    @relation(fields: [vendorName], references: [name], onDelete: Cascade)
   vendorName    String      
   color         String
+  isHumanHair   Boolean   @default(false)
   groups        String[]
   imageSrc      String?
   shopImageIds  Json?
   altText       String?
   fileName      String?
 
-  @@id(name: "colorId", [vendorName, color])
+  @@id(name: "colorId", [vendorName, color, isHumanHair])
 }
