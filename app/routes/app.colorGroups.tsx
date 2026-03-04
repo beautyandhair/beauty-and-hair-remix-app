@@ -449,7 +449,7 @@ export default function ColorGroups() {
       }
     }
 
-    await sleep(1);
+    await sleep(1000);
     submit({
       actionType: Action.UpsertManyVendorColor,
       vendorColors: JSON.stringify(vendorColorsUpsert)
