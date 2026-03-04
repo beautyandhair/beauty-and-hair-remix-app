@@ -387,7 +387,7 @@ export default function ColorGroups() {
       }
     }
 
-    await sleep(100);
+    await sleep(1);
     submit({
       actionType: Action.UpsertVendorColor,
       vendorName: vendorName,
@@ -449,7 +449,7 @@ export default function ColorGroups() {
       }
     }
 
-    await sleep(1000);
+    await sleep(1);
     submit({
       actionType: Action.UpsertManyVendorColor,
       vendorColors: JSON.stringify(vendorColorsUpsert)
