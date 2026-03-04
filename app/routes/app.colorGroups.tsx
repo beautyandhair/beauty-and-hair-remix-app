@@ -449,11 +449,11 @@ export default function ColorGroups() {
       }
     }
 
-    await sleep(1000);
     submit({
       actionType: Action.UpsertManyVendorColor,
       vendorColors: JSON.stringify(vendorColorsUpsert)
     }, { method: "PUT" });
+    await sleep(1000);
 
     setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / prev.total) * 100 * vendorColorsUpsert.length))}));
 
@@ -543,7 +543,7 @@ export default function ColorGroups() {
 
   useEffect(() => {
     const validPendingVendorColorsBulk = pendingVendorColorsBulk.filter((vendorColor) => !vendorColor.upserted);
-    
+
     if (actionData?.images && validPendingVendorColorsBulk.length) {
       const imagesImported = JSON.parse(actionData.images);
       const vendorColorsUpsert = [];
@@ -586,7 +586,6 @@ export default function ColorGroups() {
   }[]) => {
     setPendingVendorColorsBulk((prev) => prev.concat(vendorColorsBulkPayload));
 
-    await sleep(10000);
     submit({
       actionType: Action.UploadColorImagesBulk,
       images: JSON.stringify(vendorColorsBulkPayload.map((vendorColor) => ({
@@ -598,7 +597,14 @@ export default function ColorGroups() {
         isHumanHair: vendorColor.data.isHumanHair === "true" ? true : false
       })))
     }, { method: "POST" });
+    await sleep(10000);
   }, [submit]);
+
+  /*
+  const handleFailedImport = useCallback(() => {
+    setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / prev.total) * 100))}));
+  }, [setLoadingImport]);
+  */
 
   const handleImportVendorColorsBulk = useCallback(async (vendorColorsImport: VendorColorType[]) => {
     const vendorColorsBulk: ({upserted: boolean, data: VendorColorType & {imageSrc: string, fileName: string}})[] = [];
@@ -627,25 +633,27 @@ export default function ColorGroups() {
         });
       }
 
-      if (vendorColorsUpsert.length === 10) {
-        onUpsertManyVendorColor([...vendorColorsUpsert]);
-
+      if (vendorColorsUpsert.length === 25) {
+        let manyVendorColorsUpsert = [...vendorColorsUpsert];
         vendorColorsUpsert.length = 0;
+
+        await onUpsertManyVendorColor(manyVendorColorsUpsert);
       }
 
       if (vendorColorsBulk.length === 10) {
-        submitPendingVendorColorsBulk([...vendorColorsBulk]);
-
+        let pendingVendorColorsBulk = [...vendorColorsBulk];
         vendorColorsBulk.length = 0;
+
+        await submitPendingVendorColorsBulk(pendingVendorColorsBulk);
       }
     }
 
     if (vendorColorsUpsert.length) {
-      onUpsertManyVendorColor(vendorColorsUpsert);
+      await onUpsertManyVendorColor(vendorColorsUpsert);
     }
 
     if (vendorColorsBulk.length) {
-      submitPendingVendorColorsBulk([...vendorColorsBulk]);
+      await submitPendingVendorColorsBulk([...vendorColorsBulk]);
     }
   }, [onUpsertManyVendorColor, submitPendingVendorColorsBulk]);
 
@@ -665,7 +673,7 @@ export default function ColorGroups() {
         let rows = content.split(/\r\n|\n/);
         let rowHeaders = rows[0].split(',');
         let vendorColors = [];
-        
+
         for (let i = 1; i < rows.length; i = i + 1) {
           let rowData = rows[i].split(',').reduce<{[key: string]: string}>(
             (rowObject, currentValue, currentIndex) => {
@@ -675,7 +683,9 @@ export default function ColorGroups() {
             }, {}
           );
 
-          vendorColors.push(rowData);
+          if (Object.keys(rowData).length > 1) {
+            vendorColors.push(rowData);
+          }
         }
 
         setLoadingImport({active: true, progress: 0, total: vendorColors.length});
