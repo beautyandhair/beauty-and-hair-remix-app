@@ -7,8 +7,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
    // Set CORS headers
   const headers = new Headers({
     "Access-Control-Allow-Origin": '*',
-    "Access-Control-Allow-Methods": 'GET, POST, OPTIONS, PUT',
-    "Access-Control-Allow-Headers": 'Content-Type, Authorization, Content-Type, Accept, Authorization, X-Requested-With, Application, ip',
+    "Access-Control-Allow-Methods": 'GET, HEAD, POST, OPTIONS, PUT, DELETE, OPTIONS',
+    "Access-Control-Allow-Headers": 'Content-Type, Authorization, Accept, Authorization, X-Requested-With, Application, Origin, ip',
     "Content-Type": "application/json"
   });
   

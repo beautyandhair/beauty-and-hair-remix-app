@@ -70,7 +70,7 @@ function App() {
 
       return obj;
     }, ({}))
-  , [vendorColors, shop]);
+  , [vendorColors, shop, isHumanHair]);
 
   const getSessionShop = useCallback(async () => {
     const res = await fetch(`api/getSessionShop`);

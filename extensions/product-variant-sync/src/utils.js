@@ -74,6 +74,7 @@ export async function getVariants(productId) {
           }
           product {
             vendor
+            title
           }
         }
       }
