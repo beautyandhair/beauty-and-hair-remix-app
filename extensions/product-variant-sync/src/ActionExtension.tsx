@@ -155,10 +155,7 @@ function App() {
 
     const res = await fetch(`api/updateVendorColorShopImageIds?vendorName=${variants[0].product.vendor}`, {
       method: "POST",
-      body: formData,
-      headers: {
-        "Content-Type": "application/json"
-      }
+      body: formData
     });
 
     if (!res.ok) {
