@@ -111,7 +111,7 @@ function App() {
 
       setVariants(variants);
       getVendorColors(variants[0].product.vendor);
-      setIsHumanHair(variants[0].product.tags?.includes("Hair Fiber_Human Hair"));
+      setIsHumanHair(variants[0].product.title?.includes("Human Hair") ?? false);
     }
   }, [productId, getVendorColors]);
 
@@ -285,7 +285,7 @@ function App() {
           </Button>
 
           <Paragraph>
-            Variant's with a missing image will be updated to default image set in Color Groups Table
+            Variant's with a missing image will be updated to default image set in Color Groups Table.
           </Paragraph>
           <Button onClick={onSyncMissingColorImages}>
             Assign Color Images
