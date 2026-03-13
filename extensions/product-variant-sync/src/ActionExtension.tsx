@@ -154,12 +154,9 @@ function App() {
     formData.append('shopImageIdUpdates', JSON.stringify(shopImageIdUpdates));
 
     const res = await fetch(`api/updateVendorColorShopImageIds?vendorName=${variants[0].product.vendor}`, {
-      method: "PUT",
+      method: "POST",
       body: formData,
       headers: {
-        "Access-Control-Allow-Origin": '*',
-        "Access-Control-Allow-Methods": 'GET, HEAD, POST, OPTIONS, PUT, DELETE, OPTIONS',
-        "Access-Control-Allow-Headers": 'Content-Type, Authorization, Accept, Authorization, X-Requested-With, Application, Origin',
         "Content-Type": "application/json"
       }
     });
