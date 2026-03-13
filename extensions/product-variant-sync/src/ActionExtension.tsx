@@ -22,7 +22,8 @@ export interface VendorColor {
   imageSrc?: string,
   shopImageIds?: {[key: string]: string},
   altText?: string,
-  fileName?: string
+  fileName?: string,
+  isHumanHair?: boolean
 }
 
 // The target used here must match the target used in the extension's toml file (./shopify.extension.toml)
@@ -41,6 +42,7 @@ function App() {
   const [variants, setVariants] = useState([]);
   const [vendorColors, setVendorColors] = useState<VendorColor[]>([]);
   const [syncWarning, setSyncWarning] = useState<boolean>(false);
+  const [isHumanHair, setIsHumanHair] = useState<boolean>(false);
 
   const colorGroups: {[key: string]: string[]} = useMemo(() => vendorColors.reduce((obj, vendorColor) => {
       obj[vendorColor.color] = vendorColor.groups;
@@ -54,14 +56,16 @@ function App() {
     imageId?: string,
     altText?: string,
     fileName?: string,
-    shopImageIds: {[key: string]: string}
-  }} = useMemo(() => vendorColors.reduce((obj, vendorColor) => {
+    shopImageIds: {[key: string]: string},
+    isHumanHair?: boolean
+  }} = useMemo(() => vendorColors.filter((vendorColor) => vendorColor.isHumanHair === isHumanHair).reduce((obj, vendorColor) => {
       obj[vendorColor.color] = {
         imageSrc: vendorColor.imageSrc,
         imageId: vendorColor.shopImageIds?.[shop],
         altText: vendorColor.altText,
         fileName: vendorColor.fileName,
-        shopImageIds: vendorColor.shopImageIds
+        shopImageIds: vendorColor.shopImageIds,
+        isHumanHair: vendorColor.isHumanHair
       };
 
       return obj;
@@ -107,6 +111,7 @@ function App() {
 
       setVariants(variants);
       getVendorColors(variants[0].product.vendor);
+      setIsHumanHair(variants[0].product.tags?.includes("Hair Fiber_Human Hair"));
     }
   }, [productId, getVendorColors]);
 
@@ -140,7 +145,7 @@ function App() {
 
         variantImageCategories.uploadNeeded = variantImageCategories.uploadNeeded.filter((imageUpload) => imageUpload.color != variantImage.color);
 
-        shopImageIdUpdates.push({color: variantImage.color, shopImageIds: {...variantImage.shopImageIds, [shop]: file.id}});
+        shopImageIdUpdates.push({color: variantImage.color, isHumanHair: variantImage.isHumanHair ?? isHumanHair, shopImageIds: {...variantImage.shopImageIds, [shop]: file.id}});
       }
     }
 
