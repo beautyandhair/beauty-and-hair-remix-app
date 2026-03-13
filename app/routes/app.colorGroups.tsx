@@ -907,7 +907,7 @@ function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: strin
           autoComplete="off"
           id="vendorColor"
         />
-        <Checkbox label="Human Hair?" checked={isHumanHair} onChange={(isChecked) => setIsHumanHair(isChecked)} />
+        <Checkbox label="Human Hair?" checked={isHumanHair} onChange={() => setIsHumanHair((prev) => !prev)} />
       </Box>
       <MultiSelectGroups selectedGroups={groups} onChangeSelectedGroups={onChangeSelectedGroups} hideSelect={false} />
       <InlineStack gap="400" blockAlign="center">
