@@ -6,8 +6,8 @@ import {
 import type { LoaderFunctionArgs } from "@remix-run/node";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const { cors } = await authenticate.admin(request);
 
-  /*
   // Handle OPTIONS method for CORS preflight
   if (request.method === 'OPTIONS') {
 
@@ -19,15 +19,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       "Content-Type": "application/json"
     });
     
-    return new Response('', {
+    const response = new Response('', {
       status: 204,
       headers: headers
     });
-  }
-  */
-  
-  const { cors } = await authenticate.admin(request);
 
+    return cors(response);
+  }
+  
   return cors(Response.json({success: true}));
 };
 
