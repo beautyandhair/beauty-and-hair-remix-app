@@ -285,7 +285,7 @@ function App() {
           </Button>
 
           <Paragraph>
-            Variant's with a missing image will be updated to default image set in Color Groups Table.
+            Variant's with a missing image will be updated to default image set in Color Groups Table
           </Paragraph>
           <Button onClick={onSyncMissingColorImages}>
             Assign Color Images
