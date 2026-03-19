@@ -221,7 +221,9 @@
                     {% assign variant_found = available_variants | find: 'id', variant_id %}
                     {% assign data_color_groups = variant_found.metafields.custom.color_group.value | join: ',' | append: ',' | append: data_color_groups %}
 
-                    {% render 'variant-swatch', image: variant_found.image, variant: variant_found, variant_divider: variant_divider %}
+                    {%- if variant_found -%}
+                        {% render 'variant-swatch', image: variant_found.image, variant: variant_found, variant_divider: variant_divider %}
+                    {%- endif -%}
                 {%- endunless -%}
             {% endfor %}
             {% endcapture %}
