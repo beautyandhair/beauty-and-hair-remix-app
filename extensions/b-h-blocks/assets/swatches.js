@@ -2,7 +2,7 @@ class VariantSwatchPicker extends HTMLElement {
   constructor() {
     super();
 
-    let variantSelect = document.querySelector(`variant-selects select`);
+    let variantSelect = document.querySelector(`variant-selects[data-url="${this.dataset.url}"] select`);
 
     variantSelect?.addEventListener("change", (event) => {
       this.querySelector(`input[name="swatch_color"][value="${event.target.value}"]`).checked = true;

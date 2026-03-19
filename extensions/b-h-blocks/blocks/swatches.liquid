@@ -155,6 +155,7 @@
     data-section-id="{{ section.id }}"
     data-default-picker="{{ block.settings.default_picker }}"
     data-group="all"
+    data-url="{{ product.url }}"
 >
     <ul class="swatch-picker__color-groups-list">
         <li>
@@ -270,6 +271,20 @@
     {% endunless %}
 
     {%- if clearance_group != blank -%}
+        {% liquid 
+            if shop.metafields.sitewide_sale.active.value
+                assign sale_handle = shop.metafields.sitewide_sale.title.value | handleize
+                assign sale = metaobjects.sitewide_sale[sale_handle]
+
+                if sale and sale.exclude_clearance.value == false
+                    assign clearance_sale_percentage = clearance_max_off | times: sale.percentage.value | divided_by: 100.00
+                    assign clearance_max_off = clearance_max_off | plus: sale.percentage.value | minus: clearance_sale_percentage
+                    assign clearance_min_price = clearance_min_price | times: sale.percentage.value
+                    assign clearance_max_price = clearance_max_price | times: sale.percentage.value
+                endif
+            endif
+        %}
+        
         {% capture clearance_price_range %}
             {%- if clearance_min_price != clearance_max_price -%}
                 {{ clearance_min_price | money }} - {{ clearance_max_price | money }}
@@ -277,6 +292,7 @@
                 {{ clearance_min_price | money }}
             {%- endif -%}
         {% endcapture %}
+
         <div class="swatch-picker__clearance-label" data-groups="{{ clearance_data_color_groups }}">
             <strong>{{ 'swatch-picker.clearance.message' | t: clearance_max_off: clearance_max_off }} <span class="swatch-picker__clearance-price">{{ clearance_price_range }}</span></strong> {{ 'swatch-picker.clearance.colorsBelow' | t }}
         </div>
