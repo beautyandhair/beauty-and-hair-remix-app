@@ -250,11 +250,10 @@ function ProductCard({product, i18n, adding, addToCartHandlerButton, showError, 
           </BlockStack>
 
           <Button
-              kind="primary"
+              kind="secondary"
               loading={adding}
               accessibilityLabel={`Add ${title} to cart`}
               onPress={addToCartHandlerButton}
-              appearance="monochrome"
           >
             {isAdded ? 'Remove' : "Add"}
           </Button>
