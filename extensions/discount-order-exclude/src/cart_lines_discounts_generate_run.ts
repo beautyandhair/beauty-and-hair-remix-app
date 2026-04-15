@@ -37,7 +37,7 @@ export function cartLinesDiscountsGenerateRun(
     if (line.merchandise.__typename == 'ProductVariant') {
       const variant = (line.merchandise);
 
-      return !variant.product.inAnyCollection || variant.product.hasAnyTag || isExcluded(variant.metafield?.value);
+      return !variant.product.inAnyCollection || variant.product.hasAnyTag || isExcluded(variant.metafield?.value) || !!line.sellingPlanAllocation?.sellingPlan?.id;
     } else {
       return true;
     }
