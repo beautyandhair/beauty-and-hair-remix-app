@@ -1,19 +1,7 @@
-import {useCallback, useEffect, useState, useMemo} from 'react';
-import {
-  reactExtension,
-  useApi,
-  AdminAction,
-  BlockStack,
-  Button,
-  Paragraph,
-  Banner,
-  ProgressIndicator,
-  InlineStack,
-  Text,
-  Badge,
-  Box
-} from '@shopify/ui-extensions-react/admin';
+import '@shopify/ui-extensions/preact';
+import {render} from "preact";
 
+import { useState, useEffect, useCallback, useMemo } from "preact/hooks";
 import { getVariants, updateVariantMetafields, updateVariantImages, uploadVendorColorImage } from "./utils";
 
 export interface VendorColor {
@@ -26,14 +14,14 @@ export interface VendorColor {
   isHumanHair?: boolean
 }
 
-// The target used here must match the target used in the extension's toml file (./shopify.extension.toml)
-const TARGET = 'admin.product-details.action.render';
+// 1. Export the extension
+export default async () => {
+  render(<Extension />, document.body);
+};
 
-export default reactExtension(TARGET, () => <App />);
-
-function App() {
+function Extension() {
   // The useApi hook provides access to several useful APIs like i18n and data.
-  const { data, close } = useApi(TARGET);
+  const { data, close } = shopify;
 
   const productId = data.selected[0].id;
   const [loading, setLoading] = useState(true);
@@ -258,69 +246,73 @@ function App() {
   }, [variants, colorImages, syncVariantColorImages]);
 
   return (
-    // The AdminAction component provides an API for setting the title and actions of the Action extension wrapper.
-    <AdminAction
-      primaryAction={
-        <Button onPress={close}>
+    // The s-admin-action component provides an API for setting the title and actions of the Action extension wrapper.
+    <s-admin-action
+      primary-action={
+        <s-button onClick={close}>
           Done
-        </Button>
+        </s-button>
       }
-      secondaryAction={
-        <Button onPress={close}>
+      secondary-action={
+        <s-button onClick={close}>
           Close
-        </Button>
+        </s-button>
       }
     >
       {loading ? (
-        <InlineStack inlineAlignment="center">
-          <ProgressIndicator size="large-300" />
-        </InlineStack>
+        <s-stack direction="inline" alignItems="center">
+          <s-spinner size="large-100" />
+        </s-stack>
       ) : (
-        <BlockStack blockAlignment="center" gap="base large">
-          <Paragraph>
+        <s-stack alignItems="start" gap="small-300">
+          <s-paragraph>
             Variant's color groups metafield will be updated to assigned groups in Color Groups Table
-          </Paragraph>
-          <Button onClick={onSyncColorGroups}>
+          </s-paragraph>
+          <s-button onClick={onSyncColorGroups}>
             Assign Color Groups
-          </Button>
+          </s-button>
 
-          <Paragraph>
+          <s-paragraph>
             Variant's with a missing image will be updated to default image set in Color Groups Table
-          </Paragraph>
-          <Button onClick={onSyncMissingColorImages}>
+          </s-paragraph>
+          <s-button onClick={onSyncMissingColorImages}>
             Assign Color Images
-          </Button>
+          </s-button>
 
-          <Box paddingBlockStart="large">
-            <Badge tone="warning" icon="AlertMinor">ATTENTION</Badge>
-          </Box>
+          <s-box paddingBlockStart="large">
+            <s-badge tone="warning" icon="alert-triangle">ATTENTION</s-badge>
+          </s-box>
 
-          <Paragraph>
-            Variant's image will be updated and/or <Text fontWeight="bold">OVERRIDDEN</Text> to default image set in Color Groups Table
-          </Paragraph>
-          <Button onClick={() => setSyncWarning(true)}>
+          <s-paragraph>
+            Variant's image will be updated and/or <s-text type="strong">OVERRIDDEN</s-text> to default image set in Color Groups Table
+          </s-paragraph>
+          <s-button onClick={() => setSyncWarning(true)}>
             Assign Color Images
-          </Button>
+          </s-button>
           
           {syncWarning && (
-            <Banner
-              title="Confirm Action"
+            <s-banner
+              heading="Confirm Action"
               tone="warning"
-              primaryAction={<Button onClick={() => setSyncWarning(false)}>Cancel</Button>}
-              secondaryAction={<Button onClick={onSyncAllColorImages}>Confirm</Button>}
             >
-              Are you sure you want to override variant images?
-            </Banner>
+              <s-stack gap="small-300">
+                Are you sure you want to override variant images?
+                <s-stack direction="inline" gap="small-300">
+                  <s-button onClick={() => setSyncWarning(false)}>Cancel</s-button>
+                  <s-button onClick={onSyncAllColorImages}>Confirm</s-button>
+                </s-stack>
+              </s-stack>
+            </s-banner>
           )}
-        </BlockStack>
+        </s-stack>
       )}
       {syncLoadingMessage && (
-        <BlockStack inlineAlignment="center" blockAlignment="center">
-          <ProgressIndicator size="large-300" />
-          <Text>{syncLoadingMessage}</Text>
-        </BlockStack>
+        <s-stack alignItems="center" justifyContent="center">
+          <s-spinner size="large-100" />
+          <s-text>{syncLoadingMessage}</s-text>
+        </s-stack>
       )
       }
-    </AdminAction>
+    </s-admin-action>
   );
 }

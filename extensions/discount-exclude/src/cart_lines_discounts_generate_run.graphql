@@ -1,4 +1,4 @@
-query RunInput($productTags: [String!]!, $collections: [ID!]!) {
+query CartInput($productTags: [String!]!, $collections: [ID!]!) {
   cart {
     lines {
       id
@@ -17,7 +17,8 @@ query RunInput($productTags: [String!]!, $collections: [ID!]!) {
       }
     }
   }
-  discountNode {
+  discount {
+    discountClasses
     metafield(namespace: "$app:discount-exclude", key: "function-configuration") {
       value
     }

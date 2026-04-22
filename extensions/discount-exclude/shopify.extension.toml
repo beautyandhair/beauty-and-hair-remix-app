@@ -1,17 +1,16 @@
-api_version = "2025-04"
+api_version = "2026-04"
 
 [[extensions]]
 name = "t:name"
 handle = "discount-exclude"
-uid = "727f6f3e-5df3-84cb-727c-12235f3763670d256070"
 type = "function"
-
+uid = "727f6f3e-5df3-84cb-727c-12235f3763670d256070"
 description = "t:description"
 
   [[extensions.targeting]]
-  target = "purchase.product-discount.run"
-  input_query = "src/run.graphql"
-  export = "run"
+  target = "cart.lines.discounts.generate.run"
+  input_query = "src/cart_lines_discounts_generate_run.graphql"
+  export = "cart-lines-discounts-generate-run"
 
   [extensions.build]
   command = ""

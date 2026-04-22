@@ -1,54 +1,35 @@
-import {useEffect, useState} from "react";
-import {
-  reactExtension,
-  Divider,
-  Image,
-  Banner,
-  Heading,
-  Button,
-  InlineLayout,
-  BlockStack,
-  Text,
-  SkeletonText,
-  SkeletonImage,
-  Link,
-  Modal,
-  TextBlock,
-  Icon,
-  InlineStack,
-  useCartLines,
-  useApplyCartLinesChange,
-  useApi,
-  List,
-  ListItem,
-  useShippingAddress
-} from "@shopify/ui-extensions-react/checkout";
+import '@shopify/ui-extensions/preact';
+import {render} from "preact";
+
+import { useState, useEffect } from "preact/hooks";
 
 import type {
   Market
 } from '@shopify/ui-extensions/checkout';
 
-// 1. Choose an extension target
-export default reactExtension("purchase.checkout.block.render", () => (
-  <Extension />
-));
+// 1. Export the extension
+export default async () => {
+  render(<Extension />, document.body)
+};
 
 function Extension() {
-  const {query, i18n} = useApi();
-  const applyCartLinesChange = useApplyCartLinesChange();
+  const { query, i18n, applyCartLinesChange, localization } = shopify;
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [showError, setShowError] = useState(false);
-  const lines = useCartLines();
   const [isAdded, setIsAdded] = useState(false);
 
-  const { localization } = useApi();
-  const [market, setMarket] = useState<Market>(localization.market.current);
-  const address = useShippingAddress();
+  const [market, setMarket] = useState<Market>(localization.market.value);
+  const [shippingAddress, setShippingAddress] = useState(shopify.shippingAddress.value);
+  const [lines, setLines] = useState(shopify.lines.value);
 
   useEffect(() => {
     localization.market.subscribe(setMarket);
+    shopify.shippingAddress.subscribe(setShippingAddress);
+    shopify.lines.subscribe(setLines);
+
     fetchProducts();
   }, []);
 
@@ -68,12 +49,12 @@ function Extension() {
   }, [products, lines]);
 
   useEffect(() => {
-    if ((market.handle !== 'us' || address.countryCode !== 'US') && isAdded) {
+    if ((market.handle !== 'us' || shippingAddress?.countryCode !== 'US') && isAdded) {
       const variantId = products[0]?.variants.nodes[0]?.id;
       handleRemoveFromCart(variantId);
       setIsAdded(false);
     }
-  }, [market.handle, address.countryCode]);
+  }, [market.handle, shippingAddress?.countryCode]);
 
   async function handleAddToCart(variantId) {
     setAdding(true);
@@ -176,21 +157,13 @@ function Extension() {
     }
   }
 
-  if (loading) {
-    return <LoadingSkeleton/>;
-  }
-
-  if (!loading && products.length === 0) {
+  if (loading || (!loading && products.length === 0)) {
     return null;
   }
 
   const productsOnOffer = getProductsOnOffer(products);
 
-  if (!productsOnOffer.length) {
-    return null;
-  }
-
-  if (market.handle !== 'us' || address.countryCode !== 'US') {
+  if (!productsOnOffer.length || market.handle !== 'us' || shippingAddress?.countryCode !== 'US') {
     return null;
   }
 
@@ -206,33 +179,6 @@ function Extension() {
   );
 }
 
-
-function LoadingSkeleton() {
-  return (
-    <BlockStack spacing='loose'>
-      <Divider/>
-      <Heading level={2}>Protect Your Package</Heading>
-
-      <BlockStack spacing='loose'>
-        <InlineLayout
-          spacing='base'
-          columns={[64, 'fill', 'auto']}
-          blockAlignment='center'
-        >
-          <SkeletonImage aspectRatio={1}/>
-          <BlockStack spacing='none'>
-            <SkeletonText inlineSize='large'/>
-            <SkeletonText inlineSize='small'/>
-          </BlockStack>
-          <Button kind='secondary' disabled={true}>
-            Add
-          </Button>
-        </InlineLayout>
-      </BlockStack>
-    </BlockStack>
-  );
-}
-
 function getProductsOnOffer(products) {
 return products;
 }
@@ -245,136 +191,135 @@ function ProductOffer({product, i18n, adding, addToCartHandlerButton, showError,
     'https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-image_medium.png?format=webp&v=1530129081';
 
   return (
-    <BlockStack spacing='base'>
-      <BlockStack spacing='loose' border='base' borderRadius='base' padding='base'>
-        <InlineLayout
-          spacing='base'
-          columns={[64, 'fill', 'auto']}
-          blockAlignment='center'
+    <s-stack gap='base'>
+      <s-stack gap="small-300" border='base' borderRadius='base' padding='base'>
+        <s-grid
+          gap='base'
+          gridTemplateColumns="64px 1fr auto"
+          alignItems='center'
         >
-          <Image
+          <s-image
             border='base'
             borderWidth='base'
-            borderRadius='loose'
-            source={imageUrl}
-            aspectRatio={1}
-            cornerRadius="base"
+            borderRadius="base"
+            src={imageUrl}
+            aspectRatio="1/1"
           />
 
-          <BlockStack spacing='none'>
-            <InlineStack spacing="tight">
-              <Heading level={2}>
+          <s-stack gap="none">
+            <s-stack direction="inline" gap="base" alignItems="center">
+              <s-heading>
                 {title}
-              </Heading>
+              </s-heading>
 
-              <Link
-                overlay={
-                  <Modal
-                    id="shipping-protection-modal"
-                    padding
-                    title="Wigs.com Shipping Protection"
-                  >
-                    <BlockStack spacing="loose">
-                      <TextBlock>
-                        Guarantee your packages in the US by protecting them against loss, theft, or damage.
-                      </TextBlock>
-                      <Image
-                        accessibilityDescription="Shipping Protection"
-                        fit="contain"
-                        source="https://cdn.shopify.com/s/files/1/1410/9094/files/shipping-protection-banner.jpg?v=1716401270"/>
-                      <Heading level={3}>Enhanced Protection from Life's Challenges</Heading>
-                      <InlineLayout
-                        columns={['30%', 'fill']}
-                        spacing="loose"
-                        blockAlignment="center"
-                      >
-                        <Image
-                          source="https://cdn.shopify.com/s/files/1/1410/9094/files/Shipping_Protection_green.png?v=1717785024"/>
-                        <List>
-                          <ListItem>
-                            <Text emphasis="bold"> Lost in transit</Text>
-                          </ListItem>
-                          <ListItem>
-                            <Text emphasis="bold"> Stolen from doorstep</Text>
-                          </ListItem>
-                          <ListItem>
-                            <Text emphasis="bold"> Damaged packages</Text>
-                          </ListItem>
-                        </List>
-                      </InlineLayout>
+              <s-link commandFor="shipping-protection-modal">
+                <s-icon type="info"/>
+              </s-link>
 
-                      <Heading level={3}>What is Shipping Protection</Heading>
-                      <TextBlock>
-                        We want you to receive your piece in perfect condition, but sometimes things happen
-                        to packages while in transit that can't be controlled. If you’re a customer in the
-                        contiguous United States, you can add this layer of protection to make sure your
-                        package is covered if it happens to get lost, stolen, or damaged. To help mitigate
-                        these shipping issues, we provide enhanced protection to your order for a small fee
-                        at the time of checkout. This fee covers the following shipping issues:
-                      </TextBlock>
-                      <List>
-                        <ListItem>
-                          <TextBlock>
-                              <Text emphasis="bold"> LOST:</Text>
-                              <Text>
-                                Packages presumed to be lost by the carrier where the status is not
-                                'delivered'. Claims can be filed between 7 and 30 days from the date the
-                                order was shipped.
-                              </Text>
-                          </TextBlock>
-                        </ListItem>
-                        <ListItem>
-                          <TextBlock>
-                              <Text emphasis="bold"> STOLEN:</Text>
-                              <Text>
-                                Packages marked 'delivered' yet not received are considered stolen.
-                                Claims can be filed between 5 and 15 days after the 'delivery
-                                date'.
-                              </Text>
-                          </TextBlock>
-                        </ListItem>
-                        <ListItem>
-                          <TextBlock>
-                            <Text emphasis="bold"> DAMAGED:</Text>
-                            <Text>
-                              A purchased product that is unusable due to damage incurred during
-                              shipping is considered damaged. Claims can be filed within 15 days of
-                              the delivery date.
-                            </Text>
-                          </TextBlock>
-                        </ListItem>
-                      </List>
-                    </BlockStack>
-                  </Modal>
-                }
+              <s-modal
+                id="shipping-protection-modal"
+                heading="Wigs.com Shipping Protection"
               >
-                <Icon source="info"/>
-              </Link>
-            </InlineStack>
-              
-            <Text appearance='accent'>{renderPrice}</Text>
-          </BlockStack>
+                <s-stack gap="base">
+                  <s-paragraph>
+                    Guarantee your packages in the US by protecting them against loss, theft, or damage.
+                  </s-paragraph>
+                  <s-image
+                    alt="Shipping Protection"
+                    objectFit="contain"
+                    inlineSize="auto"
+                    src="https://cdn.shopify.com/s/files/1/1410/9094/files/shipping-protection-banner.jpg?v=1716401270"/>
+                  <s-heading>Enhanced Protection from Life's Challenges</s-heading>
+                  <s-stack
+                    direction="inline"
+                    gap="base"
+                    alignItems="center"
+                  >
+                    <s-box maxInlineSize="84px">
+                      <s-image src="https://cdn.shopify.com/s/files/1/1410/9094/files/Shipping_Protection_green.png?v=1717785024" inlineSize="auto"/>
+                    </s-box>
+                    <s-unordered-list>
+                      <s-list-item>
+                        <s-text type="strong"> Lost in transit</s-text>
+                      </s-list-item>
+                      <s-list-item>
+                        <s-text type="strong"> Stolen from doorstep</s-text>
+                      </s-list-item>
+                      <s-list-item>
+                        <s-text type="strong"> Damaged packages</s-text>
+                      </s-list-item>
+                    </s-unordered-list>
+                  </s-stack>
 
-          <Button
-              kind='secondary'
+                  <s-heading>What is Shipping Protection</s-heading>
+                  <s-paragraph>
+                    We want you to receive your piece in perfect condition, but sometimes things happen
+                    to packages while in transit that can't be controlled. If you’re a customer in the
+                    contiguous United States, you can add this layer of protection to make sure your
+                    package is covered if it happens to get lost, stolen, or damaged. To help mitigate
+                    these shipping issues, we provide enhanced protection to your order for a small fee
+                    at the time of checkout. This fee covers the following shipping issues:
+                  </s-paragraph>
+
+                  <s-unordered-list>
+                    <s-list-item>
+                      <s-paragraph>
+                          <s-text type="strong"> LOST:</s-text>
+                          <s-text>
+                            Packages presumed to be lost by the carrier where the status is not
+                            'delivered'. Claims can be filed between 7 and 30 days from the date the
+                            order was shipped.
+                          </s-text>
+                      </s-paragraph>
+                    </s-list-item>
+                    <s-list-item>
+                      <s-paragraph>
+                          <s-text type="strong"> STOLEN:</s-text>
+                          <s-text>
+                            Packages marked 'delivered' yet not received are considered stolen.
+                            Claims can be filed between 5 and 15 days after the 'delivery
+                            date'.
+                          </s-text>
+                      </s-paragraph>
+                    </s-list-item>
+                    <s-list-item>
+                      <s-paragraph>
+                        <s-text type="strong"> DAMAGED:</s-text>
+                        <s-text>
+                          A purchased product that is unusable due to damage incurred during
+                          shipping is considered damaged. Claims can be filed within 15 days of
+                          the delivery date.
+                        </s-text>
+                      </s-paragraph>
+                    </s-list-item>
+                  </s-unordered-list>
+                </s-stack>
+              </s-modal>
+            </s-stack>
+              
+            <s-text tone="custom">{renderPrice}</s-text>
+          </s-stack>
+
+          <s-button
+              variant='secondary'
               loading={adding}
               accessibilityLabel={`Add ${title} to cart`}
-              onPress={() => addToCartHandlerButton(variants.nodes[0].id)}
+              onClick={() => addToCartHandlerButton(variants.nodes[0].id)}
           >
             {isAdded ? 'Remove' : "Add"}
-          </Button>
-        </InlineLayout>
-      </BlockStack>
+          </s-button>
+        </s-grid>
+      </s-stack>
 
       {showError && <ErrorBanner/>}
-    </BlockStack>
+    </s-stack>
   );
 }
 
 function ErrorBanner() {
   return (
-    <Banner status='critical'>
+    <s-banner tone='critical'>
       There was an issue adding this product. Please try again.
-    </Banner>
+    </s-banner>
   );
 }

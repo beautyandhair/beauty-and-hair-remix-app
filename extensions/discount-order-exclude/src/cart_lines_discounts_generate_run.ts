@@ -1,6 +1,7 @@
 import type {
   CartInput,
-  CartLinesDiscountsGenerateRunResult} from '../generated/api';
+  CartLinesDiscountsGenerateRunResult
+} from '../generated/api';
 import {
   DiscountClass,
   OrderDiscountSelectionStrategy

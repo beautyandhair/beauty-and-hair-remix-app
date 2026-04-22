@@ -1,51 +1,36 @@
-import {useEffect, useState} from "react";
-import {
-  reactExtension,
-  Divider,
-  Image,
-  Banner,
-  Heading,
-  Button,
-  InlineLayout,
-  BlockStack,
-  Text,
-  SkeletonText,
-  SkeletonImage,
-  InlineStack,
-  useCartLines,
-  useApplyCartLinesChange,
-  useApi,
-  useSettings,
-  useLocalizationCountry,
-  useCustomer
-} from "@shopify/ui-extensions-react/checkout";
+import '@shopify/ui-extensions/preact';
+import {render} from "preact";
 
-// 1. Choose an extension target
-export default reactExtension("purchase.checkout.block.render", () => (
-  <Extension />
-));
+import { useState, useEffect, useMemo } from "preact/hooks";
+
+// 1. Export the extension
+export default async () => {
+  render(<Extension />, document.body)
+};
 
 function Extension() {
-  const {query, i18n} = useApi();
-
-  const customer = useCustomer();
-  const country = useLocalizationCountry();
-  const applyCartLinesChange = useApplyCartLinesChange();
+  const { query, i18n, applyCartLinesChange, localization, buyerIdentity } = shopify;
 
   const [product, setProduct] = useState<{title: string, description: string, imageSrc: string, price: number}>();
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [showError, setShowError] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
+  const [country, setCountry] = useState(localization.country.value);
+  const [lines, setLines] = useState(shopify.lines.value);
 
-  const lines = useCartLines();
+  const [settings, setSettings] = useState(shopify.settings.value);
   const {
     product_gid,
     product_title
-  } = useSettings();
+  } = useMemo(() => settings, [settings]);
 
   useEffect(() => {
     fetchProduct();
+
+    localization.country.subscribe(setCountry);
+    shopify.lines.subscribe(setLines);
+    shopify.settings.subscribe(setSettings);
   }, []);
 
   useEffect(() => {
@@ -156,12 +141,14 @@ function Extension() {
         }`
       );
 
-      setProduct({
-        title: data.products.nodes[0].title,
-        description: data.products.nodes[0].description,
-        imageSrc: data.products.nodes[0].images.nodes[0].url,
-        price: data.products.nodes[0].variants.nodes[0].price.amount
-      });
+      if (data.products.nodes[0]) {
+        setProduct({
+          title: data.products.nodes[0].title,
+          description: data.products.nodes[0].description,
+          imageSrc: data.products.nodes[0].images.nodes[0].url,
+          price: data.products.nodes[0].variants.nodes[0].price.amount
+        });
+      }
     } catch (error) {
       console.error(error, 'Error fetching product');
     } finally {
@@ -169,11 +156,7 @@ function Extension() {
     }
   }
 
-  if (loading) {
-    return <LoadingSkeleton/>;
-  }
-
-  if ((!loading && !product) || !customer) {
+  if ((!loading && !product) || !buyerIdentity || loading) {
     return null;
   }
 
@@ -189,86 +172,57 @@ function Extension() {
   );
 }
 
-function LoadingSkeleton() {
-  return (
-    <BlockStack spacing='loose'>
-      <Divider/>
-      <Heading level={2}>Protect Your Package</Heading>
-
-      <BlockStack spacing='loose'>
-        <InlineLayout
-          spacing='base'
-          columns={[64, 'fill', 'auto']}
-          blockAlignment='center'
-        >
-          <SkeletonImage aspectRatio={1}/>
-          <BlockStack spacing='none'>
-            <SkeletonText inlineSize='large'/>
-            <SkeletonText inlineSize='small'/>
-          </BlockStack>
-          <Button kind='secondary' disabled={true}>
-            Add
-          </Button>
-        </InlineLayout>
-      </BlockStack>
-    </BlockStack>
-  );
-}
-
 function ProductCard({product, i18n, adding, addToCartHandlerButton, showError, isAdded}) {
   const { imageSrc, description, title, price} = product;
   const renderPrice = i18n.formatCurrency(price);
 
   return (
-    <BlockStack spacing='base'>
-      <BlockStack spacing='loose' border="base" padding="base" borderRadius="base">
-        <InlineLayout
-          spacing='base'
-          columns={[64, 'fill', 'auto']}
-          blockAlignment='center'
+    <s-stack gap="small-300" border="base" padding="base" borderRadius="base">
+      <s-grid
+        gap="base"
+        gridTemplateColumns="64px 1fr auto"
+        alignItems='center'
+      >
+        <s-image
+          borderRadius="base"
+          src={imageSrc}
+          aspectRatio="1/1"
+          inlineSize="auto"
+        />
+
+        <s-stack gap='none'>
+          <s-stack direction="inline" gap="small-300">
+            <s-heading>
+              {title}
+            </s-heading>
+          </s-stack>
+
+          <s-text>
+            {description}
+          </s-text>
+            
+          <s-text tone="custom">{renderPrice}</s-text>
+        </s-stack>
+
+        <s-button
+            variant="secondary"
+            loading={adding}
+            accessibilityLabel={`Add ${title} to cart`}
+            onClick={addToCartHandlerButton}
         >
-          <Image
-            borderWidth='base'
-            borderRadius='loose'
-            source={imageSrc}
-            aspectRatio={1}
-            cornerRadius="base"
-          />
-
-          <BlockStack spacing='none'>
-            <InlineStack spacing="tight">
-              <Heading level={2}>
-                {title}
-              </Heading>
-            </InlineStack>
-
-            <Text>
-              {description}
-            </Text>
-              
-            <Text appearance="decorative">{renderPrice}</Text>
-          </BlockStack>
-
-          <Button
-              kind="secondary"
-              loading={adding}
-              accessibilityLabel={`Add ${title} to cart`}
-              onPress={addToCartHandlerButton}
-          >
-            {isAdded ? 'Remove' : "Add"}
-          </Button>
-        </InlineLayout>
-      </BlockStack>
+          {isAdded ? 'Remove' : "Add"}
+        </s-button>
+      </s-grid>
 
       {showError && <ErrorBanner/>}
-    </BlockStack>
+    </s-stack>
   );
 }
 
 function ErrorBanner() {
   return (
-    <Banner status='critical'>
+    <s-banner tone='critical'>
       There was an issue adding this product. Please try again.
-    </Banner>
+    </s-banner>
   );
 }

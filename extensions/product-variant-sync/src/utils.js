@@ -1,7 +1,7 @@
 export async function updateVariantMetafields(productGid, updatedVariants) {
   return await makeGraphQLQuery(
-    `mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-      productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+    `mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!, $allowPartialUpdates: Boolean) {
+      productVariantsBulkUpdate(productId: $productId, variants: $variants, allowPartialUpdates: $allowPartialUpdates) {
         product {
           id
         }
@@ -25,7 +25,8 @@ export async function updateVariantMetafields(productGid, updatedVariants) {
     }`,
     {
       "productId": productGid,
-      "variants": updatedVariants
+      "variants": updatedVariants,
+      "allowPartialUpdates": true
     }
   );
 }

@@ -1,28 +1,7 @@
-import {useEffect, useMemo, useState, useCallback} from 'react';
-import {
-  reactExtension,
-  Banner,
-  BlockStack,
-  Checkbox,
-  Text,
-  useApplyCartLinesChange,
-  Icon,
-  Image,
-  InlineStack,
-  Popover,
-  Pressable,
-  TextBlock,
-  InlineLayout,
-  useCartLines,
-  useSettings,
-  View,
-  useApi,
-  useShippingAddress
-} from "@shopify/ui-extensions-react/checkout";
+import '@shopify/ui-extensions/preact';
+import {render} from "preact";
 
-import type {
-  Market
-} from '@shopify/ui-extensions/checkout';
+import { useState, useEffect, useMemo, useCallback } from "preact/hooks";
 
 const STAND_UP_TO_CANCER_TITLE = "Donation to Stand Up To Cancer";
 const BREAST_CANCER_TITLE = "Donation to Breastcancer.org";
@@ -36,19 +15,21 @@ const parseDate = (str) => {
   return new Date(year, month - 1, day);
 };
 
-// 1. Choose an extension target
-export default reactExtension("purchase.checkout.block.render", () => (
-  <Extension />
-));
+// 1. Export the extension
+export default async () => {
+  render(<Extension />, document.body)
+};
 
 function Extension() {
   const donationProducts = [STAND_UP_TO_CANCER_TITLE, BREAST_CANCER_TITLE];
   const currentDate = new Date();
 
-  const applyCartLinesChange = useApplyCartLinesChange();
+  const { applyCartLinesChange, localization } = shopify;
+
   const [isLoading, setIsLoading] = useState(false);
   const [slide, setSlide] = useState(0);
-  const lines = useCartLines();
+
+  const [settings, setSettings] = useState(shopify.settings.value);
   const {
     donation_order,
     donation_scheduled_order,
@@ -60,11 +41,13 @@ function Extension() {
     donation_bc_gid,
     donation_ebeauty_active,
     donation_ebeauty_gid
-  } = useSettings();
+  } = useMemo(() => settings, [settings]);
 
-  const { localization } = useApi();
-  const [market, setMarket] = useState<Market>(localization.market.current);
-  const address = useShippingAddress();
+  const [lines, setLines] = useState(shopify.lines.value);
+
+  const [shippingAddress, setShippingAddress] = useState(shopify.shippingAddress.value);
+
+  const [market, setMarket] = useState(localization.market.value);
 
   const donationOrder = useMemo(() => {
     const startDateValid = donation_scheduled_start_date ? parseDate(donation_scheduled_start_date) <= currentDate : true;
@@ -109,7 +92,7 @@ function Extension() {
     return donationOrder.indexOf(a.acronym) - donationOrder.indexOf(b.acronym);
   });
 
-  const removeDonations = useCallback(async (donationsRemoveFromCart: typeof donations) => {
+  const removeDonations = useCallback(async (donationsRemoveFromCart) => {
     const removeDonationTitles = donationsRemoveFromCart.map((donation) => donation.title);
     const donationLines = lines.filter((line) => 
       donationProducts.includes(line.merchandise.title) && removeDonationTitles.includes(line.merchandise.title)
@@ -149,15 +132,18 @@ function Extension() {
   }, [donations[0].showError, donations[1].showError]);
 
   useEffect(() => {
-    if (market.handle !== 'us' || address.countryCode !== 'US') {
+    if (market.handle !== 'us' || shippingAddress?.countryCode !== 'US') {
       removeDonations(donations);
     }
-  }, [market.handle, address.countryCode]);
+  }, [market.handle, shippingAddress?.countryCode]);
 
   useEffect(() => {
+    shopify.settings.subscribe(setSettings);
+    shopify.lines.subscribe(setLines);
+    shopify.shippingAddress.subscribe(setShippingAddress);
     localization.market.subscribe(setMarket);
 
-    if (market.handle !== 'us' || address.countryCode !== 'US') {
+    if (market.handle !== 'us' || shippingAddress?.countryCode !== 'US') {
       return;
     }
 
@@ -234,7 +220,7 @@ function Extension() {
 
     if (donation.isChecked) {
       handleRemoveFromCart(donation);
-    } else if (address.countryCode === "US") {
+    } else if (shippingAddress?.countryCode === "US") {
       handleAddToCart(donation);
     }
     else {
@@ -245,12 +231,12 @@ function Extension() {
     setDonations((prev) => ([...prev]));
   }
 
-  if (market.handle !== 'us' || address.countryCode !== 'US') {
+  if (market.handle !== 'us' || shippingAddress?.countryCode !== 'US') {
     return null;
   }
 
   return (
-    <BlockStack spacing="tight">
+    <s-stack gap="small-300">
       {activeDonations.map((donation, index) =>
         <DonationCheckbox
           key={donation.title}
@@ -261,20 +247,21 @@ function Extension() {
           currentSlide={slide}
         />
       )}
-
+      
       {ENABLE_CAROUSEL && (
-        <InlineLayout columns={['auto', 'auto']} inlineAlignment="center" spacing="tight" display={activeDonations.length > 1 ? 'auto' : 'none'}>
-          <Pressable maxBlockSize={32} maxInlineSize={32} border="base" cornerRadius="base" padding="extraTight" blockAlignment="center" disabled={slide === 0} onPress={() => setSlide((prev) => prev - 1)}>
-            <Icon source="chevronLeft" appearance="accent" />
-          </Pressable>
-          <Pressable maxBlockSize={32} maxInlineSize={32} border="base" cornerRadius="base" padding="extraTight" blockAlignment="center" disabled={slide === activeDonations.length - 1} onPress={() => setSlide((prev) => prev + 1)}>
-            <Icon source="chevronRight" appearance="accent" />
-          </Pressable>
-        </InlineLayout>
+        <s-grid gridTemplateColumns="auto auto" alignItems="center" gap="small-300" display={activeDonations.length > 1 ? 'auto' : 'none'}>
+          <s-clickable maxBlockSize="32px" maxInlineSize="32px" border="base" borderRadius="base" padding="small-300" disabled={slide === 0} onClick={() => setSlide((prev) => prev - 1)}>
+            <s-icon type="chevron-left" tone="neutral" />
+          </s-clickable>
+          <s-clickable maxBlockSize="32px" maxInlineSize="32px" border="base" borderRadius="base" padding="small-300" disabled={slide === activeDonations.length - 1} onClick={() => setSlide((prev) => prev + 1)}>
+            <s-icon type="chevron-right" tone="neutral" />
+          </s-clickable>
+        </s-grid>
       )}
-    </ BlockStack>
+    </ s-stack>
   );
 }
+
 
 function DonationCheckbox({toggleCheckbox, donation, isLoading, index, currentSlide}) {
   if (!donation || !donation.active) {
@@ -304,65 +291,68 @@ function DonationCheckbox({toggleCheckbox, donation, isLoading, index, currentSl
   }
 
   return (
-    <BlockStack spacing="base" border="base" cornerRadius="base" padding="base" display={ENABLE_CAROUSEL && currentSlide != index ? 'none' : 'auto'}>
-      <InlineStack
+    <s-stack gap="base" border="base" borderRadius="base" padding="base" display={ENABLE_CAROUSEL && currentSlide != index ? 'none' : 'auto'}>
+      <s-stack
+        direction="inline"
         padding="none"
-        inlineAlignment="start"
-        maxBlockSize={50}
+        alignItems="center"
+        maxBlockSize="50px"
+        gap="base"
       >
-        <Image
-          accessibilityDescription="donation-logo"
-          source={donationLogoSmall}
-          fit="cover"
-        />
+        <s-box maxBlockSize="80px">
+          <s-image
+            src={donationLogoSmall}
+            objectFit="contain"
+            alt="Donation Logo"
+            inlineSize="auto"
+          />
+        </s-box>
 
-        <InlineStack spacing="tight" inlineAlignment="start">
-          <Pressable
-            overlay={
-              <Popover
-                position="blockEnd"
-                alignment="center"
-              >
-                <View
-                  maxInlineSize={450}
-                  padding="base"
-                >
-                  <Image
-                    accessibilityDescription="Donation Logo"
-                    source={donationLogo}/>
-                  <TextBlock>
-                    {donationInfo}
-                  </TextBlock>
-                </View>
-              </Popover>
-            }
+        <s-stack direction="inline" gap="small-300" alignItems="start">
+          <s-clickable commandFor={`donation-popover-${index}`}>
+            <s-icon type="info" tone="custom"  />
+          </s-clickable>
+          
+          <s-popover
+            id={`donation-popover-${index}`}
           >
-            <Icon source="info" appearance="accent" />
-          </Pressable>
-        </InlineStack>
-      </InlineStack>
+            <s-box
+              maxInlineSize="450px"
+              padding="base"
+            >
+              <s-image
+                src={donationLogo}
+                objectFit="contain"
+                alt="Donation Logo"
+                inlineSize="auto"
+              />
+              <s-paragraph>
+                {donationInfo}
+              </s-paragraph>
+            </s-box>
+          </s-popover>
+        </s-stack>
+      </s-stack>
 
-      <InlineStack spacing="tight">
-        <Checkbox
+      <s-stack direction="inline" gap="base">
+        <s-checkbox
           checked={donation.isChecked}
           onChange={toggleCheckbox}
           disabled={isLoading}
-        >
-          <InlineStack spacing="tight" inlineAlignment="start">
-            <Text size="base">{checkBoxText}</Text>
-          </InlineStack>
-        </Checkbox>
-      </InlineStack>
+        />
+
+        <s-text>{checkBoxText}</s-text>
+      </s-stack>
 
       {donation.showError && <ErrorBanner/>}
-    </BlockStack>
+    </s-stack>
   );
 }
 
 function ErrorBanner() {
   return (
-    <Banner status='critical'>
+    <s-banner tone='critical'>
       There was an issue with your request. Please try again.
-    </Banner>
+    </s-banner>
   );
 }

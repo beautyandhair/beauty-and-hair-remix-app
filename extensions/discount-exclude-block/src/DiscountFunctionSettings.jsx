@@ -1,7 +1,7 @@
 
 import "@shopify/ui-extensions/preact";
-import {render} from "preact";
-import {useState, useEffect, useMemo, useRef} from "preact/hooks";
+import { render } from "preact";
+import { useState, useEffect, useMemo, useRef } from "preact/hooks";
 
 export default async () => {
   render(<App />, document.body);
@@ -61,9 +61,9 @@ function App() {
 
   const tagInputRef = useRef();
   
-  const forceOrderDiscount = async () => {
+  const forceProductDiscount = async () => {
     const result =
-      await discounts?.updateDiscountClasses?.(['order']);
+      await discounts?.updateDiscountClasses?.(['product']);
 
     if (!result.success) {
       setError(i18n.translate("error"));
@@ -84,7 +84,7 @@ function App() {
     tagInputRef.current.value = '';
   };
 
-  useEffect(forceOrderDiscount, []);
+  useEffect(forceProductDiscount, []);
 
   if (loading) {
     return <s-text>{i18n.translate("loading")}</s-text>;
@@ -113,13 +113,13 @@ function App() {
           <s-stack gap="base">
             <s-number-field
               label={i18n.translate("discountPercentage")}
-              name="order"
-              value={String(percentages.order)}
-              defaultValue={String(initialPercentages.order)}
+              name="product"
+              value={String(percentages.product)}
+              defaultValue={String(initialPercentages.product)}
               min={0}
               max={100}
               onChange={event =>
-                onPercentageValueChange("order", event.currentTarget.value)
+                onPercentageValueChange("product", event.currentTarget.value)
               }
               suffix="%"
             />
@@ -176,6 +176,9 @@ function App() {
 }
 
 function useExtensionData() {
+  const METAFIELD_NAMESPACE = '$app:discount-exclude';
+  const METAFIELD_KEY = 'function-configuration';
+
   const {applyMetafieldChange, i18n, data, resourcePicker, query} = shopify;
 
   const metafieldConfig = useMemo(
@@ -222,11 +225,11 @@ function useExtensionData() {
   async function applyExtensionMetafieldChange() {
     await applyMetafieldChange({
       type: "updateMetafield",
-      namespace: "b-h-discounts",
-      key: "function-configuration",
+      namespace: METAFIELD_NAMESPACE,
+      key: METAFIELD_KEY,
       value: JSON.stringify({
-        orderPercentage: percentages.order,
-        collectionIds: collections.map(({id}) => id),
+        percentage: percentages.product,
+        collections: collections.map(({id}) => id),
         productTags,
         excludeClearance
       }),
@@ -297,15 +300,15 @@ function parseMetafield(value) {
     const parsed = JSON.parse(value || "{}");
     return {
       percentages: {
-        order: Number(parsed.orderPercentage ?? 0),
+        product: Number(parsed.percentage ?? 0),
       },
-      collectionIds: parsed.collectionIds ?? [],
+      collectionIds: parsed.collections ?? [],
       productTags: parsed.productTags ?? [],
       excludeClearance: parsed.excludeClearance ?? true
     };
   } catch {
     return {
-      percentages: {order: 0},
+      percentages: {product: 0},
       collectionIds: [],
       productTags: [],
       excludeClearance: true
