@@ -34,8 +34,8 @@ export async function updateVariantMetafields(productGid, updatedVariants) {
 export async function updateVariantImages(producGid, updatedVariants) {
   return await makeGraphQLQuery(
     `#graphql
-    mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-      productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+    mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!, $allowPartialUpdates: Boolean) {
+      productVariantsBulkUpdate(productId: $productId, variants: $variants, allowPartialUpdates: $allowPartialUpdates) {
         product {
           id
         }
@@ -58,7 +58,8 @@ export async function updateVariantImages(producGid, updatedVariants) {
     `,
     {
       "productId": producGid,
-      "variants": updatedVariants
+      "variants": updatedVariants,
+      "allowPartialUpdates": true
     }
   );
 }
