@@ -10,24 +10,51 @@ export default async () => {
 function Extension() {
   const {
     merchandise: {
-      title,
+      subtitle,
       product: {
         id: productId
       }
     },
     attributes
   } = shopify.target.value;
-  const { query } = shopify;
+  const { query, i18n } = shopify;
 
   const linePreorderEta = useMemo(() => {
     let attributeEta = attributes.find((attribute) => attribute.key === "_preorder-eta");
 
-    let date =  new Date(attributeEta.value);
+    if (attributeEta){
+      let date =  new Date(attributeEta.value);
 
-    return date;
+      return {attribute: attributeEta.value, date};
+    }
+
+    return ({});
   }, [attributes]);
 
-  const [shippingMessage, setShippingMessage] = useState('');
+  const [shippingMessage, setShippingMessage] = useState<{
+    tone?: "critical" | "success" | "custom",
+    status?: string,
+    text?: string
+  }>({});
+
+  const badgeSettings = useMemo<{
+    icon?: 'truck',
+    paddingBlock: 'none' | 'small-300',
+    paddingInline: 'none' | 'small-300'
+  }>(() => {
+    if (shippingMessage.tone == "custom") {
+      return ({
+        icon: 'truck',
+        paddingBlock: 'none',
+        paddingInline: 'none'
+      });
+    }
+
+    return ({
+      paddingBlock: 'small-300',
+      paddingInline: 'small-300'
+    });
+  }, [shippingMessage]);
 
   /* FUNCTIONS */
 
@@ -37,41 +64,55 @@ function Extension() {
     }
 
     let variantPreorderEta = new Date(variantPreorderMetafield);
+    let etaDay = variantPreorderEta.getDay();
+    let etaMonth = variantPreorderEta.toLocaleDateString("en-US", {
+      month: "long"
+    });
+    let etaDateMessage: string;
 
-    if (linePreorderEta == variantPreorderEta) {
-      setShippingMessage("On Time");
+    if (etaDay < 11) {
+      etaDateMessage = `${i18n.translate('early')} ${etaMonth}`;
     }
-    else if (linePreorderEta < variantPreorderEta) {
-      setShippingMessage(`Delayed: Current Shipping Date ${variantPreorderEta}`);
+    else if (etaDay < 25) {
+      etaDateMessage = `${i18n.translate('mid')} ${etaMonth}`;
     }
     else {
-      setShippingMessage(`Early: Current Shipping Date ${variantPreorderEta}`);
+      etaDateMessage = `${i18n.translate('end')} ${etaMonth}`;
+    }
+
+    if (linePreorderEta.attribute == variantPreorderMetafield) {
+      setShippingMessage({tone: 'custom', status: 'On Time'});
+    }
+    else if (linePreorderEta.date < variantPreorderEta) {
+      setShippingMessage({tone: 'critical', status: 'Delayed', text: `Estimated Ship Date: ${etaDateMessage}`});
+    }
+    else {
+      setShippingMessage({tone: 'success', status: 'Arriving Early', text: `Estimated Ship Date: ${etaDateMessage}`});
     }
   }
 
   const fetchProductVariant = async () => {
     try {
-      const { data } = await query<{products: {nodes: {variantBySelectedOptions:{metafield: {value: string}}}}[]}>(
+      const { data } = await query<{products: {nodes: {variantBySelectedOptions?: {metafield?: {value?: string}} | null}[]}}>(
         `query {
-          products(first: 1, query: "id:'${productId}'") {
+          products(first: 1, query: "id:'${productId.replace('gid://shopify/Product/', '')}'") {
             nodes {
               variantBySelectedOptions(
                 selectedOptions: {
                   name: "Color",
-                  value: "${title}"
+                  value: "${subtitle}"
                 }
               ){
                 metafield(namespace: "global", key: "ETA") {
                   value
                 }
-                id
               }
             }
           }
         }`
       );
 
-      getShippingMessage(data.products?.[0]?.nodes?.variantBySelectedOptions?.metafield?.value);
+      getShippingMessage(data.products?.nodes[0]?.variantBySelectedOptions?.metafield?.value);
     } catch (error) {
       console.error(error, 'Error fetching product variant');
     }
@@ -83,11 +124,20 @@ function Extension() {
     }
   }, [linePreorderEta]);
 
-  if (true) {
+  if (!shippingMessage.status) {
     return null;
   }
 
   return (
-    <s-text>{shippingMessage}</s-text>
+    <s-grid gridTemplateColumns='auto 1fr' paddingBlockStart='small-200'>
+      <s-box background='subdued' borderRadius='base' padding='none' inlineSize='auto' border='base'>
+        <s-badge color='subdued' size='small-100' icon={badgeSettings.icon}>
+          <s-stack paddingBlock={badgeSettings.paddingBlock} paddingInline={badgeSettings.paddingInline} gap='none'>
+            <s-text tone={shippingMessage.tone}>{shippingMessage.status}</s-text>
+            <s-text>{shippingMessage.text}</s-text>
+          </s-stack>
+        </s-badge>
+      </s-box>
+    </s-grid>
   );
 }
