@@ -46,7 +46,7 @@ export function cartLinesDiscountsGenerateRun(
     if (line.merchandise.__typename == 'ProductVariant') {
       const variant = (line.merchandise);
 
-      return !variant.product.inAnyCollection || variant.product.hasAnyTag || isExcluded(variant.metafield?.value) || !!line.sellingPlanAllocation?.sellingPlan?.id || hasDiscount(line) || isRebuyBundle;
+      return !variant.product.inAnyCollection || variant.product.hasAnyTag || isExcluded(variant.metafield?.value) || !!line.sellingPlanAllocation?.sellingPlan?.id || hasDiscount(line) || isRebuyBundle(line);
     } else {
       return true;
     }
