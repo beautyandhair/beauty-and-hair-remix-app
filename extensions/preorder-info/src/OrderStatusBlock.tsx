@@ -119,7 +119,7 @@ function Extension() {
   }
 
   useEffect(() => {
-    if (linePreorderEta) {
+    if (linePreorderEta.attribute) {
       fetchProductVariant();
     }
   }, [linePreorderEta]);
