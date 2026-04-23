@@ -64,7 +64,7 @@ function Extension() {
     }
 
     let variantPreorderEta = new Date(variantPreorderMetafield);
-    let etaDay = variantPreorderEta.getDay();
+    let etaDay = variantPreorderEta.getDate();
     let etaMonth = variantPreorderEta.toLocaleDateString("en-US", {
       month: "long"
     });
