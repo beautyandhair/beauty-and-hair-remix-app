@@ -21,6 +21,23 @@ query CartInput($productTags: [String!]!, $collectionIds: [ID!]!) {
           name
         }
       }
+      cost {
+        subtotalAmount {
+          amount
+        }
+        totalAmount {
+          amount
+        }
+      }
+      discountAllocations {
+        discountedAmount {
+          amount
+        }
+      }
+      attribute(key: "_attribution") {
+        key
+        value
+      }
     }
   }
   discount {

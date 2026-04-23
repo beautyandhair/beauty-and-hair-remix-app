@@ -32,13 +32,21 @@ export function cartLinesDiscountsGenerateRun(
   const isExcluded = (variantMetafield: string | undefined) => {
     return configuration.excludeClearance && variantMetafield === 'true';
   }
+
+  const hasDiscount = (line: CartInput["cart"]["lines"][0]) => {
+    return line.discountAllocations.some((discount) => discount.discountedAmount.amount > 0);
+  }
+
+  const isRebuyBundle = (line: CartInput["cart"]["lines"][0]) => {
+    return line.attribute?.value === "Rebuy Bundle Builder";
+  }
   
   const excludedCartLineIds = input.cart.lines
   .filter((line) => {
     if (line.merchandise.__typename == 'ProductVariant') {
       const variant = (line.merchandise);
 
-      return !variant.product.inAnyCollection || variant.product.hasAnyTag || isExcluded(variant.metafield?.value) || !!line.sellingPlanAllocation?.sellingPlan?.id;
+      return !variant.product.inAnyCollection || variant.product.hasAnyTag || isExcluded(variant.metafield?.value) || !!line.sellingPlanAllocation?.sellingPlan?.id || hasDiscount(line) || isRebuyBundle;
     } else {
       return true;
     }
