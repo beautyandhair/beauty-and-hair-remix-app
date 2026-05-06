@@ -284,7 +284,7 @@ function DonationCheckbox({toggleCheckbox, donation, isLoading, index, currentSl
     donationLogoSmall = "https://cdn.shopify.com/s/files/1/1410/9094/files/BCO_Logo_FullColor_RGB_143x22_bd3f0d64-4de3-48d4-b29c-c7584e97be53.webp?v=1715963464"
     donationInfo = "Breastcancer.org was founded in 2000 by renowned breast oncologist Marisa C. Weiss, M.D. to help those affected by breast cancer make sense of complex medical information and empower them to make the best decisions throughout their medical and emotional journey. Support Breastcancer.org today with your donation – and help someone facing a breast cancer diagnosis to get the information and support they need to make the best decisions for their lives."
   } else if (donation.title === EBEAUTY_TITLE) {
-    checkBoxText = "Yes, I'd love to help Ebeauty by donating $1.00"
+    checkBoxText = "Yes, I'd love to help Ebeauty provide free wigs to cancer patients by donating $1.00"
     donationLogo = "https://cdn.shopify.com/s/files/1/1410/9094/files/EBeauty-logo-2024_info_logo.png?v=1751396110";
     donationLogoSmall = "https://cdn.shopify.com/s/files/1/1410/9094/files/EBeauty-logo-2024_small_43ddd04f-453d-471a-b9d3-ca3b5de124d5.png?v=1751392236"
     donationInfo = "EBeauty’s mission is to improve the quality of life for women undergoing cancer treatment by providing free wigs and community support services."
@@ -334,7 +334,7 @@ function DonationCheckbox({toggleCheckbox, donation, isLoading, index, currentSl
         </s-stack>
       </s-stack>
 
-      <s-stack direction="inline" gap="base">
+      <s-grid gridTemplateColumns="auto 1fr" gap="base" alignItems="start">
         <s-checkbox
           checked={donation.isChecked}
           onChange={toggleCheckbox}
@@ -342,7 +342,7 @@ function DonationCheckbox({toggleCheckbox, donation, isLoading, index, currentSl
         />
 
         <s-text>{checkBoxText}</s-text>
-      </s-stack>
+      </s-grid>
 
       {donation.showError && <ErrorBanner/>}
     </s-stack>
