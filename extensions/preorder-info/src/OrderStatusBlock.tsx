@@ -59,7 +59,7 @@ function Extension() {
   /* FUNCTIONS */
 
   const getShippingMessage = (variantPreorderMetafield: string | undefined) => {
-    if (!variantPreorderMetafield) {
+    if (!variantPreorderMetafield || !variantPreorderMetafield.includes('-')) {
       return;
     }
 

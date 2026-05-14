@@ -10,15 +10,21 @@ export default async () => {
 function Extension() {
   const { applyCartLinesChange, i18n, lines, shippingAddress } = shopify;
 
+  const [settings, setSettings] = useState(shopify.settings.value);
+  const {
+    content
+  } = useMemo(() => settings, [settings]);
+
   const [cartLines, setCartLines] = useState(lines.value);
   const [shippingCountry, setShippingCountry] = useState(shippingAddress.value?.countryCode);
 
+  shopify.settings.subscribe(setSettings);
   lines.subscribe(setCartLines);
   shippingAddress.subscribe((address) => setShippingCountry(address?.countryCode));
 
   const showWarning = useMemo(() => shippingCountry && shippingCountry != "US" &&
-    cartLines.some((line) => line.attributes.some((attribute) => attribute.key === "_preorder-eta" && attribute.value.includes("-"))) &&
-    cartLines.some((line) => line.attributes.some((attribute) => attribute.key === "_preorder-eta" && !attribute.value.includes("-")))
+    cartLines.some((line) => line.attributes.some((attribute) => attribute.key === "_preorder-eta" && attribute.value)) &&
+    cartLines.some((line) => line.attributes.every((attribute) => (attribute.key === "_preorder-eta" && !attribute.value) || attribute.key != "_preorder-eta") && line.cost.totalAmount.amount > 1.00)
   , [shippingCountry, cartLines])
 
   const removePreorders = useCallback(async () => {
@@ -40,16 +46,21 @@ function Extension() {
   }
 
   return (
-    <s-banner heading={i18n.translate("banner_heading")} tone="warning">
+    <s-stack background="subdued" padding="base" borderRadius="base" border="base" gap="base">
+      <s-heading>Shipping Notice</s-heading>
       <s-stack gap="base">
-        <s-text>
-          {i18n.translate("notice")}
-        </s-text>
+        <s-stack gap="base">
+          {typeof content === "string" && content?.split(/\n+/g)?.map((text, index) => (
+            <s-paragraph key={`text-${index}`}>
+              {text}
+            </s-paragraph>
+          ))}
+        </s-stack>
         <s-stack direction="inline" justifyContent="space-between" alignItems="center">
-          <s-link href="https://www.wigs.com/apps/help-center#hc-pre-orders" target="_blank">{i18n.translate("learn_more")}</s-link>
-          <s-button tone="neutral" variant="secondary" onClick={removePreorders}>{i18n.translate("remove_button")}</s-button>
+          <s-button href="https://www.wigs.com/apps/help-center#hc-pre-orders" target="_blank">{i18n.translate("learn_more")}</s-button>
+          <s-button tone="neutral" variant="primary" onClick={removePreorders}>{i18n.translate("remove_button")}</s-button>
         </s-stack>
       </s-stack>
-    </s-banner>
+    </s-stack>
   );
 }
