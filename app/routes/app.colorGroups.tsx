@@ -604,12 +604,12 @@ export default function ColorGroups() {
             fiber: vendorColor.data.fiber,
             vendorColorUpdate: {
               altText: vendorColor.data.altText,
-              groups: vendorColor.data.groups ? vendorColor.data.groups.split(';') : [],
+              groups: vendorColor.data.groups ? vendorColor.data.groups.toLocaleLowerCase().split(';') : [],
               colorName: vendorColor.data.colorName,
               colorDesc: vendorColor.data.colorDesc,
               temp: vendorColor.data.temp?.toLocaleLowerCase(),
-              rooted: vendorColor.data.rooted === "true" ? true : false,
-              highlighted: vendorColor.data.highlighted === "true" ? true : false,
+              rooted: vendorColor.data.rooted?.toLocaleLowerCase() === "true" ? true : false,
+              highlighted: vendorColor.data.highlighted?.toLocaleLowerCase() === "true" ? true : false,
               features: vendorColor.data.features ? vendorColor.data.features.split(';') : [],
               truColorSrc: vendorColor.data.truColorSrc
             }
@@ -644,12 +644,12 @@ export default function ColorGroups() {
               fileName: vendorColor.data.fileName,
               shopImageIds: {[actionData.shop]: imageImport.imageId},
               altText: imageImport.altText,
-              groups: vendorColor.data.groups ? vendorColor.data.groups.split(';') : [],
+              groups: vendorColor.data.groups ? vendorColor.data.groups.toLocaleLowerCase().split(';') : [],
               colorName: vendorColor.data.colorName,
               colorDesc: vendorColor.data.colorDesc,
               temp: vendorColor.data.temp?.toLocaleLowerCase(),
-              rooted: vendorColor.data.rooted === "true" ? true : false,
-              highlighted: vendorColor.data.highlighted === "true" ? true : false,
+              rooted: vendorColor.data.rooted?.toLocaleLowerCase() === "true" ? true : false,
+              highlighted: vendorColor.data.highlighted?.toLocaleLowerCase() === "true" ? true : false,
               features: vendorColor.data.features ? vendorColor.data.features.split(';') : [],
               truColorSrc: vendorColor.data.truColorSrc
             }
@@ -711,12 +711,12 @@ export default function ColorGroups() {
           fiber: vendorColorImport.fiber,
           vendorColorUpdate: {
             altText: vendorColorImport.altText,
-            groups: vendorColorImport.groups ? vendorColorImport.groups.split(';') : [],
+            groups: vendorColorImport.groups ? vendorColorImport.groups.toLocaleLowerCase().split(';') : [],
             colorName: vendorColorImport.colorName,
             colorDesc: vendorColorImport.colorDesc,
             temp: vendorColorImport.temp?.toLocaleLowerCase(),
-            rooted: vendorColorImport.rooted === "true" ? true : false,
-            highlighted: vendorColorImport.highlighted === "true" ? true : false,
+            rooted: vendorColorImport.rooted?.toLocaleLowerCase() === "true" ? true : false,
+            highlighted: vendorColorImport.highlighted?.toLocaleLowerCase() === "true" ? true : false,
             features: vendorColorImport.features ? vendorColorImport.features.split(';') : [],
             truColorSrc: vendorColorImport.truColorSrc
           }
