@@ -49,6 +49,8 @@ export default async () => {
   render(<Extension />, document.body);
 };
 
+const FIBER_SYNTHETIC = "Synthetic";
+
 function Extension() {
   // The useApi hook provides access to several useful APIs like i18n and data.
   const { data, close } = shopify;
@@ -64,6 +66,7 @@ function Extension() {
   const [fiber, setFiber] = useState<string>("");
   const [vendorError, setVendorError] = useState<string>();
   const [fiberWarning, setFiberWarning] = useState<string>();
+  const [forceSynthetic, setForceSynthetic] = useState<boolean>(false);
 
   const colorGroups: {[key: string]: string[]} = useMemo(() => vendorColors.reduce((obj: {[key: string]: string[]}, vendorColor) => {
       obj[vendorColor.color] = vendorColor.groups;
@@ -72,19 +75,19 @@ function Extension() {
     }, ({}))
   , [vendorColors]);
 
-  const colorImages: {[key: string]: ColorImage} = useMemo(() => vendorColors.filter((vendorColor) => vendorColor.fiber === fiber).reduce((obj: {[key: string]: ColorImage}, vendorColor) => {
+  const colorImages: {[key: string]: ColorImage} = useMemo(() => vendorColors.filter((vendorColor) => vendorColor.fiber === (forceSynthetic ? FIBER_SYNTHETIC : fiber)).reduce((obj: {[key: string]: ColorImage}, vendorColor) => {
       obj[vendorColor.color] = {
         imageSrc: vendorColor.imageSrc,
         imageId: vendorColor.shopImageIds?.[shop],
         altText: vendorColor.altText,
         fileName: vendorColor.fileName,
         shopImageIds: vendorColor.shopImageIds,
-        fiber: vendorColor.fiber
+        fiber: forceSynthetic ? FIBER_SYNTHETIC : vendorColor.fiber
       };
 
       return obj;
     }, ({}))
-  , [vendorColors, shop, fiber]);
+  , [vendorColors, shop, fiber, forceSynthetic]);
 
   const getSessionShop = useCallback(async () => {
     const res = await fetch(`api/getSessionShop`);
@@ -178,7 +181,7 @@ function Extension() {
 
         variantImageCategories.uploadNeeded = variantImageCategories.uploadNeeded.filter((imageUpload) => imageUpload.color != variantImage.color);
 
-        shopImageIdUpdates.push({color: variantImage.color, fiber: variantImage.fiber ?? fiber, shopImageIds: {...variantImage.shopImageIds, [shop]: file.id}});
+        shopImageIdUpdates.push({color: variantImage.color, fiber: variantImage.fiber && !forceSynthetic ? fiber : FIBER_SYNTHETIC, shopImageIds: {...variantImage.shopImageIds, [shop]: file.id}});
       }
     }
 
@@ -196,7 +199,7 @@ function Extension() {
 
       return;
     }
-  }, [shop, vendor]);
+  }, [shop, vendor, fiber, forceSynthetic]);
 
   const updateProductVariantImages = useCallback(async (updatedVariants: {id: any, mediaId: {imageId: string}}[]) => {
     await updateVariantImages(productId, updatedVariants);
@@ -291,6 +294,10 @@ function Extension() {
     syncVariantColorImages(variantsToUpdate);
   }, [variants, colorImages, syncVariantColorImages]);
 
+  const onToggleSynthetic = useCallback(() => {
+    setForceSynthetic(!forceSynthetic);
+  }, [forceSynthetic]);
+
   if (vendorError) {
     return (
       <s-banner tone="critical">
@@ -326,10 +333,21 @@ function Extension() {
         </s-stack>
       ) : (
         <s-stack alignItems="start" gap="small-300">
-          <s-stack direction="inline" gap="small-300" paddingBlockEnd="base">
-            <s-badge>{vendor}</s-badge>
-            <s-badge>{fiber}</s-badge>
+          <s-stack direction="inline" gap="base" justifyContent="space-between" paddingBlockEnd="base" inlineSize="100%">
+            <s-stack direction="inline" gap="small-300" paddingBlockStart="small-400">
+              <s-badge>{vendor}</s-badge>
+              <s-badge>{fiber}</s-badge>
+            </s-stack>
+
+            <s-switch
+              label="Force Synthetic Fiber"
+              details="Use synthetic swatches, instead of product fiber"
+              checked={forceSynthetic}
+              onChange={onToggleSynthetic}
+            />
           </s-stack>
+
+          <s-divider></s-divider>
 
           <s-paragraph>
             Variant's color groups metafield will be updated to assigned groups in Color Groups Table
