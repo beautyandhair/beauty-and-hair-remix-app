@@ -5,3 +5,12 @@ export function handleize(text: string) {
               .replace(/^-+/, '')             // whitespace or special characters at the beginning are removed
               .replace(/-+$/, '');            // whitespace or special characters at the end are removed
 };
+
+export function fiberFileSuffix(fiber: string) {
+  if (fiber.split(' ').length > 1) {
+    return fiber.split(' ').map((word) => word[0]).join('').toLowerCase();
+  }
+  else {
+    return fiber.slice(0, 3).toLowerCase();
+  }
+};

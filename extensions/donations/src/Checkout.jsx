@@ -6,6 +6,8 @@ import { useState, useEffect, useMemo, useCallback } from "preact/hooks";
 const STAND_UP_TO_CANCER_TITLE = "Donation to Stand Up To Cancer";
 const BREAST_CANCER_TITLE = "Donation to Breastcancer.org";
 const EBEAUTY_TITLE = "Donation to Ebeauty";
+const CWHL_TITLE = "Donation to Children with Hair Loss";
+const RFNBF_TITLE = "Donation to Ricardo Fisas Natura Bisse Foundation";
 
 const ENABLE_CAROUSEL = false;
 
@@ -40,7 +42,11 @@ function Extension() {
     donation_bc_active,
     donation_bc_gid,
     donation_ebeauty_active,
-    donation_ebeauty_gid
+    donation_ebeauty_gid,
+    donation_cwhl_active,
+    donation_cwhl_gid,
+    donation_rfnbf_active,
+    donation_rfnbf_gid
   } = useMemo(() => settings, [settings]);
 
   const [lines, setLines] = useState(shopify.lines.value);
@@ -54,10 +60,10 @@ function Extension() {
     const endDateValid = donation_scheduled_end_date ? parseDate(donation_scheduled_end_date) >= currentDate : true;
 
     if (startDateValid && endDateValid) {
-      return donation_scheduled_order && typeof donation_scheduled_order === 'string' ? donation_scheduled_order.split(',').map((acronym) => acronym.trim()) : ["BC","SU2C","EBEAUTY"];
+      return donation_scheduled_order && typeof donation_scheduled_order === 'string' ? donation_scheduled_order.split(',').map((acronym) => acronym.trim()) : ["BC","SU2C","EBEAUTY","CWHL","RFNBF"];
     }
     else {
-      return donation_order && typeof donation_order === 'string' ? donation_order.split(',').map((acronym) => acronym.trim()) : ["SU2C","BC","EBEAUTY"];
+      return donation_order && typeof donation_order === 'string' ? donation_order.split(',').map((acronym) => acronym.trim()) : ["SU2C","BC","EBEAUTY","CWHL","RFNBF"];
     }
   }, []);
 
@@ -85,6 +91,22 @@ function Extension() {
       isChecked: donationOrder[0] === "EBEAUTY",
       showError: false,
       variantId: donation_ebeauty_gid
+    },
+    {
+      acronym: "CWHL",
+      title: CWHL_TITLE,
+      active: donation_cwhl_gid && donation_cwhl_active,
+      isChecked: donationOrder[0] === "CWHL",
+      showError: false,
+      variantId: donation_cwhl_gid
+    },
+    {
+      acronym: "RFNBF",
+      title: RFNBF_TITLE,
+      active: donation_rfnbf_gid && donation_rfnbf_active,
+      isChecked: donationOrder[0] === "RFNBF",
+      showError: false,
+      variantId: donation_rfnbf_gid
     }
   ]);
 
@@ -288,6 +310,16 @@ function DonationCheckbox({toggleCheckbox, donation, isLoading, index, currentSl
     donationLogo = "https://cdn.shopify.com/s/files/1/1410/9094/files/EBeauty-logo-2024_info_logo.png?v=1751396110";
     donationLogoSmall = "https://cdn.shopify.com/s/files/1/1410/9094/files/EBeauty-logo-2024_small_43ddd04f-453d-471a-b9d3-ca3b5de124d5.png?v=1751392236"
     donationInfo = "EBeauty’s mission is to improve the quality of life for women undergoing cancer treatment by providing free wigs and community support services."
+  } else if (donation.title === CWHL_TITLE) {
+    checkBoxText = "Yes, I'd love to help Children with Hair Loss provide free wigs to children by donating $1.00"
+    donationLogo = "https://cdn.shopify.com/s/files/1/1410/9094/files/cwhl_logo.jpg?v=1780085315";
+    donationLogoSmall = "https://cdn.shopify.com/s/files/1/1410/9094/files/cwhl_logo-small.png?v=1780087694"
+    donationInfo = "Children with Hair Loss provides human hair replacements at no cost to children and young adults facing medically-related hair loss. When a child’s hair is lost due to Cancer treatments, Alopecia, Trichotillomania, Burns, etc., the painful effects are far deeper than just cosmetic. Each year, the number of children requesting our hair replacements increases and with your support, we can continue to increase the number of children we are able to help in the future!"
+  } else if (donation.title === RFNBF_TITLE) {
+    checkBoxText = "Yes, I'd love to help Ricardo Fisas Natura Bisse Foundation by donating $1.00"
+    donationLogo = "https://cdn.shopify.com/s/files/1/1410/9094/files/rfnbf_logo.png?v=1780085866";
+    donationLogoSmall = "https://cdn.shopify.com/s/files/1/1410/9094/files/rfnbf_logo-small.png?v=1780087539"
+    donationInfo = "Ricardo Fisas Natura Bissé Foundation is committed to uplifting and empowering individuals navigating the complexities of cancer, enhancing their well-being and confidence through specialized oncology skin care and hair care solutions."
   }
 
   return (

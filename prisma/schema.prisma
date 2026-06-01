@@ -3,7 +3,6 @@
 
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
 }
 
 // Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
@@ -34,7 +33,7 @@ model Session {
 }
 
 model Vendor {
-  name      String          @id
+  name          String    @id
   colors    VendorColor[]
 }
 
@@ -48,6 +47,18 @@ model VendorColor {
   shopImageIds  Json?
   altText       String?
   fileName      String?
+  fiber         String    @default("synthetic")
+  colorName     String?
+  colorDesc     String?
+  temp          String?
+  rooted        Boolean?
+  highlighted   Boolean?
+  features      String[]
+  truColorSrc   String?
 
-  @@id(name: "colorId", [vendorName, color, isHumanHair])
+  @@id(name: "colorId", [vendorName, color, fiber])
+}
+
+model VendorColorTag {
+  name          String    @id
 }

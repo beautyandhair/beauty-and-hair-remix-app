@@ -25,9 +25,10 @@ import {
   InlineError,
   EmptySearchResult,
   Banner,
-  Checkbox
+  Checkbox,
+  Select
 } from '@shopify/polaris';
-import { CheckIcon, DeleteIcon, EditIcon, PlusIcon, RefreshIcon, SearchIcon, XIcon } from '@shopify/polaris-icons';
+import { CheckIcon, DeleteIcon, EditIcon, PlusIcon, RefreshIcon, XIcon } from '@shopify/polaris-icons';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import type {
   SubmitFunction} from "@remix-run/react";
@@ -38,7 +39,8 @@ import {
 } from "@remix-run/react";
 
 import type {
-  Vendor} from "../models/Vendor.server";
+  Vendor
+} from "../models/Vendor.server";
 import {
   getVendors,
   createVendor,
@@ -48,7 +50,8 @@ import {
 
 import type {
   VendorColor,
-  VendorColorUpdate} from "../models/VendorColor.server";
+  VendorColorUpdate
+} from "../models/VendorColor.server";
 import {
   createVendorColor,
   updateVendorColor,
@@ -60,8 +63,18 @@ import {
   uploadColorImagesBulk
 } from "../models/VendorColor.server";
 
+import type {
+  VendorColorTag
+} from "../models/VendorColorTag.server";
+import {
+  getVendorColorTags,
+  createVendorColorTag,
+  deleteVendorColorTag,
+  createManyVendorColorTags
+} from "../models/VendorColorTag.server";
+
 import { authenticate } from 'app/shopify.server';
-import { handleize } from 'app/utils';
+import { handleize, fiberFileSuffix } from 'app/utils';
 
 enum Action {
   CreateVendor = "CreateVendor",
@@ -75,7 +88,11 @@ enum Action {
   StageColorImage = "StageColorImage",
   UploadColorImage = "UploadColorImage",
   UploadColorImagesBulk = "UploadColorImagesBulk",
-  SyncAltText = "SyncAltText"
+  SyncAltText = "SyncAltText",
+  GetVendorColorTags = "GetVendorColorTags",
+  CreateVendorColorTag = "CreateVendorColorTag",
+  CreateManyVendorColorTags = "CreateManyVendorColorTags",
+  DeleteVendorColorTag = "DeleteVendorColorTag"
 }
 
 const COLOR_GROUPS = [
@@ -87,6 +104,32 @@ const COLOR_GROUPS = [
   {value: 'fashion-color', label: 'Fashion Colors'},
   {value: 'exclusive-color', label: 'Exclusive Colors'},
 ];
+
+const FIBERS = [
+  {value: 'Synthetic', label: 'Synthetic'},
+  {value: 'Heat Friendly Synthetic', label: 'Heat Friendly Synthetic'},
+  {value: 'Human Hair', label: 'Human Hair'},
+  {value: 'Human Hair/Synthetic Blend', label: 'Human Hair/Synthetic Blend'}
+];
+
+const TEMPERATURES = [
+  {value: '', label: ''},
+  {value: 'cool', label: 'Cool'},
+  {value: 'warm', label: 'Warm'},
+  {value: 'neutral', label: 'Neutral'}
+];
+
+type vendorColorProperties = "color" | "altText" | "fileName" | "fiber" | "colorName" | "colorDesc" | "temp" | "rooted" | "highlighted" | "truColorSrc" | "groups" | "features" | "shopImageIds";
+
+/*
+const PROPERTIES: vendorColorProperties[] = ["color", "altText", "fileName", "fiber", "colorName", "colorDesc", "temp", "truColorSrc", "groups", "features", "shopImageIds"];
+
+const TYPED_PROPERTIES = {
+  string: ["color", "altText", "fileName", "fiber", "colorName", "colorDesc", "temp", "truColorSrc"],
+  array: ["groups", "features"],
+  object: ["shopImageIds"]
+};
+*/
 
 export const useDebounce = (funct: ((...args: any[]) => void), delay = 500) => {
   const [timer, setTimer] = useState<NodeJS.Timeout>();
@@ -111,17 +154,19 @@ export const useDebounce = (funct: ((...args: any[]) => void), delay = 500) => {
   return debouncedFunct;
 }
 
-type VendorColorType = {
-  color: string,
-  vendorName: string,
-  imageSrc?: string,
-  altText?: string,
+type VendorColorType = Omit<VendorColor, "vendor" | "groups" | "shopImageIds" | "rooted" | "highlighted" | "features"> & {
   groups?: string,
-  isHumanHair: string
+  rooted?: string,
+  highlighted?: string,
+  features?: string,
+  truColorSrc?: string
 }
 
 export async function loader() {
-  return Response.json(await getVendors());
+  const vendors = await getVendors();
+  const vendorColorTags = await getVendorColorTags();
+
+  return Response.json({vendors, vendorColorTags});
 }
 
 export async function action({ request }: {request: Request }) {
@@ -132,8 +177,6 @@ export async function action({ request }: {request: Request }) {
     ...Object.fromEntries(await request.formData()),
   };
 
-  let isHumanHair = data.isHumanHair === true || data.isHumanHair === "true" ? true : false;
-
   switch (data.actionType) {
     case Action.CreateVendor:
       return await createVendor(data.vendorName);
@@ -142,21 +185,21 @@ export async function action({ request }: {request: Request }) {
     case Action.DeleteVendor:
       return await deleteVendor(data.vendorName);
     case Action.CreateVendorColor:
-      return await createVendorColor(data.vendorName, data.color, isHumanHair, JSON.parse(data.groups));
+      return await createVendorColor(data.vendorName, data.color, data.fiber, JSON.parse(data.groups));
     case Action.UpdateVendorColor:
-      return await updateVendorColor(data.vendorName, data.color, isHumanHair, JSON.parse(data.vendorColorUpdate));
+      return await updateVendorColor(data.vendorName, data.color, data.fiber, JSON.parse(data.vendorColorUpdate));
     case Action.UpsertVendorColor:
-      return await upsertVendorColor(data.vendorName, data.color, isHumanHair, JSON.parse(data.vendorColorUpdate));
+      return await upsertVendorColor(data.vendorName, data.color, data.fiber, JSON.parse(data.vendorColorUpdate));
     case Action.UpsertManyVendorColor:
       return await upsertManyVendorColor(JSON.parse(data.vendorColors));
     case Action.DeleteVendorColor:
-      return await deleteVendorColor(data.vendorName, data.color, isHumanHair);
+      return await deleteVendorColor(data.vendorName, data.color, data.fiber);
     case Action.StageColorImage:
       const stagedTargetResponse = await stageColorImage(admin.graphql, JSON.parse(data.file));
 
-      return ({...stagedTargetResponse, color: data.color, isHumanHair: isHumanHair, altText: data.altText});
+      return ({...stagedTargetResponse, color: data.color, fiber: data.fiber, altText: data.altText});
     case Action.UploadColorImage:
-      return await uploadColorImage(admin.graphql, data.resourceUrl, data.color, isHumanHair, data.altText, shop, data.vendorName, data.fileName);
+      return await uploadColorImage(admin.graphql, data.resourceUrl, data.color, data.fiber, data.altText, shop, data.vendorName, data.fileName);
     case Action.UploadColorImagesBulk:
       return await uploadColorImagesBulk(admin.graphql, shop, JSON.parse(data.images));
     case Action.SyncAltText:
@@ -188,7 +231,15 @@ export async function action({ request }: {request: Request }) {
         }
       );
 
-    return await fileUpdateResponse.json();
+      return await fileUpdateResponse.json();
+    case Action.GetVendorColorTags:
+      return await getVendorColorTags();
+    case Action.CreateVendorColorTag:
+      return await createVendorColorTag(data.tagName);
+    case Action.CreateManyVendorColorTags:
+      return await createManyVendorColorTags(JSON.parse(data.tagNames));
+    case Action.DeleteVendorColorTag:
+      return await deleteVendorColorTag(data.tagName);
   }
 
   return Response.json({ errors: ['Invalid data passed.'] }, { status: 422 });
@@ -196,38 +247,44 @@ export async function action({ request }: {request: Request }) {
 
 export default function ColorGroups() {
   const submit = useSubmit();
+  const loaderResponse = useLoaderData<{vendors: Vendor[], vendorColorTags: VendorColorTag[]}>();
 
-  const [vendors, setVendors] = useState<Vendor[]>(useLoaderData<Vendor[]>() ?? []);
-  const [selected, setSelected] = useState(0);
+  const [vendors, setVendors] = useState<Vendor[]>(loaderResponse.vendors ?? []);
+  const [selected, setSelected] = useState<number>();
   const [openMoreActions, setOpenMoreActions] = useState(false);
   const [loadingSyncAltText, setLoadingSyncAltText] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [vendorColorTags, setVendorColorTags] = useState<VendorColorTag[]>(loaderResponse.vendorColorTags ?? []);
 
   const [openImportVendorColor, setOpenImportVendorColor] = useState(false);
   const [loadingImport, setLoadingImport] = useState<{active: boolean, progress: number, total: number}>({active: false, progress: 0, total: 0});
   const [pendingVendorColorsBulk, setPendingVendorColorsBulk] = useState<{
     upserted: boolean,
-    data: {
-      altText?: string,
-      imageSrc: string,
-      color: string,
-      vendorName: string,
-      fileName?: string,
-      groups?: string,
-      isHumanHair: string
-    }
+    data: VendorColorType
   }[]>([]);
   const [vendorColorsFailed, setVendorColorsFailed] = useState('');
   const [importOverride, setImportOverride] = useState(false);
   const actionData = useActionData<any>();
 
   const vendorTabs = useMemo(() => vendors?.length ? vendors.map((vendor) => vendor.name) : [], [vendors]);
-  const currentVendor = useMemo(() => vendors[selected], [vendors, selected]);
+  const currentVendor = useMemo(() => selected ? vendors[selected] : vendors[0], [vendors, selected]);
 
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const submitSearch = useDebounce(setSearch);
+
+  useEffect(() => {
+    let queryParams = new URLSearchParams(window.location.search);
+
+    if (queryParams.has('vendorName')) {
+      let vendorIndex = vendors.findIndex((vendor) => vendor.name == queryParams.get('vendorName'))
+
+      if (vendorIndex > -1) {
+        setSelected(vendorIndex);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     submitSearch(searchInput);
@@ -277,10 +334,51 @@ export default function ColorGroups() {
     return true;
   }, [currentVendor, submit]);
 
+  /* MUTATE VENDOR COLOR TAGS */
+
+  const onCreateVendorColorTag = useCallback(async (tagName: string) => {
+    await sleep(500);
+
+    submit({
+      actionType: Action.CreateVendorColorTag,
+      tagName
+    }, { method: "POST" });
+
+    setVendorColorTags((prev) => [...prev, { name: tagName }]);
+
+    return true;
+  }, [submit]);
+
+  const onCreateManyVendorColorTags = useCallback(async (tagNames: string[]) => {
+    await sleep(500);
+
+    submit({
+      actionType: Action.CreateManyVendorColorTags,
+      tagNames: JSON.stringify(tagNames)
+    }, { method: "POST" });
+
+    setVendorColorTags((prev) => [...prev, ...(tagNames.map((tag) => ({ name: tag })))]);
+
+    return true;
+  }, [submit]);
+
+  const onDeleteVendorColorTag = useCallback((tagName: string) => async () => {
+    await sleep(1);
+
+    submit({
+      actionType: Action.DeleteVendorColorTag,
+      tagName
+    }, { method: "DELETE" });
+
+    setVendorColorTags((prev) => prev.filter((tag) => tag.name !== tagName));
+
+    return true;
+  }, [submit]);
+
   /* MUTATE VENDOR COLORS */
 
-  const onAddVendorColor = useCallback(async (color: string, groups: string[], isHumanHair: boolean) => {
-    if (currentVendor.colors?.find((vendorColor) => vendorColor.color === color && vendorColor.isHumanHair === isHumanHair)) {
+  const onAddVendorColor = useCallback(async (color: string, groups: string[], fiber: string) => {
+    if (currentVendor.colors?.find((vendorColor) => vendorColor.color === color && vendorColor.fiber === fiber)) {
       return false;
     }
 
@@ -289,7 +387,8 @@ export default function ColorGroups() {
       color,
       groups,
       shopImageIds: {},
-      isHumanHair
+      fiber,
+      features: []
     };
 
     if (currentVendor.colors) {
@@ -305,7 +404,7 @@ export default function ColorGroups() {
       vendorName: currentVendor.name,
       color,
       groups: JSON.stringify(groups),
-      isHumanHair
+      fiber
     }, { method: "POST" });
 
     setVendors((prev) => [...prev]);
@@ -313,8 +412,9 @@ export default function ColorGroups() {
     return true;
   }, [currentVendor, submit]);
 
-  const onUpdateVendorColor = useCallback(async (color: string, isHumanHair: boolean, vendorColorUpdate: VendorColorUpdate) => {
-    const vendorColor = currentVendor.colors?.find((vendorColor) => vendorColor.color === color && vendorColor.isHumanHair === isHumanHair);
+  const onUpdateVendorColor = useCallback(async (color: string, fiber: string, vendorColorUpdate: VendorColorUpdate) => {
+
+    const vendorColor = currentVendor.colors?.find((vendorColor) => vendorColor.color === color && vendorColor.fiber === fiber);
 
     if (vendorColor) {
       vendorColor.color = vendorColorUpdate.color ?? vendorColor.color;
@@ -323,7 +423,14 @@ export default function ColorGroups() {
       vendorColor.shopImageIds = vendorColorUpdate.shopImageIds ?? vendorColor.shopImageIds;
       vendorColor.altText = vendorColorUpdate.altText ?? vendorColor.altText;
       vendorColor.fileName = vendorColorUpdate.fileName ?? vendorColor.fileName;
-      vendorColor.isHumanHair = vendorColorUpdate.isHumanHair ?? vendorColor.isHumanHair
+      vendorColor.fiber = vendorColorUpdate.fiber ?? vendorColor.fiber;
+      vendorColor.colorName = vendorColorUpdate.colorName ?? vendorColor.colorName;
+      vendorColor.colorDesc = vendorColorUpdate.colorDesc ?? vendorColor.colorDesc;
+      vendorColor.temp = vendorColorUpdate.temp ?? vendorColor.temp;
+      vendorColor.rooted = vendorColorUpdate.rooted ?? vendorColor.rooted;
+      vendorColor.highlighted = vendorColorUpdate.highlighted ?? vendorColor.highlighted;
+      vendorColor.features = vendorColorUpdate.features ?? vendorColor.features;
+      vendorColor.truColorSrc = vendorColorUpdate.truColorSrc ?? vendorColor.truColorSrc
     }
     else {
       return;
@@ -335,77 +442,23 @@ export default function ColorGroups() {
       vendorName: currentVendor.name,
       color,
       vendorColorUpdate: JSON.stringify(vendorColorUpdate),
-      isHumanHair
+      fiber
     }, { method: "PUT" });
 
     setVendors((prev) => [...prev]);
-  }, [currentVendor, submit]);
 
-  /*
-  const onUpsertVendorColor = useCallback(async (vendorName: string, color: string, isHumanHair: boolean, vendorColorUpdate: VendorColorUpdate) => {
-    const vendor = vendors.find((vendor) => vendor.name === vendorName);
-    const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === color && vendorColor.isHumanHair === isHumanHair);
+    const tagNames = vendorColorTags.map((tag) => tag.name);
+    const tagsToAdd = vendorColorUpdate.features?.filter((tagName) => !tagNames.includes(tagName)) ?? [];
 
-    // Set undefined to prevent overriding previous values
-    if (vendorColor && !importOverride) {
-      vendorColorUpdate.shopImageIds =  {...(vendorColorUpdate.shopImageIds ?? {}), ...(vendorColor.shopImageIds ?? {})};
-      vendorColorUpdate.groups = vendorColor.groups.length ? undefined : vendorColorUpdate.groups;
-      vendorColorUpdate.imageSrc = vendorColor.imageSrc ? undefined : vendorColorUpdate.imageSrc;
-      vendorColorUpdate.altText = vendorColor.altText ? undefined : vendorColorUpdate.altText;
-      vendorColorUpdate.fileName = vendorColor.fileName ? undefined : vendorColorUpdate.fileName;
-      vendorColorUpdate.isHumanHair = vendorColor.isHumanHair ? undefined : vendorColorUpdate.isHumanHair
+    if (tagsToAdd.length) {
+      onCreateManyVendorColorTags(tagsToAdd);
     }
+  }, [currentVendor, submit, vendorColorTags, onCreateManyVendorColorTags]);
 
-    if (vendorColor) {
-      vendorColor.color = vendorColorUpdate.color ?? vendorColor.color;
-      vendorColor.groups = vendorColorUpdate.groups ?? vendorColor.groups;
-      vendorColor.imageSrc = vendorColorUpdate.imageSrc ?? vendorColor.imageSrc;
-      vendorColor.altText = vendorColorUpdate.altText ?? vendorColor.altText;
-      vendorColor.fileName = vendorColorUpdate.fileName ?? vendorColor.fileName;
-      vendorColor.isHumanHair = vendorColorUpdate.isHumanHair ?? vendorColor.isHumanHair;
-
-      if (vendor?.colors) {
-        vendor.colors = [...vendor.colors];
-      }
-    }
-    else if (vendor) {
-      const colorData = {
-        vendorName: vendorName,
-        color: color,
-        groups: vendorColorUpdate.groups ?? [],
-        shopImageIds: {},
-        imageSrc: vendorColorUpdate.imageSrc ?? undefined,
-        altText: vendorColorUpdate.altText,
-        isHumanHair: isHumanHair
-      };
-
-      if (vendor.colors) {
-        vendor.colors = [...vendor.colors, {...colorData}];
-      }
-      else {
-        vendor.colors = [{...colorData}];
-      }
-    }
-
-    await sleep(1);
-    submit({
-      actionType: Action.UpsertVendorColor,
-      vendorName: vendorName,
-      color,
-      vendorColorUpdate: JSON.stringify(vendorColorUpdate),
-      isHumanHair
-    }, { method: "PUT" });
-
-    setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / prev.total) * 100))}));
-
-    setVendors((prev) => [...prev]);
-  }, [vendors, submit]);
-  */
-
-  const onUpsertManyVendorColor = useCallback(async (vendorColorsUpsert: {vendorName: string, color: string, isHumanHair: boolean, vendorColorUpdate: VendorColorUpdate}[]) => {
+  const onUpsertManyVendorColor = useCallback(async (vendorColorsUpsert: {vendorName: string, color: string, fiber: string, vendorColorUpdate: VendorColorUpdate}[]) => {
     for (const vendorColorUpsert of vendorColorsUpsert) {
       const vendor = vendors.find((vendor) => vendor.name === vendorColorUpsert.vendorName);
-      const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === vendorColorUpsert.color && vendorColor.isHumanHair === vendorColorUpsert.isHumanHair);
+      const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === vendorColorUpsert.color && vendorColor.fiber === vendorColorUpsert.fiber);
 
       // Set undefined to prevent overriding previous values
       if (vendorColor && !importOverride) {
@@ -414,16 +467,27 @@ export default function ColorGroups() {
         vendorColorUpsert.vendorColorUpdate.imageSrc = vendorColor.imageSrc ? undefined : vendorColorUpsert.vendorColorUpdate.imageSrc;
         vendorColorUpsert.vendorColorUpdate.altText = vendorColor.altText ? undefined : vendorColorUpsert.vendorColorUpdate.altText;
         vendorColorUpsert.vendorColorUpdate.fileName = vendorColor.fileName ? undefined : vendorColorUpsert.vendorColorUpdate.fileName;
-        vendorColorUpsert.vendorColorUpdate.isHumanHair = undefined;
+        vendorColorUpsert.vendorColorUpdate.colorName = vendorColor.colorName ? undefined : vendorColorUpsert.vendorColorUpdate.colorName;
+        vendorColorUpsert.vendorColorUpdate.colorDesc = vendorColor.colorDesc ? undefined : vendorColorUpsert.vendorColorUpdate.colorDesc;
+        vendorColorUpsert.vendorColorUpdate.temp = vendorColor.temp ? undefined : vendorColorUpsert.vendorColorUpdate.temp;
+        vendorColorUpsert.vendorColorUpdate.rooted = vendorColor.rooted ? undefined : vendorColorUpsert.vendorColorUpdate.rooted;
+        vendorColorUpsert.vendorColorUpdate.highlighted = vendorColor.highlighted ? undefined : vendorColorUpsert.vendorColorUpdate.highlighted;
+        vendorColorUpsert.vendorColorUpdate.features = vendorColor.features ? undefined : vendorColorUpsert.vendorColorUpdate.features;
+        vendorColorUpsert.vendorColorUpdate.truColorSrc = vendorColor.truColorSrc ? undefined : vendorColorUpsert.vendorColorUpdate.truColorSrc;
       }
 
       if (vendorColor) {
-        vendorColor.color = vendorColorUpsert.vendorColorUpdate.color ?? vendorColor.color;
         vendorColor.groups = vendorColorUpsert.vendorColorUpdate.groups ?? vendorColor.groups;
         vendorColor.imageSrc = vendorColorUpsert.vendorColorUpdate.imageSrc ?? vendorColor.imageSrc;
         vendorColor.altText = vendorColorUpsert.vendorColorUpdate.altText ?? vendorColor.altText;
         vendorColor.fileName = vendorColorUpsert.vendorColorUpdate.fileName ?? vendorColor.fileName;
-        vendorColor.isHumanHair = vendorColorUpsert.vendorColorUpdate.isHumanHair ?? vendorColor.isHumanHair;
+        vendorColor.colorName = vendorColorUpsert.vendorColorUpdate.colorName ?? vendorColor.colorName;
+        vendorColor.colorDesc = vendorColorUpsert.vendorColorUpdate.colorDesc ?? vendorColor.colorDesc;
+        vendorColor.temp = vendorColorUpsert.vendorColorUpdate.temp ?? vendorColor.temp;
+        vendorColor.rooted = vendorColorUpsert.vendorColorUpdate.rooted ?? vendorColor.rooted;
+        vendorColor.highlighted = vendorColorUpsert.vendorColorUpdate.highlighted ?? vendorColor.highlighted;
+        vendorColor.features = vendorColorUpsert.vendorColorUpdate.features ?? vendorColor.features;
+        vendorColor.truColorSrc = vendorColorUpsert.vendorColorUpdate.truColorSrc ?? vendorColor.truColorSrc
 
         if (vendor?.colors) {
           vendor.colors = [...vendor.colors];
@@ -437,7 +501,14 @@ export default function ColorGroups() {
           shopImageIds: {},
           imageSrc: vendorColorUpsert.vendorColorUpdate.imageSrc ?? undefined,
           altText: vendorColorUpsert.vendorColorUpdate.altText ?? undefined,
-          isHumanHair: vendorColorUpsert.isHumanHair
+          fiber: vendorColorUpsert.fiber,
+          colorName: vendorColorUpsert.vendorColorUpdate.colorName ?? undefined,
+          colorDesc: vendorColorUpsert.vendorColorUpdate.colorDesc ?? undefined,
+          temp: vendorColorUpsert.vendorColorUpdate.temp ?? undefined,
+          rooted: vendorColorUpsert.vendorColorUpdate.rooted ?? undefined,
+          highlighted: vendorColorUpsert.vendorColorUpdate.highlighted ?? undefined,
+          features: vendorColorUpsert.vendorColorUpdate.features ?? [],
+          truColorSrc: vendorColorUpsert.vendorColorUpdate.truColorSrc ?? undefined
         };
 
         if (vendor.colors) {
@@ -460,7 +531,7 @@ export default function ColorGroups() {
     setVendors((prev) => [...prev]);
   }, [vendors, submit]);
 
-  const onDeleteVendorColor = useCallback((color: string, isHumanHair: boolean) => async () => {
+  const onDeleteVendorColor = useCallback((color: string, fiber: string) => async () => {
     if (currentVendor.colors && currentVendor.colors) {
       currentVendor.colors = currentVendor.colors.filter((vendorColor) => vendorColor.color != color);
     }
@@ -473,7 +544,7 @@ export default function ColorGroups() {
       actionType: Action.DeleteVendorColor,
       vendorName: currentVendor.name,
       color,
-      isHumanHair
+      fiber
     }, { method: "DELETE" });
 
     setVendors((prev) => [...prev]);
@@ -515,6 +586,11 @@ export default function ColorGroups() {
     setTimeout(() => setLoadingSyncAltText(false), 3000);
   }, [currentVendor.colors, submit]);
 
+  const handleVendorChange = useCallback((index: number) => {
+    history.replaceState(null, "", `?vendorName=${vendors[index].name}`);
+    setSelected(index);
+  }, []);
+
   /* IMPORT VENDOR COLOR CSV */
 
   useEffect(() => {
@@ -525,10 +601,17 @@ export default function ColorGroups() {
         onUpsertManyVendorColor(remainingPendingVendorColors.map((vendorColor) => ({
             vendorName: vendorColor.data.vendorName,
             color: vendorColor.data.color,
-            isHumanHair: vendorColor.data.isHumanHair === "true" ? true : false,
+            fiber: vendorColor.data.fiber,
             vendorColorUpdate: {
               altText: vendorColor.data.altText,
-              groups: vendorColor.data.groups ? vendorColor.data.groups.split(';') : []
+              groups: vendorColor.data.groups ? vendorColor.data.groups.split(';') : [],
+              colorName: vendorColor.data.colorName,
+              colorDesc: vendorColor.data.colorDesc,
+              temp: vendorColor.data.temp?.toLocaleLowerCase(),
+              rooted: vendorColor.data.rooted === "true" ? true : false,
+              highlighted: vendorColor.data.highlighted === "true" ? true : false,
+              features: vendorColor.data.features ? vendorColor.data.features.split(';') : [],
+              truColorSrc: vendorColor.data.truColorSrc
             }
           })
         ));
@@ -555,13 +638,20 @@ export default function ColorGroups() {
           vendorColorsUpsert.push({
             vendorName: vendorColor.data.vendorName,
             color: vendorColor.data.color,
-            isHumanHair: vendorColor.data.isHumanHair === "true" ? true : false,
+            fiber: vendorColor.data.fiber,
             vendorColorUpdate: {
               imageSrc: imageImport.imageSrc,
               fileName: vendorColor.data.fileName,
               shopImageIds: {[actionData.shop]: imageImport.imageId},
               altText: imageImport.altText,
-              groups: vendorColor.data.groups ? vendorColor.data.groups.split(';') : []
+              groups: vendorColor.data.groups ? vendorColor.data.groups.split(';') : [],
+              colorName: vendorColor.data.colorName,
+              colorDesc: vendorColor.data.colorDesc,
+              temp: vendorColor.data.temp?.toLocaleLowerCase(),
+              rooted: vendorColor.data.rooted === "true" ? true : false,
+              highlighted: vendorColor.data.highlighted === "true" ? true : false,
+              features: vendorColor.data.features ? vendorColor.data.features.split(';') : [],
+              truColorSrc: vendorColor.data.truColorSrc
             }
           });
 
@@ -594,17 +684,11 @@ export default function ColorGroups() {
         altText: vendorColor.data.altText,
         fileName: vendorColor.data.fileName + (vendorColor.data.imageSrc?.match(/(\.\w+)(?=\?.+)|(\.\w+)$/g)?.[0] ?? '.jpg'),
         vendorName: vendorColor.data.vendorName,
-        isHumanHair: vendorColor.data.isHumanHair === "true" ? true : false
+        fiber: vendorColor.data.fiber
       })))
     }, { method: "POST" });
     await sleep(10000);
   }, [submit]);
-
-  /*
-  const handleFailedImport = useCallback(() => {
-    setLoadingImport((prev) => ({...prev, progress: Math.ceil(prev.progress + ((1 / prev.total) * 100))}));
-  }, [setLoadingImport]);
-  */
 
   const handleImportVendorColorsBulk = useCallback(async (vendorColorsImport: VendorColorType[]) => {
     const vendorColorsBulk: ({upserted: boolean, data: VendorColorType & {imageSrc: string, fileName: string}})[] = [];
@@ -612,12 +696,11 @@ export default function ColorGroups() {
     const vendorColorsUpsert = [];
     
     for (const vendorColorImport of vendorColorsImport) {
-      const isHumanHair = vendorColorImport.isHumanHair === "true" ? true : false;
       const vendor = vendors.find((vendor) => vendor.name === vendorColorImport.vendorName);
-      const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === vendorColorImport.color && vendorColor.isHumanHair === isHumanHair);
+      const vendorColor = vendor?.colors?.find((vendorColor) => vendorColor.color === vendorColorImport.color && vendorColor.fiber === vendorColorImport.fiber);
 
       if ((importOverride || !vendorColor?.imageSrc) && vendorColorImport.imageSrc) {
-        let fileName = handleize(`${vendorColorImport.vendorName}_${vendorColorImport.color}${isHumanHair ? '_hh' : ''}_swatch`);
+        let fileName = handleize(`${vendorColorImport.vendorName}_${vendorColorImport.color}${vendorColorImport.fiber ? `_${fiberFileSuffix(vendorColorImport.fiber)}` : ''}_swatch`);
 
         vendorColorsBulk.push({upserted: false, data: {...vendorColorImport, imageSrc: vendorColorImport.imageSrc, fileName}});
       }
@@ -625,10 +708,17 @@ export default function ColorGroups() {
         vendorColorsUpsert.push({
           vendorName: vendorColorImport.vendorName,
           color: vendorColorImport.color,
-          isHumanHair: isHumanHair,
+          fiber: vendorColorImport.fiber,
           vendorColorUpdate: {
             altText: vendorColorImport.altText,
-            groups: vendorColorImport.groups ? vendorColorImport.groups.split(';') : []
+            groups: vendorColorImport.groups ? vendorColorImport.groups.split(';') : [],
+            colorName: vendorColorImport.colorName,
+            colorDesc: vendorColorImport.colorDesc,
+            temp: vendorColorImport.temp?.toLocaleLowerCase(),
+            rooted: vendorColorImport.rooted === "true" ? true : false,
+            highlighted: vendorColorImport.highlighted === "true" ? true : false,
+            features: vendorColorImport.features ? vendorColorImport.features.split(';') : [],
+            truColorSrc: vendorColorImport.truColorSrc
           }
         });
       }
@@ -675,9 +765,9 @@ export default function ColorGroups() {
         let vendorColors = [];
 
         for (let i = 1; i < rows.length; i = i + 1) {
-          let rowData = rows[i].split(',').reduce<{[key: string]: string}>(
+          let rowData = rows[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/g).reduce<{[key: string]: string}>(
             (rowObject, currentValue, currentIndex) => {
-              rowObject[rowHeaders[currentIndex]] = currentValue;
+              rowObject[rowHeaders[currentIndex]] = currentValue.replaceAll(/(^")|("$)/g, '');
 
               return rowObject;
             }, {}
@@ -736,8 +826,8 @@ export default function ColorGroups() {
       <Card>
         <Tabs
           tabs={tabs}
-          selected={selected}
-          onSelect={setSelected}
+          selected={selected ?? 0}
+          onSelect={handleVendorChange}
           canCreateNewView
           onCreateNewView={onCreateVendor}
         >
@@ -773,6 +863,9 @@ export default function ColorGroups() {
                 onUpdateVendorColor={onUpdateVendorColor}
                 submit={submit}
                 search={search}
+                vendorColorTags={vendorColorTags}
+                onCreateVendorColorTag={onCreateVendorColorTag}
+                onDeleteVendorColorTag={onDeleteVendorColorTag}
               />
             </BlockStack>
           </BlockStack>
@@ -791,6 +884,17 @@ function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups, hideSelect 
   const [options, setOptions] = useState(COLOR_GROUPS);
   const [inputValue, setInputValue] = useState('');
 
+  const verticalContentMarkup = useMemo(() => selectedGroups.length > 0 ? (
+      <InlineStack gap="200">
+        {selectedGroups.map((tag) => (
+          <Tag key={`option-${tag}`}>
+            {tag}
+          </Tag>
+        ))}
+      </InlineStack>
+    ) : null
+  , [selectedGroups]);
+
   const optionsMarkup = useMemo(() => options.map((option) => {
     const {label, value} = option;
 
@@ -806,9 +910,9 @@ function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups, hideSelect 
     );
   }), [options, selectedGroups]);
 
-  const tagsMarkup = useMemo(() => selectedGroups.map((group) => (
-    <Tag key={`option-${group}`}>
-      {group}
+  const tagsMarkup = useMemo(() => selectedGroups.map((tag) => (
+    <Tag key={`option-${tag}`}>
+      {tag}
     </Tag>
   )), [selectedGroups]);
 
@@ -841,19 +945,19 @@ function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups, hideSelect 
 
   return (
     <BlockStack gap="200">
-      {!hideSelect && (
+      {!hideSelect ? (
         <Box minWidth='164px'>
           <Combobox
             allowMultiple
             activator={
               <Combobox.TextField
-                prefix={<Icon source={SearchIcon}/>}
                 onChange={updateText}
                 label="Group(s)"
                 labelHidden={labelHidden}
                 value={inputValue}
                 placeholder="Search groups"
                 autoComplete="off"
+                verticalContent={verticalContentMarkup}
               />
             }
           >
@@ -862,22 +966,138 @@ function MultiSelectGroups({ selectedGroups, onChangeSelectedGroups, hideSelect 
             ) : null}
           </Combobox>
         </Box>
+      ) : (
+        <InlineStack gap="200">
+          {tagsMarkup}
+        </InlineStack>
       )}
-      <InlineStack gap="200">
-        {tagsMarkup}
-      </InlineStack>
     </BlockStack>
   );
 }
 
-function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: string, groups: string[], isHumanHair: boolean) => Promise<boolean> }) {
+function MultiSelectVendorColorTags({ vendorColorTags, onChangeSelectedTags, selectedTags = [], hideSelect = false, labelHidden = false }: {
+  vendorColorTags: VendorColorTag[],
+  onChangeSelectedTags: (values: string[]) => void,
+  selectedTags: string[],
+  hideSelect: boolean,
+  labelHidden?: boolean,
+}) {
+  const [vendorColorTagNames, setVendorColorTagNames] = useState(vendorColorTags.map((tag) => tag.name));
+
+  const [options, setOptions] = useState(vendorColorTagNames);
+  const [inputValue, setInputValue] = useState('');
+
+  const verticalContentMarkup = useMemo(() => selectedTags.length > 0 ? (
+      <InlineStack gap="200">
+        {selectedTags.map((tag) => (
+          <Tag key={`option-${tag}`}>
+            {tag}
+          </Tag>
+        ))}
+      </InlineStack>
+    ) : null
+  , [selectedTags]);
+
+  const optionsMarkup = useMemo(() => options.map((option) => {
+    return (
+      <Listbox.Option
+        key={option}
+        value={option}
+        selected={selectedTags.includes(option)}
+        accessibilityLabel={option}
+      >
+        {option}
+      </Listbox.Option>
+    );
+  }), [options, selectedTags]);
+
+  const tagsMarkup = useMemo(() => selectedTags.map((tag) => (
+    <Tag key={`option-${tag}`}>
+      {tag}
+    </Tag>
+  )), [selectedTags, options]);
+
+  const escapeSpecialRegExCharacters = useCallback((value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), []);
+
+  const updateText = useCallback((value: string) => {
+    setInputValue(value);
+
+    if (value === '') {
+      setOptions(vendorColorTagNames);
+
+      return;
+    }
+
+    const filterRegex = new RegExp(escapeSpecialRegExCharacters(value), 'i');
+    const resultOptions = vendorColorTagNames.filter((option) => option.match(filterRegex));
+
+    setOptions(resultOptions);
+  }, [escapeSpecialRegExCharacters, vendorColorTagNames]);
+
+  const updateSelection = useCallback((selected: string) => {
+    if (selectedTags.includes(selected)) {
+      onChangeSelectedTags(selectedTags.filter((option) => option !== selected));
+    } else {
+      onChangeSelectedTags([...selectedTags, selected]);
+    }
+
+    updateText('');
+
+    if (!vendorColorTagNames.includes(selected)) {
+      setOptions((prev) => ([...prev, selected]));
+      setVendorColorTagNames((prev) => ([...prev, selected]));
+    }
+  }, [selectedTags, updateText, onChangeSelectedTags, vendorColorTagNames]);
+
+  return (
+    <BlockStack gap="200">
+      {!hideSelect ? (
+        <Box minWidth='164px'>
+          <Combobox
+            allowMultiple
+            activator={
+              <Combobox.TextField
+                onChange={updateText}
+                label="Feature(s)"
+                labelHidden={labelHidden}
+                value={inputValue}
+                placeholder="Search features"
+                autoComplete="off"
+                verticalContent={verticalContentMarkup}
+              />
+            }
+          >
+            <>
+              {optionsMarkup ? (
+                <Listbox onSelect={updateSelection}>
+                  {inputValue && options.length === 0 && (
+                    <Listbox.Action value={inputValue}>
+                      Add "{inputValue}"
+                    </Listbox.Action>
+                  )}
+                  {optionsMarkup}
+                </Listbox>
+              ) : null}
+            </>
+          </Combobox>
+        </Box>
+      ) : (
+        <InlineStack gap="200">
+          {tagsMarkup}
+        </InlineStack>
+      )}
+    </BlockStack>
+  );
+}
+
+function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: string, groups: string[], fiber: string) => Promise<boolean> }) {
   const [color, setColor] = useState('');
   const [groups, setGroups] = useState<string[]>([]);
-  const [isHumanHair, setIsHumanHair] = useState<boolean>(false);
+  const [fiber, setFiber] = useState<string>('');
   const [showError, setShowError] = useState(false);
 
   const handleAddColorGroup = useCallback(() => {
-    const responseSuccess = onAddVendorColor(color, groups, isHumanHair);
+    const responseSuccess = onAddVendorColor(color, groups, fiber);
 
     responseSuccess.then((success) => {
       if (!success) {
@@ -893,12 +1113,13 @@ function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: strin
   }, [color, groups, onAddVendorColor, showError]);
 
   const handleColorChange = useCallback((value: string) => setColor(value), []);
+  const handleFiberChange = useCallback((value: string) => setFiber(value), []);
 
   const onChangeSelectedGroups = useCallback((values: string[]) => setGroups(values), []);
 
   return (
-    <InlineGrid gap="100" columns={2}>
-      <Box>
+    <BlockStack gap="200">
+      <InlineGrid gap="400" columns={3}>
         <TextField
           value={color}
           onChange={handleColorChange}
@@ -907,23 +1128,31 @@ function VendorColorForm({ onAddVendorColor }: { onAddVendorColor: (color: strin
           autoComplete="off"
           id="vendorColor"
         />
-        <Checkbox label="Human Hair?" checked={isHumanHair} onChange={() => setIsHumanHair((prev) => !prev)} />
-      </Box>
-      <MultiSelectGroups selectedGroups={groups} onChangeSelectedGroups={onChangeSelectedGroups} hideSelect={false} />
+        <Select
+          label="Fiber"
+          options={FIBERS}
+          onChange={handleFiberChange}
+          value={fiber}
+        />
+        <MultiSelectGroups selectedGroups={groups} onChangeSelectedGroups={onChangeSelectedGroups} hideSelect={false} />
+      </InlineGrid>
       <InlineStack gap="400" blockAlign="center">
         <Button onClick={handleAddColorGroup} size="slim" disabled={!color || !groups.length} variant="primary">Add Vendor Color</Button>
         {showError && <InlineError message="Color Already Exists" fieldID="vendorColor" />}
       </InlineStack>
-    </InlineGrid>
+    </BlockStack>
   );
 }
 
-function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColor, submit, search}: {
+function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColor, submit, search, vendorColorTags, onCreateVendorColorTag}: {
   currentVendor: Vendor,
-  onDeleteVendorColor: (color: string, isHumanHair: boolean) => () => void,
-  onUpdateVendorColor: (color: string, isHumanHair: boolean, vendorColorUpdate: VendorColorUpdate) => Promise<void>,
+  onDeleteVendorColor: (color: string, fiber: string) => () => void,
+  onUpdateVendorColor: (color: string, fiber: string, vendorColorUpdate: VendorColorUpdate) => Promise<void>,
   submit: SubmitFunction,
-  search: string
+  search: string,
+  vendorColorTags: VendorColorTag[],
+  onCreateVendorColorTag: (tagName: string) => void,
+  onDeleteVendorColorTag: (tagName: string) => () => void
 }) {
   const actionData = useActionData<any>();
   const [colorFiles, setColorFiles] = useState<{[key: string]: {
@@ -934,63 +1163,34 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     color: string,
     groups: string[],
     altText?: string,
-    isHumanHair: boolean
+    fiber: string,
+    colorName?: string,
+    colorDesc?: string,
+    temp?: string,
+    rooted?: boolean,
+    highlighted?: boolean,
+    features: string[],
+    truColorSrc?: string
   }}>({});
 
   /* UPDATING VENDOR COLOR */
 
-  const getVendorColorKey = (color: string, isHumanHair: boolean) => isHumanHair ? `${color}#${isHumanHair}` : color;
+  const getVendorColorKey = (color: string, fiber: string) => fiber ? `${color}#${fiber}` : color;
 
-  const handleColorChange = useCallback((color: string, isHumanHair: boolean) => (value: string) => setEditing((prev) => {
-    const colorKey = getVendorColorKey(color, isHumanHair);
-
-    return ({
-      ...prev,
-      [colorKey]: {
-        ...prev[colorKey],
-        color: value
-      }
-    })
-  }), [setEditing]);
-
-  const handleisHumanHair = useCallback((color: string, isHumanHair: boolean) => (value: boolean) => setEditing((prev) => {
-    const colorKey = getVendorColorKey(color, isHumanHair);
+  const handleEditChange = useCallback((color: string, fiber: string, key: vendorColorProperties) => (value: string | string[] | boolean) => setEditing((prev) => {
+    const colorKey = getVendorColorKey(color, fiber);
 
     return ({
       ...prev,
       [colorKey]: {
         ...prev[colorKey],
-        isHumanHair: value
+        [key]: value
       }
     })
   }), [setEditing]);
 
-  const handleGroupsChange = useCallback((color: string, isHumanHair: boolean) => (values: string[]) => setEditing((prev) => {
-    const colorKey = getVendorColorKey(color, isHumanHair);
-
-    return ({
-      ...prev,
-      [colorKey]: {
-        ...prev[colorKey],
-        groups: values
-      }
-    })
-  }), [setEditing]);
-
-  const handleAltTextChange = useCallback((color: string, isHumanHair: boolean) => (value: string) => setEditing((prev) => {
-    const colorKey = getVendorColorKey(color, isHumanHair);
-
-    return ({
-      ...prev,
-      [colorKey]: {
-        ...prev[colorKey],
-        altText: value
-      }
-    })
-  }), [setEditing]);
-
-  const handleClearImage = useCallback((color: string, isHumanHair: boolean) => () => {
-    onUpdateVendorColor(color, isHumanHair, {
+  const handleClearImage = useCallback((color: string, fiber: string) => () => {
+    onUpdateVendorColor(color, fiber, {
       shopImageIds: {},
       imageSrc: ""
     });
@@ -999,15 +1199,22 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     setEditing((prev) => ({...prev}));
   }, [onUpdateVendorColor]);
 
-  const onEdit = useCallback((vendorColor: VendorColor) => () => setEditing((prev) => ({...prev, [getVendorColorKey(vendorColor.color, vendorColor.isHumanHair)]: {
+  const onEdit = useCallback((vendorColor: VendorColor) => () => setEditing((prev) => ({...prev, [getVendorColorKey(vendorColor.color, vendorColor.fiber)]: {
     color: vendorColor.color,
     groups: vendorColor.groups,
     altText: vendorColor.altText,
-    isHumanHair: vendorColor.isHumanHair
+    fiber: vendorColor.fiber,
+    colorName: vendorColor.colorName,
+    truColorSrc: vendorColor.truColorSrc,
+    colorDesc: vendorColor.colorDesc,
+    temp: vendorColor.temp,
+    rooted: vendorColor.rooted,
+    highlighted: vendorColor.highlighted,
+    features: vendorColor.features,
   }})), [setEditing]);
 
-  const onCancelEdit = useCallback((color: string, isHumanHair: boolean) => () => {
-    const colorKey = getVendorColorKey(color, isHumanHair);
+  const onCancelEdit = useCallback((color: string, fiber: string) => () => {
+    const colorKey = getVendorColorKey(color, fiber);
 
     if (editing[colorKey]) {
       delete editing[colorKey];
@@ -1015,16 +1222,23 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     }
   }, [editing, setEditing]);
 
-  const onSaveEdit = useCallback((color: string, isHumanHair: boolean) => () => {
-    const colorKey = getVendorColorKey(color, isHumanHair);
+  const onSaveEdit = useCallback((color: string, fiber: string) => () => {
+    const colorKey = getVendorColorKey(color, fiber);
     const editingVendorColor = editing[colorKey];
 
     if (editingVendorColor) {
-      onUpdateVendorColor(color, isHumanHair, {
+      onUpdateVendorColor(color, fiber, {
         color: editingVendorColor.color,
         groups: [...editingVendorColor.groups],
         altText: editingVendorColor.altText,
-        isHumanHair: editingVendorColor.isHumanHair
+        fiber: editingVendorColor.fiber,
+        colorName: editingVendorColor.colorName,
+        truColorSrc: editingVendorColor.truColorSrc,
+        colorDesc: editingVendorColor.colorDesc,
+        temp: editingVendorColor.temp,
+        rooted: editingVendorColor.rooted,
+        highlighted: editingVendorColor.highlighted,
+        features: editingVendorColor.features
       });
 
       delete editing[colorKey];
@@ -1034,8 +1248,8 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
 
   /* UPDATING VENDOR COLOR: IMAGE FUNCTIONALITY */
 
-  const handleUploadImage = useCallback(async (stagedTarget: any, color: string, isHumanHair: boolean, altText: string) => {
-    const colorFile = colorFiles[getVendorColorKey(color, isHumanHair)];
+  const handleUploadImage = useCallback(async (stagedTarget: any, color: string, fiber: string, altText: string) => {
+    const colorFile = colorFiles[getVendorColorKey(color, fiber)];
     
     if (!colorFile) {
       return;
@@ -1063,18 +1277,18 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
       resourceUrl,
       color,
       altText,
-      isHumanHair
+      fiber
     }, { method: "POST" });
   }, [colorFiles, submit]);
 
   useEffect(() => {
-    const colorKey = actionData && actionData.imageSrc && actionData.color ? getVendorColorKey(actionData.color, actionData.isHumanHair) : undefined;
+    const colorKey = actionData && actionData.imageSrc && actionData.color ? getVendorColorKey(actionData.color, actionData.fiber) : undefined;
 
     if (actionData?.stagedTarget) {
-      handleUploadImage(actionData.stagedTarget, actionData.color, actionData.isHumanHair, actionData.altText);
+      handleUploadImage(actionData.stagedTarget, actionData.color, actionData.fiber, actionData.altText);
     }
     else if (colorKey && colorFiles[colorKey]) {
-      onUpdateVendorColor(actionData.color, actionData.isHumanHair, {
+      onUpdateVendorColor(actionData.color, actionData.fiber, {
         imageSrc: actionData.imageSrc,
         fileName: colorFiles[colorKey].fileName,
         shopImageIds: {[actionData.shop]: actionData.imageId},
@@ -1086,10 +1300,10 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     }
   }, [actionData]);
 
-  const handleDropZoneDrop = useCallback((color: string, isHumanHair: boolean, altText: string | undefined) => async (_dropFiles: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
+  const handleDropZoneDrop = useCallback((color: string, fiber: string, altText: string | undefined) => async (_dropFiles: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
     const acceptedFile = acceptedFiles[0];
-    const fileName = handleize(`${currentVendor.name}_${color}${isHumanHair ? '_hh' : ''}_swatch`);
-    const colorKey = getVendorColorKey(color, isHumanHair);
+    const fileName = handleize(`${currentVendor.name}_${color}${fiber ? `_${fiberFileSuffix(fiber)}` : ''}_swatch`);
+    const colorKey = getVendorColorKey(color, fiber);
 
     setColorFiles((prev) => ({...prev, [colorKey]: { file: acceptedFile, fileName }}));
 
@@ -1098,7 +1312,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
       color,
       altText: altText ?? "",
       file: JSON.stringify({ filename: fileName, mimeType: acceptedFile.type, fileSize: acceptedFile.size.toString()}),
-      isHumanHair
+      fiber
     }, { method: "POST" });
   }, [currentVendor.name, setColorFiles, submit]);
 
@@ -1107,7 +1321,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
 
     if (selectedVendorColors && Object.keys(selectedVendorColors).length) {
       return selectedVendorColors.map((vendorColor, index) => {
-        const colorKey = getVendorColorKey(vendorColor.color, vendorColor.isHumanHair);
+        const colorKey = getVendorColorKey(vendorColor.color, vendorColor.fiber);
 
         return (
           <IndexTable.Row
@@ -1117,7 +1331,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
           >
             <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
               <Box width="60px">
-                <DropZone onDrop={handleDropZoneDrop(vendorColor.color, vendorColor.isHumanHair, vendorColor.altText)} allowMultiple={false} accept="image/png, image/jpeg, .webp">
+                <DropZone onDrop={handleDropZoneDrop(vendorColor.color, vendorColor.fiber, vendorColor.altText)} allowMultiple={false} accept="image/png, image/jpeg, .webp">
                   {colorFiles[colorKey] ? <Box paddingInline="500" paddingBlockStart="200"><Spinner accessibilityLabel="Loading Image" size="small" /></Box> : (
                     vendorColor.imageSrc ? (
                       <Thumbnail
@@ -1137,7 +1351,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
                     variant="plain"
                     tone="critical"
                     textAlign="center"
-                    onClick={handleClearImage(vendorColor.color, vendorColor.isHumanHair)}
+                    onClick={handleClearImage(vendorColor.color, vendorColor.fiber)}
                     fullWidth
                   >
                     Clear
@@ -1150,24 +1364,58 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
               {editing[colorKey] ? (
                 <Box>
                   <TextField
-                    label="Color"
+                    label="Color Code"
                     labelHidden
                     value={editing[colorKey].color}
-                    onChange={handleColorChange(vendorColor.color, vendorColor.isHumanHair)}
+                    onChange={handleEditChange(vendorColor.color, vendorColor.fiber, 'color')}
                     autoComplete="off"
                   />
-                  <Checkbox label="Human Hair?" checked={editing[colorKey].isHumanHair} onChange={handleisHumanHair(vendorColor.color, vendorColor.isHumanHair)} />
                 </Box>
               ) : (
                 <BlockStack>
                   <Text variant="bodyMd" fontWeight="bold" as="span">
                     {vendorColor.color}
                   </Text>
-                  {vendorColor.isHumanHair && (
-                    <Box>
-                      <Text tone="subdued" as="p">Human Hair</Text>
-                    </Box>
-                  )}
+                </BlockStack>
+              )}
+            </IndexTable.Cell>
+
+            <IndexTable.Cell>
+              {editing[colorKey] ? (
+                <Box>
+                  <TextField
+                    label="Color Name"
+                    labelHidden
+                    value={editing[colorKey].colorName}
+                    onChange={handleEditChange(vendorColor.color, vendorColor.fiber, 'colorName')}
+                    autoComplete="off"
+                  />
+                </Box>
+              ) : (
+                <BlockStack>
+                  <Text variant="bodyMd" fontWeight="bold" as="span">
+                    {vendorColor.colorName}
+                  </Text>
+                </BlockStack>
+              )}
+            </IndexTable.Cell>
+
+            <IndexTable.Cell>
+              {editing[colorKey] ? (
+                <Box>
+                  <Select
+                    label="Fiber"
+                    options={FIBERS}
+                    labelHidden
+                    value={editing[colorKey].fiber}
+                    onChange={handleEditChange(vendorColor.color, vendorColor.fiber, 'fiber')}
+                  />
+                </Box>
+              ) : (
+                <BlockStack>
+                  <Text variant="bodyMd" as="span">
+                    {vendorColor.fiber}
+                  </Text>
                 </BlockStack>
               )}
             </IndexTable.Cell>
@@ -1175,7 +1423,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
             <IndexTable.Cell>
               <MultiSelectGroups
                 selectedGroups={editing[colorKey] ? editing[colorKey].groups : vendorColor.groups}
-                onChangeSelectedGroups={handleGroupsChange(vendorColor.color, vendorColor.isHumanHair)}
+                onChangeSelectedGroups={handleEditChange(vendorColor.color, vendorColor.fiber, 'groups')}
                 hideSelect={!editing[colorKey]}
                 labelHidden={true}
               />
@@ -1183,11 +1431,66 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
 
             <IndexTable.Cell>
               {editing[colorKey] ? (
+                <Box>
+                  <Select
+                    label="Temperature"
+                    labelHidden
+                    options={TEMPERATURES}
+                    onChange={handleEditChange(vendorColor.color, vendorColor.fiber, 'temp')}
+                    value={editing[colorKey].temp}
+                    placeholder=""
+                  />
+                </Box>
+              ) : (
+                <BlockStack>
+                  <Text variant="bodyMd" as="span">
+                    {vendorColor.temp}
+                  </Text>
+                </BlockStack>        
+              )}
+            </IndexTable.Cell>
+
+            <IndexTable.Cell>
+              {editing[colorKey] ? (
+                <InlineStack align="center">
+                  <Checkbox
+                    label="Rooted"
+                    labelHidden
+                    onChange={handleEditChange(vendorColor.color, vendorColor.fiber, 'rooted')}
+                    checked={editing[colorKey].rooted}
+                  />
+                </InlineStack>
+              ) : (
+                <BlockStack>
+                  {vendorColor.rooted ? <Icon source={CheckIcon} tone="success" /> : <Icon source={XIcon} tone="subdued" />}
+                </BlockStack>
+              )}
+            </IndexTable.Cell>
+
+            <IndexTable.Cell>
+              {editing[colorKey] ? (
+                <InlineStack align="center">
+                  <Checkbox
+                    label="Highlighted"
+                    labelHidden
+                    onChange={handleEditChange(vendorColor.color, vendorColor.fiber, 'highlighted')}
+                    checked={editing[colorKey].highlighted}
+                  />
+                </InlineStack>
+              ) : (
+                <BlockStack>
+                  {vendorColor.highlighted ? <Icon source={CheckIcon} tone="success" /> : <Icon source={XIcon} tone="subdued" />}
+                </BlockStack>
+              )}
+            </IndexTable.Cell>
+
+            <IndexTable.Cell>
+              {editing[colorKey] ? (
                 <TextField
-                  label="Color"
+                  label="Alt Text"
                   labelHidden
                   value={editing[colorKey].altText}
-                  onChange={handleAltTextChange(vendorColor.color, vendorColor.isHumanHair)}
+                  onChange={handleEditChange(vendorColor.color, vendorColor.fiber, 'altText')}
                   maxLength={512}
                   autoComplete="off"
                   multiline
@@ -1199,19 +1502,47 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
               )}
             </IndexTable.Cell>
 
+            <IndexTable.Cell>
+              {editing[colorKey] ? (
+                <TextField
+                  label="Description"
+                  labelHidden
+                  value={editing[colorKey].colorDesc}
+                  onChange={handleEditChange(vendorColor.color, vendorColor.fiber, 'colorDesc')}
+                  maxLength={512}
+                  autoComplete="off"
+                  multiline
+                />
+              ) : (
+                <Text variant="bodyMd" as="span">
+                  {vendorColor.colorDesc}
+                </Text>
+              )}
+            </IndexTable.Cell>
+
+            <IndexTable.Cell>
+              <MultiSelectVendorColorTags
+                vendorColorTags={vendorColorTags}
+                onChangeSelectedTags={handleEditChange(vendorColor.color, vendorColor.fiber, 'features')}
+                selectedTags={editing[colorKey] ? editing[colorKey].features : vendorColor.features}
+                hideSelect={!editing[colorKey]}
+                labelHidden={true}
+              />
+            </IndexTable.Cell>
+
             <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
               <InlineStack align="center">
-                <Button icon={DeleteIcon} accessibilityLabel="Delete Color Group" onClick={onDeleteVendorColor(vendorColor.color, vendorColor.isHumanHair)} variant="primary" tone="critical" />
+                <Button icon={DeleteIcon} accessibilityLabel="Delete Color Group" onClick={onDeleteVendorColor(vendorColor.color, vendorColor.fiber)} variant="primary" tone="critical" />
               </InlineStack>
             </td>
 
             <td className="Polaris-IndexTable__TableCell">
-              <Box minWidth="120px">
+              <Box minWidth={!editing[colorKey] ? "32px" : "120px"}>
               <InlineStack align="center">
                 {editing[colorKey] ? (
                   <InlineGrid gap="100" columns={2} alignItems="center">
-                    <Button icon={XIcon} accessibilityLabel="Cancel Color Group Edit" onClick={onCancelEdit(vendorColor.color, vendorColor.isHumanHair)} /><Text as="span">Cancel</Text>
-                    <Button icon={CheckIcon} accessibilityLabel="Save Color Group Edit" onClick={onSaveEdit(vendorColor.color, vendorColor.isHumanHair)} /><Text as="span">Save</Text>
+                    <Button icon={XIcon} accessibilityLabel="Cancel Color Group Edit" onClick={onCancelEdit(vendorColor.color, vendorColor.fiber)} /><Text as="span">Cancel</Text>
+                    <Button icon={CheckIcon} accessibilityLabel="Save Color Group Edit" onClick={onSaveEdit(vendorColor.color, vendorColor.fiber)} /><Text as="span">Save</Text>
                   </InlineGrid>
                 ) : (
                   <Button icon={EditIcon} accessibilityLabel="Edit Color Group" onClick={onEdit(vendorColor)} />
@@ -1225,7 +1556,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     else {
       return null;
     }
-  }, [currentVendor.colors, colorFiles, editing, handleAltTextChange, handleColorChange, handleDropZoneDrop, handleGroupsChange, onCancelEdit, onDeleteVendorColor, onEdit, onSaveEdit, search]);
+  }, [currentVendor.colors, colorFiles, editing, handleEditChange, handleDropZoneDrop, onCancelEdit, onDeleteVendorColor, onEdit, onSaveEdit, search]);
 
   const emptyStateMarkup = (
     <EmptySearchResult
@@ -1241,9 +1572,16 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
         selectable={false}
         headings={[
             {title: 'Image', alignment: 'center'},
-            {title: 'Color'},
+            {title: 'Color Code'},
+            {title: 'Color Name'},
+            {title: 'Fiber'},
             {title: 'Group(s)'},
+            {title: 'Temperature'},
+            {title: 'Rooted'},
+            {title: 'Highlighted'},
             {title: 'Alt Text'},
+            {title: 'Description'},
+            {title: 'Features'},
             {title: 'Remove', alignment: 'center'},
             {title: 'Edit', alignment: 'center'}
           ]}

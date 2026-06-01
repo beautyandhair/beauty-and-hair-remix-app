@@ -99,3 +99,27 @@ key = "donation_ebeauty_active"
 type = "boolean"
 name = "EBEAUTY Activate?"
 description = "EBeauty.com"
+
+[[extensions.settings.fields]]
+key = "donation_cwhl_gid"
+type = "variant_reference"
+name = "CWHL Variant"
+description = "Be sure to select variant, not product."
+
+[[extensions.settings.fields]]
+key = "donation_cwhl_active"
+type = "boolean"
+name = "CWHL Activate?"
+description = "ChildrenWithHairLoss.org"
+
+[[extensions.settings.fields]]
+key = "donation_rfnbf_gid"
+type = "variant_reference"
+name = "RFNBF Variant"
+description = "Be sure to select variant, not product."
+
+[[extensions.settings.fields]]
+key = "donation_rfnbf_active"
+type = "boolean"
+name = "RFNBF Activate?"
+description = "RicardoFisasFoundation.org"

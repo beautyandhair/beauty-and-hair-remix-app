@@ -11,7 +11,37 @@ export interface VendorColor {
   shopImageIds?: {[key: string]: string},
   altText?: string,
   fileName?: string,
-  isHumanHair?: boolean
+  fiber: string,
+  colorName?: string,
+  colorDesc?: string,
+  temp?: string,
+  rooted?: boolean,
+  highlighted?: boolean,
+  features: string[],
+  truColorSrc?: string
+}
+
+interface ColorImage {
+  imageSrc?: string,
+  imageId?: string,
+  altText?: string,
+  fileName?: string,
+  shopImageIds?: {[key: string]: string},
+  fiber: string
+}
+
+interface Product {
+  vendor: string,
+  tags: string[]
+}
+
+interface Variant {
+  id: string,
+  title: string,
+  product: Product,
+  image?: {
+    src?: string
+  }
 }
 
 // 1. Export the extension
@@ -27,38 +57,34 @@ function Extension() {
   const [loading, setLoading] = useState(true);
   const [syncLoadingMessage, setSyncLoadingMessage] = useState('');
   const [shop, setShop] = useState('');
-  const [variants, setVariants] = useState([]);
+  const [vendor, setVendor] = useState('');
+  const [variants, setVariants] = useState<Variant[]>([]);
   const [vendorColors, setVendorColors] = useState<VendorColor[]>([]);
   const [syncWarning, setSyncWarning] = useState<boolean>(false);
-  const [isHumanHair, setIsHumanHair] = useState<boolean>(false);
+  const [fiber, setFiber] = useState<string>("");
+  const [vendorError, setVendorError] = useState<string>();
+  const [fiberWarning, setFiberWarning] = useState<string>();
 
-  const colorGroups: {[key: string]: string[]} = useMemo(() => vendorColors.reduce((obj, vendorColor) => {
+  const colorGroups: {[key: string]: string[]} = useMemo(() => vendorColors.reduce((obj: {[key: string]: string[]}, vendorColor) => {
       obj[vendorColor.color] = vendorColor.groups;
 
       return obj;
     }, ({}))
   , [vendorColors]);
 
-  const colorImages: {[key: string]: {
-    imageSrc?: string,
-    imageId?: string,
-    altText?: string,
-    fileName?: string,
-    shopImageIds: {[key: string]: string},
-    isHumanHair?: boolean
-  }} = useMemo(() => vendorColors.filter((vendorColor) => vendorColor.isHumanHair === isHumanHair).reduce((obj, vendorColor) => {
+  const colorImages: {[key: string]: ColorImage} = useMemo(() => vendorColors.filter((vendorColor) => vendorColor.fiber === fiber).reduce((obj: {[key: string]: ColorImage}, vendorColor) => {
       obj[vendorColor.color] = {
         imageSrc: vendorColor.imageSrc,
         imageId: vendorColor.shopImageIds?.[shop],
         altText: vendorColor.altText,
         fileName: vendorColor.fileName,
         shopImageIds: vendorColor.shopImageIds,
-        isHumanHair: vendorColor.isHumanHair
+        fiber: vendorColor.fiber
       };
 
       return obj;
     }, ({}))
-  , [vendorColors, shop, isHumanHair]);
+  , [vendorColors, shop, fiber]);
 
   const getSessionShop = useCallback(async () => {
     const res = await fetch(`api/getSessionShop`);
@@ -85,21 +111,40 @@ function Extension() {
 
     const json = await res.json();
 
-    if (json.colors) {
+    if (!json) {
+      setVendorError("Vendor Does Not Exist in Color Groups");
+    }
+    else if (json.colors) {
       setVendorColors(json.colors);
       setLoading(false);
     }
   }, []);
 
   const getProductVariants = useCallback(async () => {
-    const variantData = await getVariants(productId.split('/').at(-1));
+    const variantData = await getVariants(productId.split('/').pop());
     
     if (variantData.data.productVariants.nodes.length) {
       const variants = variantData.data.productVariants.nodes;
+      const vendorValue = variantData.data.product.vendor;
+      const fiberValue = variantData.data.product.tags.find((tag: string) => tag.includes("Hair Fiber"))?.split('_')[1];
 
       setVariants(variants);
-      getVendorColors(variants[0].product.vendor);
-      setIsHumanHair(variants[0].product.title?.includes("Human Hair") ?? false);
+
+      if (vendorValue) {
+        getVendorColors(vendorValue);
+        setVendor(vendorValue);
+      }
+      else {
+        setVendorError("Vendor Not Assigned");
+      }
+
+      if (fiberValue) {
+        setFiber(fiberValue);
+      }
+      else {
+        setFiber("Synthetic");
+        setFiberWarning("No 'Hair Fiber_' Tag Found, Defaulted to 'Synthetic' Fiber");
+      }
     }
   }, [productId, getVendorColors]);
 
@@ -133,7 +178,7 @@ function Extension() {
 
         variantImageCategories.uploadNeeded = variantImageCategories.uploadNeeded.filter((imageUpload) => imageUpload.color != variantImage.color);
 
-        shopImageIdUpdates.push({color: variantImage.color, isHumanHair: variantImage.isHumanHair ?? isHumanHair, shopImageIds: {...variantImage.shopImageIds, [shop]: file.id}});
+        shopImageIdUpdates.push({color: variantImage.color, fiber: variantImage.fiber ?? fiber, shopImageIds: {...variantImage.shopImageIds, [shop]: file.id}});
       }
     }
 
@@ -141,16 +186,17 @@ function Extension() {
 
     formData.append('shopImageIdUpdates', JSON.stringify(shopImageIdUpdates));
 
-    const res = await fetch(`api/updateVendorColorShopImageIds?vendorName=${variants[0].product.vendor}`, {
+    const res = await fetch(`api/updateVendorColorShopImageIds?vendorName=${vendor}`, {
       method: "POST",
       body: formData
     });
 
     if (!res.ok) {
       console.error("Network error");
+
       return;
     }
-  }, [shop, variants]);
+  }, [shop, vendor]);
 
   const updateProductVariantImages = useCallback(async (updatedVariants: {id: any, mediaId: {imageId: string}}[]) => {
     await updateVariantImages(productId, updatedVariants);
@@ -159,7 +205,7 @@ function Extension() {
   const onSyncColorGroups = useCallback(async () => {
     setSyncLoadingMessage("Updating variant color groups...");
 
-    const updatedVariants = variants.map((variant) => ({
+    const updatedVariants = variants.map((variant: Variant) => ({
       "id": variant.id,
       "metafields": [
         {
@@ -177,7 +223,7 @@ function Extension() {
   }, [variants, colorGroups, productId]);
 
   const syncVariantColorImages = useCallback(async (variantsToUpdate: any) => {
-    const variantImageCategories = Object.keys(variantsToUpdate).reduce((obj, key) => {
+    const variantImageCategories = Object.keys(variantsToUpdate).reduce((obj: any, key) => {
       const variantUpdating = {...variantsToUpdate[key], color: key};
 
       if (variantUpdating.imageId) {
@@ -203,7 +249,7 @@ function Extension() {
 
     setSyncLoadingMessage("Updating variant images...");
 
-    const updatedVariants = variantImageCategories.ready.map((imageReady) => ({
+    const updatedVariants = variantImageCategories.ready.map((imageReady: any) => ({
       "id": imageReady.variantId,
       "mediaId": imageReady.imageId,
     }));
@@ -217,7 +263,7 @@ function Extension() {
     setSyncWarning(false);
     setSyncLoadingMessage("Checking variant images...");
 
-    const variantsToUpdate = variants.reduce((obj, variant) => {
+    const variantsToUpdate = variants.reduce((obj: any, variant) => {
       obj[variant.title] = {
         variantId: variant.id,
         ...colorImages[variant.title]
@@ -233,7 +279,7 @@ function Extension() {
     setSyncWarning(false);
     setSyncLoadingMessage("Checking variants...");
 
-    const variantsToUpdate = variants.filter((variant) => !variant.image?.src).reduce((obj, variant) => {
+    const variantsToUpdate = variants.filter((variant) => !variant.image?.src).reduce((obj: any, variant) => {
       obj[variant.title] = {
         variantId: variant.id,
         ...colorImages[variant.title]
@@ -244,6 +290,14 @@ function Extension() {
     
     syncVariantColorImages(variantsToUpdate);
   }, [variants, colorImages, syncVariantColorImages]);
+
+  if (vendorError) {
+    return (
+      <s-banner tone="critical">
+        {vendorError}
+      </s-banner>
+    )
+  }
 
   return (
     // The s-admin-action component provides an API for setting the title and actions of the Action extension wrapper.
@@ -259,12 +313,24 @@ function Extension() {
         </s-button>
       }
     >
+      {fiberWarning && (
+        <s-stack gap="base" direction="block" paddingBlockEnd="base">
+          <s-banner tone="warning">
+            {fiberWarning}
+          </s-banner>
+        </s-stack>
+      )}
       {loading ? (
-        <s-stack direction="inline" alignItems="center">
+        <s-stack direction="inline" alignItems="center" justifyContent="center" minInlineSize="100%">
           <s-spinner size="large-100" />
         </s-stack>
       ) : (
         <s-stack alignItems="start" gap="small-300">
+          <s-stack direction="inline" gap="small-300" paddingBlockEnd="base">
+            <s-badge>{vendor}</s-badge>
+            <s-badge>{fiber}</s-badge>
+          </s-stack>
+
           <s-paragraph>
             Variant's color groups metafield will be updated to assigned groups in Color Groups Table
           </s-paragraph>

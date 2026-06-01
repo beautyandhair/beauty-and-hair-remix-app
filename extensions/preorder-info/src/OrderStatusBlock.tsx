@@ -9,6 +9,7 @@ export default async () => {
 
 function Extension() {
   const {
+    id,
     merchandise: {
       subtitle,
       product: {
@@ -18,6 +19,8 @@ function Extension() {
     attributes
   } = shopify.target.value;
   const { query, i18n } = shopify;
+
+  const [latestShipmentStatus, setLatestShipmentStatus] = useState<string>();
 
   const linePreorderEta = useMemo(() => {
     let attributeEta = attributes.find((attribute) => attribute.key === "_preorder-eta");
@@ -56,6 +59,54 @@ function Extension() {
     });
   }, [shippingMessage]);
 
+  /* DETERMINE IF DELIVERED */
+
+  const getOrderQuery = async () => {
+    try {
+      const orderQuery = {
+        query: `query Order($orderId: ID!) {
+          order(id: $orderId) {
+            fulfillments(first: 20) {
+              nodes {
+                latestShipmentStatus
+                fulfillmentLineItems(first: 20) {
+                  nodes {
+                    lineItem {
+                      id
+                      name
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }`,
+        variables: {orderId: shopify.order.value?.id},
+      };
+
+      const result = await fetch('shopify://customer-account/api/2026-04/graphql.json',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(orderQuery),
+        }
+      );
+
+      const { data } = await result.json();
+
+      setLatestShipmentStatus(data.order?.fulfillments?.nodes.find((fulfillmentNode: any) => fulfillmentNode.fulfillmentLineItems?.nodes.some((lineItemNode: any) => lineItemNode.lineItem.id === id))?.latestShipmentStatus);
+    } catch (error) {
+      console.log(error);
+      return false;
+    }
+  }
+
+  useEffect(() => {
+    getOrderQuery();
+  }, []);
+
   /* FUNCTIONS */
 
   const getShippingMessage = (variantPreorderMetafield: string | undefined) => {
@@ -83,7 +134,7 @@ function Extension() {
     if (linePreorderEta.attribute == variantPreorderMetafield) {
       setShippingMessage({tone: 'custom', status: 'On Time'});
     }
-    else if (linePreorderEta.date < variantPreorderEta) {
+    else if (linePreorderEta.date && linePreorderEta.date < variantPreorderEta) {
       setShippingMessage({tone: 'critical', status: 'Delayed', text: `Estimated Ship Date: ${etaDateMessage}`});
     }
     else {
@@ -112,7 +163,7 @@ function Extension() {
         }`
       );
 
-      getShippingMessage(data.products?.nodes[0]?.variantBySelectedOptions?.metafield?.value);
+      getShippingMessage(data?.products?.nodes[0]?.variantBySelectedOptions?.metafield?.value);
     } catch (error) {
       console.error(error, 'Error fetching product variant');
     }
@@ -124,7 +175,7 @@ function Extension() {
     }
   }, [linePreorderEta]);
 
-  if (!shippingMessage.status) {
+  if (!shippingMessage.status || (latestShipmentStatus && (["ATTEMPTED_DELIVERY", "OUT_FOR_DELIVERY", "DELIVERED", "READY_FOR_PICKUP", "PICKED_UP", "CONFIRMED"]).includes(latestShipmentStatus))) {
     return null;
   }
 

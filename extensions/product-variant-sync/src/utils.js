@@ -74,11 +74,12 @@ export async function getVariants(productId) {
           image {
             src
           }
-          product {
-            vendor
-            title
-          }
         }
+      }
+      product(id: "gid://shopify/Product/${productId}") {
+        vendor
+        title
+        tags
       }
     }`
   );
