@@ -472,7 +472,7 @@ export default function ColorGroups() {
         vendorColorUpsert.vendorColorUpdate.temp = vendorColor.temp ? undefined : vendorColorUpsert.vendorColorUpdate.temp;
         vendorColorUpsert.vendorColorUpdate.rooted = vendorColor.rooted ? undefined : vendorColorUpsert.vendorColorUpdate.rooted;
         vendorColorUpsert.vendorColorUpdate.highlighted = vendorColor.highlighted ? undefined : vendorColorUpsert.vendorColorUpdate.highlighted;
-        vendorColorUpsert.vendorColorUpdate.features = vendorColor.features ? undefined : vendorColorUpsert.vendorColorUpdate.features;
+        vendorColorUpsert.vendorColorUpdate.features = vendorColor.features && vendorColor.features.length ? undefined : vendorColorUpsert.vendorColorUpdate.features;
         vendorColorUpsert.vendorColorUpdate.truColorSrc = vendorColor.truColorSrc ? undefined : vendorColorUpsert.vendorColorUpdate.truColorSrc;
       }
 
