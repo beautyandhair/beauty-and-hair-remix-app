@@ -1362,7 +1362,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
 
             <IndexTable.Cell>
               {editing[colorKey] ? (
-                <Box>
+                <Box minWidth="120px">
                   <TextField
                     label="Color Code"
                     labelHidden
@@ -1382,7 +1382,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
 
             <IndexTable.Cell>
               {editing[colorKey] ? (
-                <Box>
+                <Box minWidth="120px">
                   <TextField
                     label="Color Name"
                     labelHidden
@@ -1486,37 +1486,45 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
 
             <IndexTable.Cell>
               {editing[colorKey] ? (
-                <TextField
-                  label="Alt Text"
-                  labelHidden
-                  value={editing[colorKey].altText}
-                  onChange={handleEditChange(vendorColor.color, vendorColor.fiber, 'altText')}
-                  maxLength={512}
-                  autoComplete="off"
-                  multiline
-                />
+                <Box minWidth="120px">
+                  <TextField
+                    label="Alt Text"
+                    labelHidden
+                    value={editing[colorKey].altText}
+                    onChange={handleEditChange(vendorColor.color, vendorColor.fiber, 'altText')}
+                    maxLength={512}
+                    autoComplete="off"
+                    multiline
+                  />
+                </Box>
               ) : (
-                <Text variant="bodyMd" as="span">
-                  {vendorColor.altText}
-                </Text>
+                <BlockStack>
+                  <Text variant="bodyMd" as="span">
+                    {vendorColor.altText}
+                  </Text>
+                </BlockStack>
               )}
             </IndexTable.Cell>
 
             <IndexTable.Cell>
               {editing[colorKey] ? (
-                <TextField
-                  label="Description"
-                  labelHidden
-                  value={editing[colorKey].colorDesc}
-                  onChange={handleEditChange(vendorColor.color, vendorColor.fiber, 'colorDesc')}
-                  maxLength={512}
-                  autoComplete="off"
-                  multiline
-                />
+                <Box minWidth="120px">
+                  <TextField
+                    label="Description"
+                    labelHidden
+                    value={editing[colorKey].colorDesc}
+                    onChange={handleEditChange(vendorColor.color, vendorColor.fiber, 'colorDesc')}
+                    maxLength={512}
+                    autoComplete="off"
+                    multiline
+                  />
+                </Box>
               ) : (
-                <Text variant="bodyMd" as="span">
-                  {vendorColor.colorDesc}
-                </Text>
+                <BlockStack>
+                  <Text variant="bodyMd" as="span">
+                    {vendorColor.colorDesc}
+                  </Text>
+                </BlockStack>
               )}
             </IndexTable.Cell>
 
