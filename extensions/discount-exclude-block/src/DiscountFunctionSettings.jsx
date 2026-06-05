@@ -52,7 +52,11 @@ function App() {
     productTags,
     onProductTagsChange,
     excludeClearance,
-    onToggleExcludeClearance
+    onToggleExcludeClearance,
+    initialExcludedCollections,
+    excludedCollections,
+    onRemoveExcludedCollection,
+    onSelectedExcludedCollections
   } = useExtensionData();
 
   const {discounts} = shopify;
@@ -110,6 +114,10 @@ function App() {
             <s-text-field label="Collections" name="collections" labelAccessibilityVisibility="exclusive" defaultValue={initialCollections} value={collections} />
           </s-box>
 
+          <s-box display="none">
+            <s-text-field label="Excluded Collections" name="excludedCollections" labelAccessibilityVisibility="exclusive" defaultValue={initialExcludedCollections} value={excludedCollections} />
+          </s-box>
+
           <s-stack gap="base">
             <s-number-field
               label={i18n.translate("discountPercentage")}
@@ -139,6 +147,18 @@ function App() {
             </s-box>
 
             <s-divider />
+
+            <s-text>
+              EXCLUDE: Collections
+            </s-text>
+
+            <CollectionsSection collections={excludedCollections} onClickRemove={onRemoveExcludedCollection} />
+            
+            <s-box inlineSize="180px">
+              <s-button onClick={onSelectedExcludedCollections} icon="plus-circle">
+                {i18n.translate("collections.buttonLabel")}
+              </s-button>
+            </s-box>
 
             <s-text>EXCLUDE: Product tags</s-text>
 
@@ -191,15 +211,17 @@ function useExtensionData() {
     [data?.metafields],
   );
 
-  const [percentages, setPercentages] = useState(metafieldConfig.percentages);
-  const [initialCollections, setInitialCollections] = useState(
-    [],
-  );
-  const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const [percentages, setPercentages] = useState(metafieldConfig.percentages);
   const [productTags, setProductTags] = useState(metafieldConfig.productTags);
   const [excludeClearance, setExcludeClearance] = useState(metafieldConfig.excludeClearance);
+
+  const [initialCollections, setInitialCollections] = useState([]);
+  const [collections, setCollections] = useState([]);
+
+  const [initialExcludedCollections, setInitialExcludedCollections] = useState([]);
+  const [excludedCollections, setExcludedCollections] = useState([]);
 
   useEffect(() => {
     const fetchCollections = async () => {
@@ -210,10 +232,18 @@ function useExtensionData() {
       );
       setInitialCollections(selectedCollections);
       setCollections(selectedCollections);
+
+      const selectedExcludedCollections = await getCollections(
+        metafieldConfig.excludedCollectionIds,
+        query,
+      );
+      setInitialExcludedCollections(selectedExcludedCollections);
+      setExcludedCollections(selectedExcludedCollections);
+
       setLoading(false);
     };
     fetchCollections();
-  }, [metafieldConfig.collectionIds, query]);
+  }, [metafieldConfig.collectionIds, metafieldConfig.excludedCollectionIds, query]);
 
   const onPercentageValueChange = async (type, value) => {
     setPercentages(prev => ({
@@ -231,7 +261,8 @@ function useExtensionData() {
         percentage: percentages.product,
         collections: collections.map(({id}) => id),
         productTags,
-        excludeClearance
+        excludeClearance,
+        excludedCollections: excludedCollections.map(({id}) => id)
       }),
       valueType: "json",
     });
@@ -243,6 +274,7 @@ function useExtensionData() {
     setCollections(initialCollections);
     setProductTags(metafieldConfig.productTags);
     setExcludeClearance(metafieldConfig.excludeClearance);
+    setExcludedCollections(initialExcludedCollections);
   };
 
   const onSelectedCollections = async () => {
@@ -260,7 +292,7 @@ function useExtensionData() {
   };
 
   const onRemoveCollection = (id) => {
-    setCollections(prev => prev.filter(collection => collection.id !== id));
+    setCollections(prev => prev.filter((collection) => collection.id !== id));
   };
 
   const onProductTagsChange = (value) => {
@@ -272,8 +304,25 @@ function useExtensionData() {
     }
   };
 
-
   const onToggleExcludeClearance = () => setExcludeClearance((prev) => !prev);
+
+  const onSelectedExcludedCollections = async () => {
+    const selection = await resourcePicker({
+      type: "collection",
+      selectionIds: excludedCollections.map(({id}) => ({id})),
+      action: "select",
+      multiple: true,
+      filter: {
+        archived: true,
+        variants: true,
+      },
+    });
+    setExcludedCollections(selection ?? []);
+  };
+
+  const onRemoveExcludedCollection = (id) => {
+    setExcludedCollections(prev => prev.filter((collection) => collection.id !== id));
+  };
 
   return {
     applyExtensionMetafieldChange,
@@ -291,7 +340,11 @@ function useExtensionData() {
     productTags,
     onProductTagsChange,
     excludeClearance,
-    onToggleExcludeClearance
+    onToggleExcludeClearance,
+    initialExcludedCollections,
+    excludedCollections,
+    onRemoveExcludedCollection,
+    onSelectedExcludedCollections
   };
 }
 
@@ -304,14 +357,16 @@ function parseMetafield(value) {
       },
       collectionIds: parsed.collections ?? [],
       productTags: parsed.productTags ?? [],
-      excludeClearance: parsed.excludeClearance ?? true
+      excludeClearance: parsed.excludeClearance ?? true,
+      excludedCollectionIds: parsed.excludedCollections ?? []
     };
   } catch {
     return {
       percentages: {product: 0},
       collectionIds: [],
       productTags: [],
-      excludeClearance: true
+      excludeClearance: true,
+      excludedCollectionIds: []
     };
   }
 }

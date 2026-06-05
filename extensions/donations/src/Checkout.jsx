@@ -313,12 +313,12 @@ function DonationCheckbox({toggleCheckbox, donation, isLoading, index, currentSl
   } else if (donation.title === CWHL_TITLE) {
     checkBoxText = "Yes, I'd love to help Children with Hair Loss provide free wigs to children by donating $1.00"
     donationLogo = "https://cdn.shopify.com/s/files/1/1410/9094/files/cwhl_logo.jpg?v=1780085315";
-    donationLogoSmall = "https://cdn.shopify.com/s/files/1/1410/9094/files/cwhl_logo-small.png?v=1780087694"
+    donationLogoSmall = "https://cdn.shopify.com/s/files/1/1410/9094/files/cwhl-logo_small_683eff01-8c83-43b0-87a1-5589d9618923.png?v=1780677493"
     donationInfo = "Children with Hair Loss provides human hair replacements at no cost to children and young adults facing medically-related hair loss. When a child’s hair is lost due to Cancer treatments, Alopecia, Trichotillomania, Burns, etc., the painful effects are far deeper than just cosmetic. Each year, the number of children requesting our hair replacements increases and with your support, we can continue to increase the number of children we are able to help in the future!"
   } else if (donation.title === RFNBF_TITLE) {
     checkBoxText = "Yes, I'd love to help Ricardo Fisas Natura Bisse Foundation by donating $1.00"
     donationLogo = "https://cdn.shopify.com/s/files/1/1410/9094/files/rfnbf_logo.png?v=1780085866";
-    donationLogoSmall = "https://cdn.shopify.com/s/files/1/1410/9094/files/rfnbf_logo-small.png?v=1780087539"
+    donationLogoSmall = "https://cdn.shopify.com/s/files/1/1410/9094/files/rfnbf-logo_small_3c960f92-5135-4f43-b675-73f8908fea94.png?v=1780677493"
     donationInfo = "Ricardo Fisas Natura Bissé Foundation is committed to uplifting and empowering individuals navigating the complexities of cancer, enhancing their well-being and confidence through specialized oncology skin care and hair care solutions."
   }
 

@@ -11,7 +11,8 @@ type Configuration = {
   percentage: number,
   collections: string[],
   productTags: string[],
-  excludeClearance: boolean
+  excludeClearance: boolean,
+  exculdedCollections: string[]
 };
 
 export function cartLinesDiscountsGenerateRun(
@@ -38,7 +39,7 @@ export function cartLinesDiscountsGenerateRun(
     if (line.merchandise.__typename == 'ProductVariant') {
       const variant = (line.merchandise);
 
-      return variant.product.inAnyCollection && !variant.product.hasAnyTag && !isExcluded(variant.metafield?.value) &&  !line.sellingPlanAllocation?.sellingPlan?.id ;
+      return variant.product.inAnyCollection && !variant.product.hasAnyTag && !isExcluded(variant.metafield?.value) && !variant.product.inExcludedCollection && !line.sellingPlanAllocation?.sellingPlan?.id;
     } else {
       return false;
     }

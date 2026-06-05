@@ -1,4 +1,4 @@
-query CartInput($productTags: [String!]!, $collections: [ID!]!) {
+query CartInput($productTags: [String!]!, $collections: [ID!]!, $excludedCollections: [ID!]) {
   cart {
     lines {
       id
@@ -12,6 +12,7 @@ query CartInput($productTags: [String!]!, $collections: [ID!]!) {
           product {
             hasAnyTag(tags: $productTags)
             inAnyCollection(ids: $collections)
+            inExcludedCollection: inAnyCollection(ids: $excludedCollections)
           }
         }
       }
