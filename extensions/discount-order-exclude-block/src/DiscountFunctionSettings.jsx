@@ -52,7 +52,8 @@ function App() {
     productTags,
     onProductTagsChange,
     excludeClearance,
-    onToggleExcludeClearance
+    onToggleExcludeClearance,
+    onUpdateMetaobject
   } = useExtensionData();
 
   const {discounts} = shopify;
@@ -92,8 +93,9 @@ function App() {
 
   return (
     <s-function-settings
-      onSubmit={event => {
+      onSubmit={(event) => {
         event.waitUntil?.(applyExtensionMetafieldChange());
+        setTimeout(onUpdateMetaobject, 500);
       }}
       onReset={resetForm}
     >
@@ -107,7 +109,7 @@ function App() {
           </s-box>
 
           <s-box display="none">
-            <s-text-field label="Collections" name="collections" labelAccessibilityVisibility="exclusive" defaultValue={initialCollections} value={collections} />
+            <s-text-field label="Collections" name="collections" labelAccessibilityVisibility="exclusive" defaultValue={initialCollections.map((x) => x.id)} value={collections.map((x) => x.id)} />
           </s-box>
 
           <s-stack gap="base">
@@ -269,8 +271,21 @@ function useExtensionData() {
     }
   };
 
-
   const onToggleExcludeClearance = () => setExcludeClearance((prev) => !prev);
+
+  const onUpdateMetaobject = () => {
+    if (!data.id) return;
+
+    const metaobject = {
+      title: data.title,
+      percentage: percentages.order,
+      collectionIds: collections.map(({id}) => id),
+      productTags,
+      excludeClearance
+    };
+
+    updateMetaobject(data.id, metaobject, query);
+  };
 
   return {
     applyExtensionMetafieldChange,
@@ -288,7 +303,8 @@ function useExtensionData() {
     productTags,
     onProductTagsChange,
     excludeClearance,
-    onToggleExcludeClearance
+    onToggleExcludeClearance,
+    onUpdateMetaobject
   };
 }
 
@@ -334,4 +350,91 @@ async function getCollections(
   return result?.data?.collections ?? [];
 }
 
+async function updateMetaobject(
+  discountId,
+  metaobject,
+  adminApiQuery
+) {
+  const discountQuery = `#graphql
+    query DiscountQuery($id: ID!) {
+      discountNode(id: $id) {
+        discount {
+          ... on DiscountAutomaticApp {
+            title
+          }
+        }
+      }
+    }
+  `;
 
+  const discountResult = await adminApiQuery(
+    discountQuery,
+    {
+      variables: {
+        id: `gid://shopify/DiscountAutomaticNode/${discountId}`
+      }
+    },
+  );
+
+  if (discountResult?.data?.discountNode?.discount?.title) {
+    const discountTitle = discountResult.data.discountNode.discount.title;
+    const discountHandle = discountTitle
+      .toLowerCase().trim()           // handles are always lowercase, trims whitespace
+      .replaceAll('\'', '')           // removes apostrophes
+      .replace(/[^a-z0-9]+/g, '-')    // whitespace and special characters are replaced with a hyphen (if there are multiple consecutive whitespace or special characters, then they're replaced with a single hyphen)
+      .replace(/^-+/, '')             // whitespace or special characters at the beginning are removed
+      .replace(/-+$/, ''); 
+
+    const metaobjectQuery = `#graphql
+      mutation MetaobjectUpdate($handle: MetaobjectHandleInput!, $metaobject: MetaobjectUpsertInput!) {
+        metaobjectUpsert(handle: $handle, metaobject: $metaobject) {
+          metaobject {
+            handle
+          }
+        }
+      }
+    `;
+
+    await adminApiQuery(
+      metaobjectQuery,
+      {
+        variables: {
+          handle: {
+            type: "sitewide_sale",
+            handle: discountHandle
+          },
+          metaobject: {
+            handle: discountHandle,
+            fields: [
+              {
+                key: "title",
+                value: discountTitle
+              },
+              {
+                key: "percentage",
+                value: metaobject.percentage.toString()
+              },
+              {
+                key: "collections",
+                value: JSON.stringify(metaobject.collectionIds)
+              },
+              {
+                key: "product_tags",
+                value: JSON.stringify(metaobject.productTags)
+              },
+              {
+                key: "exclude_clearance",
+                value: JSON.stringify(metaobject.excludeClearance)
+              }
+            ],
+            capabilities: {
+              publishable: {
+                status: "ACTIVE"
+              }
+            }
+          }
+        }
+      },
+    );
+  }
+}
