@@ -94,8 +94,8 @@ function App() {
   return (
     <s-function-settings
       onSubmit={(event) => {
+        onUpdateMetaobject();
         event.waitUntil?.(applyExtensionMetafieldChange());
-        setTimeout(onUpdateMetaobject, 500);
       }}
       onReset={resetForm}
     >
