@@ -56,7 +56,8 @@ function App() {
     initialExcludedCollections,
     excludedCollections,
     onRemoveExcludedCollection,
-    onSelectedExcludedCollections
+    onSelectedExcludedCollections,
+    onUpdateMetaobject
   } = useExtensionData();
 
   const {discounts} = shopify;
@@ -96,8 +97,9 @@ function App() {
 
   return (
     <s-function-settings
-      onSubmit={event => {
+      onSubmit={(event) => {
         event.waitUntil?.(applyExtensionMetafieldChange());
+        onUpdateMetaobject();
       }}
       onReset={resetForm}
     >
@@ -324,6 +326,21 @@ function useExtensionData() {
     setExcludedCollections(prev => prev.filter((collection) => collection.id !== id));
   };
 
+  const onUpdateMetaobject = () => {
+    if (!data.id) return;
+
+    const metaobject = {
+      title: data.title,
+      percentage: percentages.product,
+      collectionIds: collections.map(({id}) => id),
+      productTags,
+      excludeClearance,
+      excludedCollectionIds: excludedCollections.map(({id}) => id)
+    };
+
+    updateMetaobject(data.id, metaobject, query);
+  };
+
   return {
     applyExtensionMetafieldChange,
     i18n,
@@ -344,7 +361,8 @@ function useExtensionData() {
     initialExcludedCollections,
     excludedCollections,
     onRemoveExcludedCollection,
-    onSelectedExcludedCollections
+    onSelectedExcludedCollections,
+    onUpdateMetaobject
   };
 }
 
@@ -392,4 +410,95 @@ async function getCollections(
   return result?.data?.collections ?? [];
 }
 
+async function updateMetaobject(
+  discountId,
+  metaobject,
+  adminApiQuery
+) {
+  const discountQuery = `#graphql
+    query DiscountQuery($id: ID!) {
+      discountNode(id: $id) {
+        discount {
+          ... on DiscountAutomaticApp {
+            title
+          }
+        }
+      }
+    }
+  `;
 
+  const discountResult = await adminApiQuery(
+    discountQuery,
+    {
+      variables: {
+        id: `gid://shopify/DiscountAutomaticNode/${discountId}`
+      }
+    },
+  );
+
+  if (discountResult?.data?.discountNode?.discount?.title) {
+    const discountTitle = discountResult.data.discountNode.discount.title;
+    const discountHandle = discountTitle
+      .toLowerCase().trim()           // handles are always lowercase, trims whitespace
+      .replaceAll('\'', '')           // removes apostrophes
+      .replace(/[^a-z0-9]+/g, '-')    // whitespace and special characters are replaced with a hyphen (if there are multiple consecutive whitespace or special characters, then they're replaced with a single hyphen)
+      .replace(/^-+/, '')             // whitespace or special characters at the beginning are removed
+      .replace(/-+$/, '');
+
+    const metaobjectQuery = `#graphql
+      mutation MetaobjectUpdate($handle: MetaobjectHandleInput!, $metaobject: MetaobjectUpsertInput!) {
+        metaobjectUpsert(handle: $handle, metaobject: $metaobject) {
+          metaobject {
+            handle
+          }
+        }
+      }
+    `;
+
+    await adminApiQuery(
+      metaobjectQuery,
+      {
+        variables: {
+          handle: {
+            type: "sitewide_sale",
+            handle: discountHandle
+          },
+          metaobject: {
+            handle: discountHandle,
+            fields: [
+              {
+                key: "title",
+                value: discountTitle
+              },
+              {
+                key: "percentage",
+                value: metaobject.percentage.toString()
+              },
+              {
+                key: "collections",
+                value: JSON.stringify(metaobject.collectionIds)
+              },
+              {
+                key: "product_tags",
+                value: JSON.stringify(metaobject.productTags)
+              },
+              {
+                key: "exclude_clearance",
+                value: JSON.stringify(metaobject.excludeClearance)
+              },
+              {
+                key: "excluded_collections",
+                value: JSON.stringify(metaobject.excludedCollectionIds)
+              }
+            ],
+            capabilities: {
+              publishable: {
+                status: "ACTIVE"
+              }
+            }
+          }
+        }
+      },
+    );
+  }
+}
