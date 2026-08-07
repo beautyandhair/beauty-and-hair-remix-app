@@ -137,6 +137,30 @@
     assign clearance_data_color_groups = ''
     assign clearance_group = ''
     assign clearance_divider = ''
+
+    assign custom_var_dividers = ''
+
+    for meta_divider in metaobjects.variant_picker_dividers.values
+        assign meta_divider_key = meta_divider.name.value | append: ':'
+
+        if meta_divider.grouping_option.value == "Product Tag Prefix"
+            for var in meta_divider.product_variants.value
+                assign var_tag = meta_divider.product_tag_prefix.value | append: var.title
+
+                if product.tags contains var_tag
+                    assign custom_dividers = meta_divider_key | append: var.id | append: ',' | append: custom_var_dividers
+                endif
+            endfor
+        else
+            for var in meta_divider.product_variants.value
+                if available_variants contains var
+                    assign custom_dividers = meta_divider_key | append: var.id | append: ',' | append: custom_var_dividers
+                endif
+            endfor
+        endif
+    endfor
+
+    assign custom_var_dividers = custom_dividers | remove_last: ',' | split: ',' | sort
 %}
 
 <!-- begin app block - swatches -->
@@ -205,6 +229,65 @@
     {% endfor %}
 
     {% assign clearance_divider = clearance_divider | remove_last: ',' | split: ',' %}
+
+    {% assign current_divider = custom_var_dividers | first | split: ':' | first %}
+    {% assign divider_group = '' %}
+    {% assign data_color_groups = '' %}
+
+    {% for var_pair in custom_var_dividers %}
+        {% assign variant_divider = var_pair | split: ':' | first %}
+        {% assign divider = metaobjects['swatch_picker_dividers'][current_divider] %}
+
+        {% if current_divider != variant_divider and divider_group != blank %}
+            <figure class="swatch-picker__box" data-groups="{{ data_color_groups }}">
+                <img
+                    class="swatch-picker__divider"
+                    src="{{ divider.image | image_url: width: 60 }}"
+                    alt="{{ divider.image.alt }}"
+                    loading="lazy"
+                    height="76"
+                    width="57"
+                >
+            </figure>
+
+            {{ divider_group }}
+        {% else %}
+            {% assign current_divider = variant_divider %}
+            {% assign data_color_groups = '' %}
+        {% endif %}
+
+        {% liquid
+            assign divider = metaobjects['swatch_picker_dividers'][variant_divider]
+            assign var_id = var_pair | split: ':' | last | plus: 0
+            assign variant_gid = 'gid://shopify/ProductVariant/' | append: var_id
+            assign variant_found = available_variants | find: 'id', var_id
+            assign data_color_groups = variant_found.metafields.custom.color_group.value | join: ',' | append: ',' | append: data_color_groups
+        %}
+
+        {% capture divider_group %}
+            {%- unless clearance_divider contains variant_gid -%}
+
+                {%- if variant_found -%}
+                    {% render 'variant-swatch', image: variant_found.image, variant: variant_found, variant_divider: variant_divider %}
+                {%- endif -%}
+            {%- endunless -%}
+        {% endcapture %}
+    {% endfor %}
+
+    {%- if divider_group != blank -%}
+        <figure class="swatch-picker__box" data-groups="{{ data_color_groups }}">
+            <img
+                class="swatch-picker__divider"
+                src="{{ divider.image | image_url: width: 60 }}"
+                alt="{{ divider.image.alt }}"
+                loading="lazy"
+                height="76"
+                width="57"
+            >
+        </figure>
+
+        {{ divider_group }}
+    {%- endif -%}
 
     {% for variant_divider in divider_order %}
         {% liquid
