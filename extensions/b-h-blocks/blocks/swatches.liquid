@@ -26,7 +26,7 @@
         padding: 0;
         margin: 0;
         display: flex;
-        gap: 4px;
+        gap: 8px 4px;
         flex-wrap: wrap;
     }
 
@@ -39,12 +39,14 @@
         border: 1px solid #141414;
         color: #141414;
         font-size: 1.4rem;
-        padding: 6px 12px;
+        padding: 8px 12px;
         cursor: pointer;
         line-height: normal;
+        min-width: 44px;
     }
 
-    .swatch-picker__container {
+    .swatch-picker__container,
+    #swatch-picker__blends--swatches {
         display: flex;
         flex-flow: row wrap;
         gap: 8px 1px;
@@ -69,6 +71,7 @@
         display: block;
         box-sizing: content-box;
         object-fit: contain;
+        aspect-ratio: 3 / 4;
     }
 
     .swatch-picker__box > input:checked ~ img {
@@ -108,7 +111,47 @@
         width: 100%;
         max-width: 600px;
         height: auto;
-        padding: 0 0 1rem 0;
+        margin-bottom: 16px;
+        border-radius: 1rem;
+    }
+
+    #high-return-banner.hidden {
+        display: none;
+    }
+
+    #high-return-banner:has(~ variant-swatch-picker label > input:checked + img[data-high-return="true"]) {
+        display: flex !important;
+    }
+
+    .swatch-picker__blends--container {
+        display: flex;
+        line-height: normal;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 8px;
+        width: 100%;
+    }
+
+    .swatch-picker__blends--title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: bold;
+        color: black;
+    }
+
+    .swatch-picker__blends--subtext {
+        font-style: italic;
+    }
+
+    .swatch-picker__blends--link {
+        font-size: 1.3rem;
+        font-weight: normal;
+        color: rgba(18, 18, 18, 0.75) !important;
+    }
+
+    .swatch-picker__blends--link > svg {
+        display: block;
     }
 {% endstyle %}
 {%- endif -%}
@@ -137,17 +180,33 @@
     assign clearance_data_color_groups = ''
     assign clearance_group = ''
     assign clearance_divider = ''
+
+    assign blends_ids = block.settings.blends_ids | split: ','
+    assign blends_group = ''
+
+    # Pre-Order / Pre-launch
+    assign is_prelaunch = false
+    assign eta_now = "now" | date: "%Y-%m-%d"
+
+    assign preorder_data_color_groups = ''
+    assign preorder_group = ''
+
+    if product.metafields.global.launch_date.value != blank and product.metafields.global.launch_date.value > eta_now
+      assign is_prelaunch = true
+    elsif product.tags contains "PRE-LAUNCH" and product.metafields.global.launch_date.value == blank
+      assign is_prelaunch = true
+    endif
 %}
 
 <!-- begin app block - swatches -->
-<div id="high-return-banner" style="display: none;">
+<a id="high-return-banner" class="hidden" href="#okendo-reviews">
     <img 
         src="{{ block.settings.frequently_returned_banner| image_url: width: 600 }}"
         alt="{{ block.settings.frequently_returned_banner.alt }}"
         width="600"
         height="156"
     />
-</div>
+</a>
 
 {%- if product.variants.size > 1 -%}
 <!-- begin swatch-picker -->
@@ -171,36 +230,57 @@
 
     <fieldset class="swatch-picker__container">
     {% for variant in available_variants %}
-        {% unless variant_dividers_json contains variant.id or variant.metafields.global.CLEARANCE.value == "true" %}
-            {% render 'variant-swatch', image: variant.image, variant: variant %}
-        {% endunless %}
+        {% assign variant_id = variant.id | append: '' %}
 
-        {%- if variant.metafields.global.CLEARANCE.value == "true" -%}
-            {% capture clearance_group %}
-            {{ clearance_group }}
-            {% liquid
-                assign clearance_divider = clearance_divider | append: variant.id | append: ',' 
-
-                assign var_price_difference = variant.compare_at_price | minus: variant.price
-                assign var_discount_off = 100.00 | times: var_price_difference | divided_by: variant.compare_at_price | round
-
-                if clearance_max_off < var_discount_off
-                    assign clearance_max_off = var_discount_off
-                endif
-
-                if clearance_min_price == 0 or clearance_min_price > variant.price
-                    assign clearance_min_price = variant.price
-                endif
-                
-                if clearance_max_price == 0 or clearance_max_price < variant.price
-                    assign clearance_max_price = variant.price
-                endif
-
-                assign clearance_data_color_groups = variant.metafields.custom.color_group.value | join: ',' | append: ',' | append: clearance_data_color_groups
-            %}
-
+        {%- if is_prelaunch -%}
+            {% capture preorder_group %}
+            {% assign preorder_data_color_groups = variant.metafields.custom.color_group.value | join: ',' | append: ',' | append: preorder_data_color_groups %}
+            {{ preorder_group }}
             {% render 'variant-swatch', image: variant.image, variant: variant %}
             {% endcapture %}
+        {%- elsif variant.inventory_quantity <= 0 and variant.inventory_policy == "continue" and variant.metafields.global.ETA != blank and variant.metafields.global.VENDOR_QUANTITY.value <= 0 -%}
+            {% capture preorder_group %}
+            {% assign preorder_data_color_groups = variant.metafields.custom.color_group.value | join: ',' | append: ',' | append: preorder_data_color_groups %}
+            {{ preorder_group }}
+            {% render 'variant-swatch', image: variant.image, variant: variant %}
+            {% endcapture %}
+        {%- elsif blends_ids contains variant_id -%}
+            {% capture blends_group %}
+            {{ blends_group }}
+            {% render 'variant-swatch', image: variant.image, variant: variant %}
+            {% endcapture %}
+        {%- else -%}
+            {% unless variant_dividers_json contains variant.id or variant.metafields.global.CLEARANCE.value == "true" %}
+                {% render 'variant-swatch', image: variant.image, variant: variant %}
+            {% endunless %}
+
+            {%- if variant.metafields.global.CLEARANCE.value == "true" -%}
+                {% capture clearance_group %}
+                {{ clearance_group }}
+                {% liquid
+                    assign clearance_divider = clearance_divider | append: variant.id | append: ',' 
+
+                    assign var_price_difference = variant.compare_at_price | minus: variant.price
+                    assign var_discount_off = 100.00 | times: var_price_difference | divided_by: variant.compare_at_price | round
+
+                    if clearance_max_off < var_discount_off
+                        assign clearance_max_off = var_discount_off
+                    endif
+
+                    if clearance_min_price == 0 or clearance_min_price > variant.price
+                        assign clearance_min_price = variant.price
+                    endif
+                    
+                    if clearance_max_price == 0 or clearance_max_price < variant.price
+                        assign clearance_max_price = variant.price
+                    endif
+
+                    assign clearance_data_color_groups = variant.metafields.custom.color_group.value | join: ',' | append: ',' | append: clearance_data_color_groups
+                %}
+
+                {% render 'variant-swatch', image: variant.image, variant: variant %}
+                {% endcapture %}
+            {%- endif -%}
         {%- endif -%}
     {% endfor %}
 
@@ -245,6 +325,29 @@
         {% endif %}
     {% endfor %}
 
+    {%- if preorder_group != blank -%}
+        {% liquid
+          if is_prelaunch
+            assign pre_divider = block.settings.prelaunch_divider
+          else
+            assign pre_divider = block.settings.preorder_divider
+          endif
+        %}
+
+        <figure class="swatch-picker__box" data-groups="{{ preorder_data_color_groups }}">
+            <img
+                class="swatch-picker__divider"
+                src="{{ pre_divider | image_url: width: 60 }}"
+                alt="{{ pre_divider.alt }}"
+                loading="lazy"
+                height="76"
+                width="57"
+            >
+        </figure>
+
+        {{ preorder_group }}
+    {%- endif -%}
+
     {% unless block.settings.hide_OOS_colors %}
         {% assign data_color_groups = '' %}
 
@@ -271,6 +374,21 @@
             {{ unavailable_group }}
         {% endif %}
     {% endunless %}
+
+    {%- if blends_group != blank -%}
+        <div class="swatch-picker__blends--container" data-groups="grays">
+            <div class="swatch-picker__blends--title">
+                {{ 'swatch-picker.blends.title' | t }}
+                <a class="swatch-picker__blends--link" href="https://www.wigs.com/blogs/news/jon-renau-launches-ignite-human-hair">(Learn More)</a>
+            </div>
+            <div class="swatch-picker__blends--subtext">
+                {{ 'swatch-picker.blends.subtext' | t }}
+            </div>
+            <div id="swatch-picker__blends--swatches">
+                {{ blends_group }}
+            </div>
+        </div>
+    {%- endif -%}
 
     {%- if clearance_group != blank -%}
         {% liquid 
@@ -421,6 +539,11 @@
         "label": "Frequently Returne Banner"
     },
     {
+        "type": "text",
+        "id": "blends_ids",
+        "label": "Blend Variant IDs (comma separated list)"
+    },
+    {
         "type": "header",
         "content": "Dividers"
     },
@@ -439,6 +562,16 @@
         "type": "image_picker",
         "id": "back_soon_divider",
         "label": "Back Soon"
+    },
+    {
+        "type": "image_picker",
+        "id": "preorder_divider",
+        "label": "Pre-Order"
+    },
+    {
+        "type": "image_picker",
+        "id": "prelaunch_divider",
+        "label": "Pre-Launch"
     }
   ]
 }

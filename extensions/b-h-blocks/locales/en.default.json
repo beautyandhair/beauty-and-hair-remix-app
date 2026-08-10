@@ -22,6 +22,10 @@
     "clearance": {
       "message": "CLEARANCE UP TO {{ clearance_max_off }}% OFF",
       "colorsBelow": "Colors below!"
+    },
+    "blends": {
+      "title": "Premium Human Hair Grey Blends",
+      "subtext": "Crafted with a heat-resistant fiber and Remy human hair mix"
     }
   }
 }
