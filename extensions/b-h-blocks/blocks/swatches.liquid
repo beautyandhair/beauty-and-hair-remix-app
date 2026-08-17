@@ -165,8 +165,8 @@
     assign divider_entries = metaobjects['swatch_picker_dividers'].values | map: 'name'
     assign divider_order = block.settings.divider_order | split: ','| concat: divider_entries | uniq
 
-    assign available_variants = product.variants | where: 'available' | sort: 'title'
-    assign unavailable_variants = product.variants | where: 'available', false | sort: 'title'
+    assign available_variants = product.variants | where: 'available'
+    assign unavailable_variants = product.variants | where: 'available', false
 
     if block.settings.hide_OOS_colors
         assign color_groups = available_variants | map: 'metafields' | map: 'custom' | map: 'color_group' | map: 'value' | uniq | compact
