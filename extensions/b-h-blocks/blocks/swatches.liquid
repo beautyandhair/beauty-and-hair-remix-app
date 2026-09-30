@@ -184,6 +184,9 @@
     assign blends_ids = block.settings.blends_ids | split: ','
     assign blends_group = ''
 
+    assign only_at_data_color_groups = ''
+    assign only_at_group = ''
+
     # Pre-Order / Pre-launch
     assign is_prelaunch = false
     assign eta_now = "now" | date: "%Y-%m-%d"
@@ -244,6 +247,12 @@
             {{ preorder_group }}
             {% render 'variant-swatch', image: variant.image, variant: variant %}
             {% endcapture %}
+        {%- elsif block.settings.show_only_at_colors and variant.inventory_quantity > 0 and variant.metafields.global.VENDOR_QUANTITY.value <= 0 -%}
+            {% capture only_at_group %}
+            {% assign only_at_data_color_groups = variant.metafields.custom.color_group.value | join: ',' | append: ',' | append: only_at_data_color_groups %}
+            {{ only_at_group }}
+            {% render 'variant-swatch', image: variant.image, variant: variant %}
+            {% endcapture %}
         {%- elsif blends_ids contains variant_id -%}
             {% capture blends_group %}
             {{ blends_group }}
@@ -285,6 +294,21 @@
     {% endfor %}
 
     {% assign clearance_divider = clearance_divider | remove_last: ',' | split: ',' %}
+
+    {%- if only_at_group != blank -%}
+        <figure class="swatch-picker__box" data-groups="{{ only_at_data_color_groups }}">
+            <img
+                class="swatch-picker__divider"
+                src="{{ block.settings.only_at_divider | image_url: width: 60 }}"
+                alt="{{ block.settings.only_at_divider.alt }}"
+                loading="lazy"
+                height="76"
+                width="57"
+            >
+        </figure>
+
+        {{ only_at_group }}
+    {%- endif -%}
 
     {% for variant_divider in divider_order %}
         {% liquid
@@ -379,7 +403,7 @@
         <div class="swatch-picker__blends--container" data-groups="grays">
             <div class="swatch-picker__blends--title">
                 {{ 'swatch-picker.blends.title' | t }}
-                <a class="swatch-picker__blends--link" href="https://www.wigs.com/blogs/news/jon-renau-launches-ignite-human-hair">(Learn More)</a>
+                <a class="swatch-picker__blends--link" href="https://www.wigs.com/blogs/news/jon-renau-launches-ignite-human-hair">({{ 'swatch-picker.blends.learn_more' | t }})</a>
             </div>
             <div class="swatch-picker__blends--subtext">
                 {{ 'swatch-picker.blends.subtext' | t }}
@@ -544,6 +568,13 @@
         "label": "Blend Variant IDs (comma separated list)"
     },
     {
+        "type" : "checkbox",
+        "id" : "show_only_at_colors",
+        "default" : false,
+        "label" : "Show ONLY AT [STORE] Colors",
+        "info" : "Requires global.VENDOR_QUANTITY metafield"
+    },
+    {
         "type": "header",
         "content": "Dividers"
     },
@@ -555,8 +586,8 @@
         "type": "text",
         "id": "divider_order",
         "label": "Divider Order",
-        "default": "pre-launch,new",
-        "info": "Comma separated list of dividers. Ex: pre-launch,new,[metaobject-entry-name]"
+        "default": "new,exclusive",
+        "info": "Comma separated list of dividers. Ex: new,exclusive,[metaobject-entry-name]"
     },
     {
         "type": "image_picker",
@@ -572,6 +603,11 @@
         "type": "image_picker",
         "id": "prelaunch_divider",
         "label": "Pre-Launch"
+    },
+    {
+        "type": "image_picker",
+        "id": "only_at_divider",
+        "label": "Only at [STORE]"
     }
   ]
 }
