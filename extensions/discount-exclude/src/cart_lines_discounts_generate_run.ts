@@ -33,13 +33,17 @@ export function cartLinesDiscountsGenerateRun(
   const isExcluded = (variantMetafield: string | undefined) => {
     return configuration.excludeClearance && variantMetafield === 'true';
   }
+
+  const isRebuyBundle = (line: CartInput["cart"]["lines"][0]) => {
+    return line.attribute?.value === "Rebuy Bundle Builder";
+  }
   
   const targets = input.cart.lines
   .filter((line) => {
     if (line.merchandise.__typename == 'ProductVariant') {
       const variant = (line.merchandise);
 
-      return variant.product.inAnyCollection && !variant.product.hasAnyTag && !isExcluded(variant.metafield?.value) && !variant.product.inExcludedCollection && !line.sellingPlanAllocation?.sellingPlan?.id;
+      return variant.product.inAnyCollection && !variant.product.hasAnyTag && !isExcluded(variant.metafield?.value) && !variant.product.inExcludedCollection && !line.sellingPlanAllocation?.sellingPlan?.id && !isRebuyBundle(line);
     } else {
       return false;
     }

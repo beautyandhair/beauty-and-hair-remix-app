@@ -3415,9 +3415,12 @@ type EnteredDiscountCode {
   code: String!
 
   """
-  Indicates whether the entered discount code can be rejected.
+  Always check this value before you reject the code. If you reject a code that
+  isn't rejectable, the Function result is invalid.
 
-  A discount code can't be rejected if it's associated with a discount that has already been applied to the cart.
+  This value is `false` when the Function is owned by a code discount. In a
+  delivery target, it's also `false` when the code already applied a product or
+  order discount.
   """
   rejectable: Boolean!
 }
@@ -4566,7 +4569,8 @@ type Localization {
   language: Language!
 
   """
-  The market of the active localized experience.
+  The market that applies to the buyer's country. In cases where multiple
+  markets match, this returns the most-specific country region market.
   """
   market: Market! @deprecated(reason: "This `market` field will be removed in a future version of the API.")
 }
@@ -4947,7 +4951,8 @@ type MailingAddress {
   longitude: Float
 
   """
-  The market of the address.
+  The market that applies to the address's country. In cases where multiple
+  markets match, this returns the most-specific country region market.
   """
   market: Market @deprecated(reason: "This `market` field will be removed in a future version of the API.")
 

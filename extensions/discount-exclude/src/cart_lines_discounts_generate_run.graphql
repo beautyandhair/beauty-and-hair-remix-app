@@ -22,6 +22,10 @@ query CartInput($productTags: [String!]!, $collections: [ID!]!, $excludedCollect
           name
         }
       }
+      attribute(key: "_attribution") {
+        key
+        value
+      }
     }
   }
   discount {
