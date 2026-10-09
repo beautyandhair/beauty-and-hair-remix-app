@@ -2,11 +2,12 @@
 <script src="{{ 'swatches.js' | asset_url }}" defer="defer"></script>
 
 {% style %}
-    {% assign color_groups_list = 'all,brunettes,blondes,reds,blacks,grays,greys,fashion-color,exclusive-color' | split: ',' %}
+    {% assign color_groups_list = 'all,brunettes,blondes,reds,blacks,grays,greys,fashion-color,exclusive-color,sale' | split: ',' %}
     {% for color in color_groups_list %}
         variant-swatch-picker[data-group="{{ color }}"] .swatch-picker__color-group[data-group="{{ color }}"] {
             background-color: #141414;
             color: white;
+            border: 1px solid #141414;
         }
 
         {% if color != 'all' %}
@@ -153,6 +154,35 @@
     .swatch-picker__blends--link > svg {
         display: block;
     }
+
+    /* CUSTOM: Live Price Drop UI */
+    
+    .swatch-picker__color-group[data-group="sale"] {
+        background: {{ block.settings.live_price_drops_color }};
+        border: 1px solid {{ block.settings.live_price_drops_color }};
+        color: white;
+    }
+
+    .swatch-picker__box[data-groups*="sale"]::after {
+        position: absolute;
+        content: '{{ 'swatch-picker.colorGroups.sale' | t | upcase }}';
+        font-size: 10px;
+        bottom: -4px;
+        background-color: {{ block.settings.live_price_drops_color }};
+        color: white;
+        left: 50%;
+        transform: translateX(-50%);
+        padding-inline: 8px;
+    }
+
+    variant-swatch-picker[data-group="sale"] .swatch-picker__sale-message {
+        display: block !important;
+    }
+
+    .swatch-picker__sale-message p {
+        margin: 0;
+        padding: 0;
+    }
 {% endstyle %}
 {%- endif -%}
 
@@ -199,6 +229,9 @@
     elsif product.tags contains "PRE-LAUNCH" and product.metafields.global.launch_date.value == blank
       assign is_prelaunch = true
     endif
+
+    # Live Price Drops
+    assign has_clearance = available_variants | map: 'metafields' | map: 'global' | map: 'CLEARANCE' | map: 'value' | uniq | compact
 %}
 
 <!-- begin app block - swatches -->
@@ -229,7 +262,19 @@
             <button class="swatch-picker__color-group" data-group="{{ group }}">{{ 'swatch-picker.colorGroups' | append: '.' | append: group | t }}</button>
         </li>
         {% endfor %}
+
+        {%- if block.settings.live_price_drops_enable and has_clearance contains "true" -%}
+            <li>
+                <button class="swatch-picker__color-group" data-group="sale">{{ 'swatch-picker.colorGroups.sale' | t }}</button>
+            </li>
+        {%- endif -%}
     </ul>
+
+    {%- if block.settings.live_price_drops_enable and has_clearance contains "true" -%}
+        <div class="swatch-picker__sale-message hidden">
+            {{ block.settings.live_price_drops_message }}
+        </div>
+    {%- endif -%}
 
     <fieldset class="swatch-picker__container">
     {% for variant in available_variants %}
@@ -258,6 +303,10 @@
             {{ blends_group }}
             {% render 'variant-swatch', image: variant.image, variant: variant %}
             {% endcapture %}
+        {%- elsif block.settings.live_price_drops_enable -%}
+            {% unless variant_dividers_json contains variant.id %}
+                {% render 'variant-swatch', image: variant.image, variant: variant %}
+            {% endunless %}
         {%- else -%}
             {% unless variant_dividers_json contains variant.id or variant.metafields.global.CLEARANCE.value == "true" %}
                 {% render 'variant-swatch', image: variant.image, variant: variant %}
@@ -573,6 +622,29 @@
         "default" : false,
         "label" : "Show ONLY AT [STORE] Colors",
         "info" : "Requires global.VENDOR_QUANTITY metafield"
+    },
+    {
+        "type": "header",
+        "content": "Live Price Drops"
+    },
+    {
+        "type" : "checkbox",
+        "id" : "live_price_drops_enable",
+        "default" : false,
+        "label" : "Enable",
+        "info" : "Will replace previous clearance UI"
+    },
+    {
+        "type": "richtext",
+        "id": "live_price_drops_message",
+        "label": "Message to show when [Sale] tab is selected",
+        "default": "<p>Watch our lives for the latest deals!</p>"
+    },
+    {
+        "type": "color",
+        "id": "live_price_drops_color",
+        "label": "Sale Color",
+        "default": "#C41949"
     },
     {
         "type": "header",

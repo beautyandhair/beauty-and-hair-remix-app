@@ -1,5 +1,5 @@
 {%- if variant -%}
-    <label class="swatch-picker__box" data-groups="{{ variant.metafields.custom.color_group.value | join: ',' }}">
+    <label class="swatch-picker__box" data-groups="{{ variant.metafields.custom.color_group.value | join: ',' }}{% if block.settings.live_price_drops_enable and variant.metafields.global.CLEARANCE.value == "true" %},sale{% endif %}">
         <input type="radio" name="swatch_color" value="{{ variant.title }}" class="hidden" {% if variant.selected %}checked{% endif %}>
         <img
             data-available="{{ variant.available }}"

@@ -18,6 +18,7 @@
       "reds": "Reds",
       "fashion-color": "Fashion Colors",
       "exclusive-color": "Exclusive Colors",
+      "sale": "Sale"
     },
     "clearance": {
       "message": "CLEARANCE UP TO {{ clearance_max_off }}% OFF",
