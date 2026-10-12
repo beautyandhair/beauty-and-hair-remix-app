@@ -59,6 +59,8 @@ function Extension() {
     });
   }, [shippingMessage]);
 
+  const authenticationState = shopify.authenticationState.value;
+
   /* DETERMINE IF DELIVERED */
 
   const getOrderQuery = async () => {
@@ -104,7 +106,9 @@ function Extension() {
   }
 
   useEffect(() => {
-    getOrderQuery();
+    if (authenticationState === 'pre_authenticated' || authenticationState === 'fully_authenticated') {
+      getOrderQuery();
+    }
   }, []);
 
   /* FUNCTIONS */

@@ -165,7 +165,6 @@
 
     .swatch-picker__box[data-groups*="sale"]::after {
         position: absolute;
-        content: '{{ 'swatch-picker.colorGroups.sale' | t | upcase }}';
         font-size: 10px;
         bottom: -4px;
         background-color: {{ block.settings.live_price_drops_color }};
@@ -173,6 +172,14 @@
         left: 50%;
         transform: translateX(-50%);
         padding-inline: 8px;
+    }
+
+    .swatch-picker__box[data-groups*="sale"][data-sale-tier="40"]::after {
+        content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: 40 }}';
+    }
+
+    .swatch-picker__box[data-groups*="sale"][data-sale-tier="50"]::after {
+        content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: 50 }}';
     }
 
     variant-swatch-picker[data-group="sale"] .swatch-picker__sale-message {
@@ -265,7 +272,7 @@
 
         {%- if block.settings.live_price_drops_enable and has_clearance contains "true" -%}
             <li>
-                <button class="swatch-picker__color-group" data-group="sale">{{ 'swatch-picker.colorGroups.sale' | t }}</button>
+                <button class="swatch-picker__color-group" data-group="sale">{{ 'swatch-picker.colorGroups.price_drop' | t }}</button>
             </li>
         {%- endif -%}
     </ul>

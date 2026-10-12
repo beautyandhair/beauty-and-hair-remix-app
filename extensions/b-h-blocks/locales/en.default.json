@@ -18,11 +18,13 @@
       "reds": "Reds",
       "fashion-color": "Fashion Colors",
       "exclusive-color": "Exclusive Colors",
-      "sale": "Sale"
+      "sale": "Sale",
+      "price_drop": "Price Drop"
     },
     "clearance": {
       "message": "CLEARANCE UP TO {{ clearance_max_off }}% OFF",
-      "colorsBelow": "Colors below!"
+      "colorsBelow": "Colors below!",
+      "percent_off": "{{ percent }}% OFF"
     },
     "blends": {
       "title": "Premium Human Hair Grey Blends",
