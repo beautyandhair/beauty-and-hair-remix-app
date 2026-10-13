@@ -1,4 +1,6 @@
-{%- if product.variants.size > 1 -%}
+{% assign valid_product_types = block.settings.enable_for_product_types | split: ',' %}
+
+{%- if valid_product_types contains product.type and product.options_by_name['Color'] != nil -%}
 <script src="{{ 'swatches.js' | asset_url }}" defer="defer"></script>
 
 {% style %}
@@ -251,7 +253,7 @@
     />
 </a>
 
-{%- if product.variants.size > 1 -%}
+{%- if valid_product_types contains product.type and product.options_by_name['Color'] != nil -%}
 <!-- begin swatch-picker -->
 <variant-swatch-picker
     data-section-id="{{ section.id }}"
@@ -272,12 +274,12 @@
 
         {%- if block.settings.live_price_drops_enable and has_clearance contains "true" -%}
             <li>
-                <button class="swatch-picker__color-group" data-group="sale">{{ 'swatch-picker.colorGroups.price_drop' | t }}</button>
+                <button class="swatch-picker__color-group" data-group="sale">{{ 'swatch-picker.colorGroups.price_drops' | t }}</button>
             </li>
         {%- endif -%}
     </ul>
 
-    {%- if block.settings.live_price_drops_enable and has_clearance contains "true" -%}
+    {%- if block.settings.live_price_drops_enable and has_clearance contains "true" and block.settings.live_price_drops_message != blank -%}
         <div class="swatch-picker__sale-message hidden">
             {{ block.settings.live_price_drops_message }}
         </div>
@@ -599,6 +601,12 @@
         "id": "product",
         "label": "Product",
         "autofill": true
+    },
+    {
+        "type": "text",
+        "id": "enable_for_product_types",
+        "label": "List of Product Types to Enable For (comma separated list)",
+        "default": "Wigs,Hair Toppers,Hair Extensions,Hairpieces"
     },
     {
         "type": "color",

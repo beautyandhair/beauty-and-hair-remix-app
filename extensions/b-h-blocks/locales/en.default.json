@@ -19,7 +19,7 @@
       "fashion-color": "Fashion Colors",
       "exclusive-color": "Exclusive Colors",
       "sale": "Sale",
-      "price_drop": "Price Drop"
+      "price_drops": "Price Drops"
     },
     "clearance": {
       "message": "CLEARANCE UP TO {{ clearance_max_off }}% OFF",
