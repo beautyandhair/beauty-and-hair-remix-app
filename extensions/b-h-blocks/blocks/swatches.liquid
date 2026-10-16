@@ -173,15 +173,24 @@
         color: white;
         left: 50%;
         transform: translateX(-50%);
-        padding-inline: 8px;
+        padding-inline: 4px;
+        white-space: nowrap;
     }
 
     .swatch-picker__box[data-groups*="sale"][data-sale-tier="40"]::after {
+        {%- if settings.live_override_40_tier != blank -%}
+        content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: settings.live_override_40_tier }}';
+        {%- else -%}
         content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: 40 }}';
+        {%- endif -%}
     }
 
     .swatch-picker__box[data-groups*="sale"][data-sale-tier="50"]::after {
+        {%- if settings.live_override_50_tier != blank -%}
+        content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: settings.live_override_50_tier }}';
+        {%- else -%}
         content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: 50 }}';
+        {%- endif -%}
     }
 
     variant-swatch-picker[data-group="sale"] .swatch-picker__sale-message {

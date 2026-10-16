@@ -88,7 +88,7 @@ export type AssociatedDiscountCode = {
  *
  * For example, a list of attributes might include whether a customer is a first-time buyer (`"customer_first_order": "true"`),
  * whether an order is gift-wrapped (`"gift_wrapped": "true"`), a preferred delivery date
- * (`"preferred_delivery_date": "2025-10-01"`), the discount applied (`"loyalty_discount_applied": "10%"`), and any
+ * (`"preferred_delivery_date": "2026-10-01"`), the discount applied (`"loyalty_discount_applied": "10%"`), and any
  * notes provided by the customer (`"customer_notes": "Please leave at the front door"`).
  */
 export type Attribute = {

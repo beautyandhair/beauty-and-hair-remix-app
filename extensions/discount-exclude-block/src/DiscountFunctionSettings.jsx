@@ -15,7 +15,7 @@ function CollectionsSection({
     return null;
   }
 
-  return collections.map(collection => (
+  return collections.map((collection) => (
     <s-stack
       direction="inline"
       alignItems="center"
@@ -327,7 +327,7 @@ function useExtensionData() {
   };
 
   const onUpdateMetaobject = () => {
-    if (!data.id) return;
+    if (!data?.id) return;
 
     const metaobject = {
       title: data.title,
@@ -397,6 +397,14 @@ async function getCollections(
     query GetCollections($ids: [ID!]!) {
       collections: nodes(ids: $ids) {
         ... on Collection {
+          id
+          title
+        }
+        ... on CollectionConditionsSource {
+          id
+          title
+        }
+        ... on CollectionSubCollectionsSource {
           id
           title
         }
