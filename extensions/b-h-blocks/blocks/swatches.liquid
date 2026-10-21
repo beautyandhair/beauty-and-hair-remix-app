@@ -157,7 +157,7 @@
         display: block;
     }
 
-    /* CUSTOM: Live Price Drop UI */
+    /* CUSTOM: Price Drop UI */
     
     .swatch-picker__color-group[data-group="sale"] {
         background: {{ block.settings.live_price_drops_color }};
@@ -190,6 +190,14 @@
         content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: settings.live_override_50_tier }}';
         {%- else -%}
         content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: 50 }}';
+        {%- endif -%}
+    }
+
+    .swatch-picker__box[data-groups*="sale"][data-sale-tier="70"]::after {
+        {%- if settings.live_override_70_tier != blank -%}
+        content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: settings.live_override_70_tier }}';
+        {%- else -%}
+        content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: 70 }}';
         {%- endif -%}
     }
 
@@ -248,7 +256,7 @@
       assign is_prelaunch = true
     endif
 
-    # Live Price Drops
+    # Price Drops
     assign has_clearance = available_variants | map: 'metafields' | map: 'global' | map: 'CLEARANCE' | map: 'value' | uniq | compact
 %}
 
@@ -649,7 +657,7 @@
     },
     {
         "type": "header",
-        "content": "Live Price Drops"
+        "content": "Price Drops"
     },
     {
         "type" : "checkbox",

@@ -340,6 +340,14 @@ async function getCollections(
           id
           title
         }
+        ... on CollectionConditionsSource {
+          id
+          title
+        }
+        ... on CollectionSubCollectionsSource {
+          id
+          title
+        }
       }
     }
   `;
