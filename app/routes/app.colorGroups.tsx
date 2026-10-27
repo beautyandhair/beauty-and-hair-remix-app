@@ -1199,6 +1199,15 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     setEditing((prev) => ({...prev}));
   }, [onUpdateVendorColor]);
 
+  const handleClearImageTruColor = useCallback((color: string, fiber: string) => () => {
+    onUpdateVendorColor(color, fiber, {
+      truColorSrc: ""
+    });
+
+    // Forces row update
+    setEditing((prev) => ({...prev}));
+  }, [onUpdateVendorColor]);
+
   const onEdit = useCallback((vendorColor: VendorColor) => () => setEditing((prev) => ({...prev, [getVendorColorKey(vendorColor.color, vendorColor.fiber)]: {
     color: vendorColor.color,
     groups: vendorColor.groups,
@@ -1287,6 +1296,14 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     if (actionData?.stagedTarget) {
       handleUploadImage(actionData.stagedTarget, actionData.color, actionData.fiber, actionData.altText);
     }
+    else if (colorKey && colorFiles[colorKey] && colorFiles[colorKey].fileName.includes('trucolor')) {
+      onUpdateVendorColor(actionData.color, actionData.fiber, {
+        truColorSrc: actionData.imageSrc,
+      });
+
+      delete colorFiles[colorKey];
+      setColorFiles((prev) => ({...prev}));
+    }
     else if (colorKey && colorFiles[colorKey]) {
       onUpdateVendorColor(actionData.color, actionData.fiber, {
         imageSrc: actionData.imageSrc,
@@ -1316,6 +1333,24 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
     }, { method: "POST" });
   }, [currentVendor.name, setColorFiles, submit]);
 
+
+  const handleDropZoneDropTruColor = useCallback((color: string, fiber: string, altText: string | undefined) => async (_dropFiles: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
+    const acceptedFile = acceptedFiles[0];
+    const fileName = handleize(`${currentVendor.name}_${color}${fiber ? `_${fiberFileSuffix(fiber)}` : ''}_trucolor`);
+    const colorKey = getVendorColorKey(color, fiber);
+
+    setColorFiles((prev) => ({...prev, [colorKey]: { file: acceptedFile, fileName }}));
+
+    submit({
+      actionType: Action.StageColorImage,
+      color,
+      altText: altText ?? "",
+      file: JSON.stringify({ filename: fileName, mimeType: acceptedFile.type, fileSize: acceptedFile.size.toString()}),
+      fiber
+    }, { method: "POST" });
+  }, [currentVendor.name, setColorFiles, submit]);
+
+
   const rows = useMemo(() => {
     const selectedVendorColors = currentVendor.colors?.filter((color) => color.color.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
 
@@ -1331,8 +1366,8 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
           >
             <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
               <Box width="60px">
-                <DropZone onDrop={handleDropZoneDrop(vendorColor.color, vendorColor.fiber, vendorColor.altText)} allowMultiple={false} accept="image/png, image/jpeg, .webp">
-                  {colorFiles[colorKey] ? <Box paddingInline="500" paddingBlockStart="200"><Spinner accessibilityLabel="Loading Image" size="small" /></Box> : (
+                <DropZone onDrop={handleDropZoneDrop(vendorColor.color, vendorColor.fiber, vendorColor.altText)} allowMultiple={false} accept="image/png, image/jpeg, .webp" disabled={!!colorFiles[colorKey]}>
+                  {colorFiles[colorKey] && !colorFiles[colorKey].fileName.includes('trucolor') ? <Box paddingInline="500" paddingBlockStart="200"><Spinner accessibilityLabel="Loading Image" size="small" /></Box> : (
                     vendorColor.imageSrc ? (
                       <Thumbnail
                         size="medium"
@@ -1539,6 +1574,37 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
             </IndexTable.Cell>
 
             <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
+              <Box width="60px">
+                <DropZone onDrop={handleDropZoneDropTruColor(vendorColor.color, vendorColor.fiber, vendorColor.altText)} allowMultiple={false} accept="image/png, image/jpeg, .webp" disabled={!!colorFiles[colorKey]}>
+                  {colorFiles[colorKey] && colorFiles[colorKey].fileName.includes('trucolor') ? <Box paddingInline="500" paddingBlockStart="200"><Spinner accessibilityLabel="Loading Image" size="small" /></Box> : (
+                    vendorColor.truColorSrc ? (
+                      <Thumbnail
+                        size="medium"
+                        alt={`${vendorColor.color} TruColor Image`}
+                        source={vendorColor.truColorSrc}
+                      />
+                    ) : <DropZone.FileUpload />
+                  )}
+                </DropZone>
+              </Box>
+
+              {vendorColor.truColorSrc && editing[colorKey] && (
+                <span style={{margin: "0 12px"}}>
+                  <Button
+                    accessibilityLabel="Clear Image"
+                    variant="plain"
+                    tone="critical"
+                    textAlign="center"
+                    onClick={handleClearImageTruColor(vendorColor.color, vendorColor.fiber)}
+                    fullWidth
+                  >
+                    Clear
+                  </Button>
+                </span>
+              )}
+            </td>
+
+            <td style={{width: 0}} className="Polaris-IndexTable__TableCell">
               <InlineStack align="center">
                 <Button icon={DeleteIcon} accessibilityLabel="Delete Color Group" onClick={onDeleteVendorColor(vendorColor.color, vendorColor.fiber)} variant="primary" tone="critical" />
               </InlineStack>
@@ -1590,6 +1656,7 @@ function ColorGroupTable({currentVendor, onDeleteVendorColor, onUpdateVendorColo
             {title: 'Alt Text'},
             {title: 'Description'},
             {title: 'Features'},
+            {title: 'TruColor'},
             {title: 'Remove', alignment: 'center'},
             {title: 'Edit', alignment: 'center'}
           ]}

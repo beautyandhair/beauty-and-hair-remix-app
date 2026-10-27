@@ -7,7 +7,7 @@ application_url = "https://beauty-and-hair-remix-app-103600f41d3c.herokuapp.com/
 embedded = true
 
 [webhooks]
-api_version = "2025-01"
+api_version = "2026-10"
 
   [[webhooks.subscriptions]]
   topics = [ "app/scopes_update" ]
