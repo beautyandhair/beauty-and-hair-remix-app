@@ -177,6 +177,14 @@
         white-space: nowrap;
     }
 
+    .swatch-picker__box[data-groups*="sale"][data-sale-tier="20"]::after {
+        {%- if settings.live_override_20_tier != blank -%}
+        content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: settings.live_override_20_tier }}';
+        {%- else -%}
+        content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: 20 }}';
+        {%- endif -%}
+    }
+
     .swatch-picker__box[data-groups*="sale"][data-sale-tier="40"]::after {
         {%- if settings.live_override_40_tier != blank -%}
         content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: settings.live_override_40_tier }}';
