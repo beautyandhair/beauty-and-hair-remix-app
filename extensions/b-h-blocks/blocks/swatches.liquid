@@ -185,6 +185,14 @@
         {%- endif -%}
     }
 
+    .swatch-picker__box[data-groups*="sale"][data-sale-tier="30"]::after {
+        {%- if settings.live_override_30_tier != blank -%}
+        content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: settings.live_override_30_tier }}';
+        {%- else -%}
+        content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: 30 }}';
+        {%- endif -%}
+    }
+
     .swatch-picker__box[data-groups*="sale"][data-sale-tier="40"]::after {
         {%- if settings.live_override_40_tier != blank -%}
         content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: settings.live_override_40_tier }}';
@@ -201,11 +209,27 @@
         {%- endif -%}
     }
 
+    .swatch-picker__box[data-groups*="sale"][data-sale-tier="60"]::after {
+        {%- if settings.live_override_60_tier != blank -%}
+        content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: settings.live_override_60_tier }}';
+        {%- else -%}
+        content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: 60 }}';
+        {%- endif -%}
+    }
+
     .swatch-picker__box[data-groups*="sale"][data-sale-tier="70"]::after {
         {%- if settings.live_override_70_tier != blank -%}
         content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: settings.live_override_70_tier }}';
         {%- else -%}
         content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: 70 }}';
+        {%- endif -%}
+    }
+
+    .swatch-picker__box[data-groups*="sale"][data-sale-tier="80"]::after {
+        {%- if settings.live_override_80_tier != blank -%}
+        content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: settings.live_override_80_tier }}';
+        {%- else -%}
+        content: '{{ 'swatch-picker.clearance.percent_off' | t: percent: 80 }}';
         {%- endif -%}
     }
 
