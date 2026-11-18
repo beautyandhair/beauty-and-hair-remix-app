@@ -1,5 +1,5 @@
 {%- if variant -%}
-    <label class="swatch-picker__box" data-groups="{{ variant.metafields.custom.color_group.value | join: ',' }}{% if block.settings.live_price_drops_enable and variant.metafields.global.CLEARANCE.value == "true" %},sale{% endif %}" {% if block.settings.live_price_drops_enable and variant.metafields.custom.clearance_tier.value %}data-sale-tier="{{ variant.metafields.custom.clearance_tier.value }}"{% endif %}>
+    <label class="swatch-picker__box" data-groups="{{ variant.metafields.custom.color_group.value | join: ',' }}{% if block.settings.live_price_drops_enable and variant.metafields.global.CLEARANCE.value == "true" and variant.available %},sale{% endif %}" {% if block.settings.live_price_drops_enable and variant.metafields.custom.clearance_tier.value and variant.available %}data-sale-tier="{{ variant.metafields.custom.clearance_tier.value }}"{% endif %}>
         <input type="radio" name="swatch_color" value="{{ variant.title }}" class="hidden" {% if variant.selected %}checked{% endif %}>
         <img
             data-available="{{ variant.available }}"
@@ -13,6 +13,7 @@
             height="76"
             width="57"
             {% if variant.metafields.global.color_banner.value %}data-high-return="true"{% endif %}
+            {% if variant.metafields.live_show_special.reference %}data-live-show-special="true"{% endif %}
         >
     </label>
 {% endif %}

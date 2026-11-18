@@ -126,6 +126,32 @@
         display: flex !important;
     }
 
+    #live-show-special-banner {
+        text-decoration: none;
+        display: block;
+        width: max-content;
+        margin-top: -8px;
+    }
+
+    #live-show-special-banner > div {
+        border: 1px solid {{ block.settings.brand_color }};
+        width: max-content;
+        color: {{ block.settings.brand_color }};
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 2px 12px;
+    }
+
+    #live-show-special-banner.hidden {
+        display: none;
+    }
+
+    #live-show-special-banner:has(~ .swatch-picker__container label > input:checked + img[data-live-show-special="true"]) {
+        display: flex !important;
+    }
+
     .swatch-picker__blends--container {
         display: flex;
         line-height: normal;
@@ -327,6 +353,18 @@
             </li>
         {%- endif -%}
     </ul>
+
+    {%- if block.settings.live_show_special_banner and product.metafields.live_show_special.reference -%}
+    <a id="live-show-special-banner" class="hidden" href="{{ product.metafields.live_show_special.reference.value.url }}">
+        <div>
+            <span>{{ block.settings.live_show_special_message }}</span>
+
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" width="16" height="16" stroke-width="1.5" stroke="{{ block.settings.brand_color }}" class="icon icon-nav-arrow-right">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"></path>
+            </svg>
+        </div>
+    </a>
+    {%- endif -%}
 
     {%- if block.settings.live_price_drops_enable and has_clearance contains "true" and block.settings.live_price_drops_message != blank -%}
         <div class="swatch-picker__sale-message hidden">
@@ -744,6 +782,23 @@
         "type": "image_picker",
         "id": "only_at_divider",
         "label": "Only at [STORE]"
+    },
+    {
+        "type": "header",
+        "content": "Live Show Special"
+    },
+    {
+        "type" : "checkbox",
+        "id" : "live_show_special_banner",
+        "default" : false,
+        "label" : "Enable Live Show Special Banner"
+    },
+    {
+        "type" : "text",
+        "id" : "live_show_special_message",
+        "default" : "Live Show Special",
+        "label" : "Banner Message",
+        "visible_if": "{{ block.settings.live_show_special_banner }}"
     }
   ]
 }
